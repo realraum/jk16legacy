@@ -3,5 +3,5 @@
 all: mifare-read
 
 mifare-read: mifare-read.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -lrfid -o $@ $<
 
