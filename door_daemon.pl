@@ -55,13 +55,15 @@ my $read_set = new IO::Select();
 
 sub open_fifo
 {
-	print "open fifo\n"; sysopen($fifo,$fifofile, O_RDONLY | O_NONBLOCK); print "x\n";
+	#print "open fifo\n"; 
+	sysopen($fifo,$fifofile, O_RDONLY | O_NONBLOCK); 
+	#print "x\n";
 	 $read_set->add($fifo); 
 }
 
 sub open_usb
 {
-	print "open usb\n";
+	#print "open usb\n";
 	sysopen($ttyusb, $door_ttyusb_dev, O_RDWR | O_NONBLOCK); 
 	$ttyusb->autoflush(1);
 	my $termios = POSIX::Termios->new;
@@ -70,7 +72,7 @@ sub open_usb
 	$termios->setospeed( &POSIX::B9600 );
 	#$termios->setcflag( $termios->getcflag & ~(&POSIX::PARENB | &POSIX::PARODD) & (~&POSIX::CSIZE | &POSIX::CS8));
 	$termios->setattr(fileno $ttyusb);
-	print "x\n";
+	#print "x\n";
 	$read_set->add($ttyusb); 
 }
 
@@ -94,7 +96,7 @@ print $ttyusb "s";
 while(1)
 {
 	my ($rh_set) = IO::Select->select($read_set, undef, undef);
-	print "tuer_status_start: ".$main::tuer_status,"\n";
+	#print "tuer_status_start: ".$main::tuer_status,"\n";
 	foreach my $fh (@$rh_set)
 	{
 		if ($fh == $fifo)
@@ -103,7 +105,7 @@ while(1)
 			unless ($fifo_msg)
 			{
 				close_fifo();
-				sleep(0.5);
+				#sleep(0.1);
 				open_fifo();
 				last;
 			}
@@ -116,42 +118,44 @@ while(1)
 		{
 			my $ttyusb_msg = <$fh>;
 			last unless ($ttyusb_msg);
-			print($ttyusb_msg);
+			#print($ttyusb_msg);
 			door_log($door_ttyusb_dev.": ".$ttyusb_msg);
+			if ($ttyusb_msg =~ /took too long!/)
+			{
+				door_log("Got '".$ttyusb_msg."'.  Sending Reset..");
+				print $ttyusb "r";
+				$main::tuer_status=$main::door_closed;
+				$main::tuer_future_status=$main::tuer_status;
+				last;
+			}			
 			$main::tuer_status = $main::tuer_future_status if $ttyusb_msg =~ /^Ok/;
 			my $tuer=$main::tuer_status;
 			$tuer=$main::door_open if $ttyusb_msg =~ /open/;
 			$tuer=$main::door_closed if $ttyusb_msg =~ /close|closing/;
-			if ($ttyusb_msg =~ /took too long!/)
-			{
-				log("Got '".$ttyusb_msg."'.  Sending Reset..");
-				print $ttyusb "r";
-				last;
-			}
 			if (not $tuer == $main::tuer_status)
 			{
 				$main::tuer_status=$tuer;
 				if ($tuer == $main::door_open)
 				{
-					print "change to open\n";
+					#print "change to open\n";
 					system('wget --no-check-certificate -q -O /dev/null '.$url_door_open.' &>/dev/null &');
 				}
 				else
 				{
-					print "change to closed\n";
+					#print "change to closed\n";
 					system('wget --no-check-certificate -q -O /dev/null '.$url_door_closed.' &>/dev/null &');
 				}
 			}
 		}
 	}
-	print "tuer_status_end: ".$main::tuer_status,"\n------------\n";
+	#print "tuer_status_end: ".$main::tuer_status,"\n------------\n";
 }
 
 sub handle_cmd
 {
 	my $cmd = shift;
 	my $who = shift;
-	print "c:'$cmd' w:'$who'\n";
+	#print "c:'$cmd' w:'$who'\n";
 	my $tuer=$main::tuer_status;
 	if    ($cmd eq "open")   { $tuer=$main::door_open; }
 	elsif ($cmd eq "close")  {$tuer=$main::door_closed; }
