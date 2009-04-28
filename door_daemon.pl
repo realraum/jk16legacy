@@ -50,70 +50,92 @@ $SIG{'INT'} = 'handler';
 $SIG{'QUIT'} = 'handler';
 $SIG{'KILL'} = 'handler';
 
-while (1)
+my $read_set = new IO::Select();
+
+sub open_fifo
 {
-	unless (defined $ttyusb) {
-		print "open usb\n";
-		sysopen($ttyusb, $door_ttyusb_dev, O_RDWR | O_NONBLOCK); 
-		$ttyusb->autoflush(1);
-		my $termios = POSIX::Termios->new;
-		$termios->getattr(fileno $ttyusb);
-		$termios->setispeed( &POSIX::B9600 );
-		$termios->setospeed( &POSIX::B9600 );
-		#$termios->setcflag( $termios->getcflag & ~(&POSIX::PARENB | &POSIX::PARODD) & (~&POSIX::CSIZE | &POSIX::CS8));
-		$termios->setattr(fileno $ttyusb);
-		print "x\n";
-	}
-	unless (defined $fifo) {print "open fifo\n"; sysopen($fifo,$fifofile, O_RDONLY | O_NONBLOCK); print "x\n";}
-	my $read_set = new IO::Select();
+	print "open fifo\n"; sysopen($fifo,$fifofile, O_RDONLY | O_NONBLOCK); print "x\n";
 	 $read_set->add($fifo); 
-	 $read_set->add($ttyusb); 
-	print $ttyusb "s";
+}
+
+sub open_usb
+{
+	print "open usb\n";
+	sysopen($ttyusb, $door_ttyusb_dev, O_RDWR | O_NONBLOCK); 
+	$ttyusb->autoflush(1);
+	my $termios = POSIX::Termios->new;
+	$termios->getattr(fileno $ttyusb);
+	$termios->setispeed( &POSIX::B9600 );
+	$termios->setospeed( &POSIX::B9600 );
+	#$termios->setcflag( $termios->getcflag & ~(&POSIX::PARENB | &POSIX::PARODD) & (~&POSIX::CSIZE | &POSIX::CS8));
+	$termios->setattr(fileno $ttyusb);
+	print "x\n";
+	$read_set->add($ttyusb); 
+}
+
+sub close_fifo
+{
+	$read_set->remove($fifo);
+	close($fifo);
+}
+
+sub close_usb
+{
+	$read_set->remove($ttyusb);
+	close($ttyusb);
+}
+
+&open_usb;
+&open_fifo;
+
+print $ttyusb "s";
 	 
-	do
+while(1)
+{
+	print $main::tuer_status,"\n";
+	my ($rh_set) = IO::Select->select($read_set, undef, undef);
+	foreach my $fh (@$rh_set)
 	{
-		print $main::tuer_status,"\n";
-		my ($rh_set) = IO::Select->select($read_set, undef, undef);
-		foreach my $fh (@$rh_set)
+		if ($fh == $fifo)
 		{
-			if ($fh == $fifo)
+			my $fifo_msg = <$fh>;
+			unless ($fifo_msg)
 			{
-				my $fifo_msg = <$fh>;
-				last unless ($fifo_msg);
-				if ($fifo_msg =~ /^(\w+)\s*(.*)/) 
-				{
-					handle_cmd($1,$2);
-				}
+				close_fifo();
+				sleep(0.5);
+				open_fifo();
+				last;
 			}
-			elsif ($fh == $ttyusb)
+			if ($fifo_msg =~ /^(\w+)\s*(.*)/) 
 			{
-				my $ttyusb_msg = <$fh>;
-				last unless ($ttyusb_msg);
-				print($ttyusb_msg);
-				door_log($door_ttyusb_dev.": ".$ttyusb_msg);
-				my $tuer=$main::tuer_status;
-				$tuer=$main::door_open if $ttyusb_msg =~ /open/;
-				$tuer=$main::door_closed if $ttyusb_msg =~ /close/;
-				if (not $tuer == $main::tuer_status)
+				handle_cmd($1,$2);
+			}
+		}
+		elsif ($fh == $ttyusb)
+		{
+			my $ttyusb_msg = <$fh>;
+			last unless ($ttyusb_msg);
+			print($ttyusb_msg);
+			door_log($door_ttyusb_dev.": ".$ttyusb_msg);
+			my $tuer=$main::tuer_status;
+			$tuer=$main::door_open if $ttyusb_msg =~ /open/;
+			$tuer=$main::door_closed if $ttyusb_msg =~ /close|closing/;
+			if (not $tuer == $main::tuer_status)
+			{
+				$main::tuer_status=$tuer;
+				if ($tuer == $main::door_open)
 				{
-					$main::tuer_status=$tuer;
-					if ($tuer == $main::door_open)
-					{
-						print "change to open\n";
-						system('wget --no-check-certificate -q -O /dev/null '.$url_door_open.' &>/dev/null &');
-					}
-					else
-					{
-						print "change to closed\n";
-						system('wget --no-check-certificate -q -O /dev/null '.$url_door_closed.' &>/dev/null &');
-					}
+					print "change to open\n";
+					system('wget --no-check-certificate -q -O /dev/null '.$url_door_open.' &>/dev/null &');
+				}
+				else
+				{
+					print "change to closed\n";
+					system('wget --no-check-certificate -q -O /dev/null '.$url_door_closed.' &>/dev/null &');
 				}
 			}
 		}
-	} until(0); #until (eof $fifo or eof $ttyusb);
-	print("eof\n");
-	if (eof $fifo) {print "eof fifo\n"; close($fifo); $fifo=undef; print "closed fifo\n";}
-	if (eof $ttyusb) {print "eof ttyusb\n"; close($ttyusb); $ttyusb=undef; print "closed ttyusb\n";}
+	}
 }
 
 sub handle_cmd
@@ -130,6 +152,7 @@ sub handle_cmd
 	
 	if (not $tuer == $main::tuer_status)
 	{
+		$main::tuer_status=$tuer;
 		if ($tuer == $main::door_open)
 		{
 			door_log("Door opened by $who");
