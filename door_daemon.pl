@@ -32,6 +32,7 @@ door_log("Door Daemon started");
 $main::door_open=1;
 $main::door_closed=0;
 $main::tuer_status=$main::door_closed;
+$main::tuer_future_status=$main::tuer_status;
 #system('wget --no-check-certificate -q -O /dev/null '.$url_door_closed.' &>/dev/null &');
 
 
@@ -92,8 +93,8 @@ print $ttyusb "s";
 	 
 while(1)
 {
-	print $main::tuer_status,"\n";
 	my ($rh_set) = IO::Select->select($read_set, undef, undef);
+	print "tuer_status_start: ".$main::tuer_status,"\n";
 	foreach my $fh (@$rh_set)
 	{
 		if ($fh == $fifo)
@@ -117,9 +118,16 @@ while(1)
 			last unless ($ttyusb_msg);
 			print($ttyusb_msg);
 			door_log($door_ttyusb_dev.": ".$ttyusb_msg);
+			$main::tuer_status = $main::tuer_future_status if $ttyusb_msg =~ /^Ok/;
 			my $tuer=$main::tuer_status;
 			$tuer=$main::door_open if $ttyusb_msg =~ /open/;
 			$tuer=$main::door_closed if $ttyusb_msg =~ /close|closing/;
+			if ($ttyusb_msg =~ /took too long!/)
+			{
+				log("Got '".$ttyusb_msg."'.  Sending Reset..");
+				print $ttyusb "r";
+				last;
+			}
 			if (not $tuer == $main::tuer_status)
 			{
 				$main::tuer_status=$tuer;
@@ -136,6 +144,7 @@ while(1)
 			}
 		}
 	}
+	print "tuer_status_end: ".$main::tuer_status,"\n------------\n";
 }
 
 sub handle_cmd
@@ -152,7 +161,7 @@ sub handle_cmd
 	
 	if (not $tuer == $main::tuer_status)
 	{
-		$main::tuer_status=$tuer;
+		$main::tuer_future_status=$tuer;
 		if ($tuer == $main::door_open)
 		{
 			door_log("Door opened by $who");
