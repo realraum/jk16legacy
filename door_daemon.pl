@@ -6,8 +6,8 @@ use Date::Format;
 use Fcntl; 
 use strict;
 
-my $url_door_open = "https://www.realraum.at/";
-my $url_door_closed = "https://www.realraum.at/";
+my $url_door_open = 'https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22lime%22%3E%3Ch3%3E%3Ccenter%3ETuer%20ist%20Offen%3C/center%3E%3C/h3%3E%3C/body%3E%3C/html%3E';
+my $url_door_closed = 'https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22red%22%3E%3Ch3%3E%3Ccenter%3ETuer%20ist%20Geschlossen%3C/center%3E%3C/h3%3E%3C/body%3E%3C/html%3E';
 
 my $door_ttyusb_dev = "/dev/ttyUSB0";
 my $fifofile = "/tmp/door_cmd.fifo";
@@ -24,7 +24,9 @@ open($logfile,'>>/var/log/tuer.log');
 $logfile->autoflush(1);
 sub door_log
 {
-  print $logfile Date::Format::time2str("%Y-%m-%d %T: ",time()).shift()."\n";
+  my $msg=shift;
+  chomp($msg);
+  print $logfile Date::Format::time2str("%Y-%m-%d %T: ",time()).$msg."\n";
 }
 door_log("Door Daemon started");
 
@@ -41,6 +43,7 @@ my $ttyusb=undef;
 sub handler
 {
   #local($sig) = @_;
+  print $ttyusb "c" if (defined $ttyusb);
   door_log("Door Daemon stopped");
   close $logfile;
   close $fifo if (defined $fifo);
@@ -97,11 +100,12 @@ while(1)
 {
 	my ($rh_set) = IO::Select->select($read_set, undef, undef);
 	#print "tuer_status_start: ".$main::tuer_status,"\n";
+	sleep(1); #give other end time to finish writing... (bad fix)
 	foreach my $fh (@$rh_set)
 	{
 		if ($fh == $fifo)
 		{
-			my $fifo_msg = <$fh>;
+			my $fifo_msg = readline($fh);
 			unless ($fifo_msg)
 			{
 				close_fifo();
@@ -116,7 +120,7 @@ while(1)
 		}
 		elsif ($fh == $ttyusb)
 		{
-			my $ttyusb_msg = <$fh>;
+			my $ttyusb_msg = readline($fh);
 			last unless ($ttyusb_msg);
 			#print($ttyusb_msg);
 			door_log($door_ttyusb_dev.": ".$ttyusb_msg);
@@ -132,18 +136,21 @@ while(1)
 			my $tuer=$main::tuer_status;
 			$tuer=$main::door_open if $ttyusb_msg =~ /open/;
 			$tuer=$main::door_closed if $ttyusb_msg =~ /close|closing/;
-			if (not $tuer == $main::tuer_status)
+			door_log("$tuer");
+			if (not ($tuer == $main::tuer_status))
 			{
 				$main::tuer_status=$tuer;
 				if ($tuer == $main::door_open)
 				{
+					door_log("change to opened");
 					#print "change to open\n";
-					system('wget --no-check-certificate -q -O /dev/null '.$url_door_open.' &>/dev/null &');
+					system('wget --no-check-certificate -q -O /dev/null "'.$url_door_open.'" &>/dev/null &');
 				}
 				else
 				{
 					#print "change to closed\n";
-					system('wget --no-check-certificate -q -O /dev/null '.$url_door_closed.' &>/dev/null &');
+					door_log("change to closed");
+					system('wget --no-check-certificate -q -O /dev/null "'.$url_door_closed.'" &>/dev/null &');
 				}
 			}
 		}
@@ -170,13 +177,13 @@ sub handle_cmd
 		{
 			door_log("Door opened by $who");
 			print $ttyusb "o";
-			system('wget --no-check-certificate -q -O /dev/null '.$url_door_open.' &>/dev/null &');
+			system('wget --no-check-certificate -q -O /dev/null "'.$url_door_open.'" &>/dev/null &');
 		}
 		else
 		{
 			door_log("Door closed by $who");
 			print $ttyusb "c";
-			system('wget --no-check-certificate -q -O /dev/null '.$url_door_closed.' &>/dev/null &');
+			system('wget --no-check-certificate -q -O /dev/null "'.$url_door_closed.'" &>/dev/null &');
 		}
 		
 	}	
