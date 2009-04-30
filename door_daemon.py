@@ -50,7 +50,8 @@ class ArduinoUSBThread ( threading.Thread ):
     self.cv_updatestatus = threading.Condition(); #lock ist automatically created withing condition
     self.file_dev_ttyusb=file_dev_ttyusb
     #self.fh = open(self.file_dev_ttyusb,"w+")
-    self.fh = os.fdopen(os.open(self.file_dev_ttyusb, os.O_RDWR | os.O_NONBLOCK),"r+")
+    self.fh = os.fdopen(os.open(self.file_dev_ttyusb, os.O_RDWR | os.O_NONBLOCK),"r+") 
+    #pythons sucks just like perl: we need nonblock or we can't write to FileHandle while we block reading on same filehandle
     self.statusdisplay = StatusDisplay()
     threading.Thread.__init__(self)
     
@@ -205,6 +206,8 @@ arduino = ArduinoUSBThread("/dev/ttyUSB0")
 arduino.start()
 ctrlfifo = ControlFIFOThread(fifofile,arduino)
 ctrlfifo.start()
+
+arduino.send_statusrequest()
 
 def exit_handler(signum, frame):
   global arduino, ctrlfifo
