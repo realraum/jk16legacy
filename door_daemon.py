@@ -47,6 +47,7 @@ class ArduinoUSBThread ( threading.Thread ):
     self.running=True
     self.lastline=""
     self.last_status=None
+    self.shortsleep = 0
     self.cv_updatestatus = threading.Condition(); #lock ist automatically created withing condition
     self.file_dev_ttyusb=file_dev_ttyusb
     #self.fh = open(self.file_dev_ttyusb,"w+")
@@ -94,15 +95,17 @@ class ArduinoUSBThread ( threading.Thread ):
       self.cv_updatestatus.release()
       
   def send_reset(self):
-    logging.info("Resetting Door")
-    print("\nSending r..")
+    self.shortsleep = 20
+    logging.info("Resetting Door")    
+    #print("\nSending r..")
     self.fh.write("r");
-    print("done\n")
+    #print("done\n")
 
   def send_statusrequest(self):
-    print("\nSending s..")
+    self.shortsleep = 20
+    #print("\nSending s..")
     self.fh.write("s");
-    print("done\n")
+    #print("done\n")
     self.cv_updatestatus.acquire()
     self.cv_updatestatus.wait(5.0)
     self.cv_updatestatus.release()        
@@ -112,7 +115,11 @@ class ArduinoUSBThread ( threading.Thread ):
       try:
         line = self.fh.readline();
       except IOError, e:
-        time.sleep(0.5)
+        if self.shortsleep > 0:
+          time.sleep(0.05)
+	  self.shortsleep -= 1
+        else:
+          time.sleep(0.5)
         continue
       self.cv_updatestatus.acquire()
       self.lastline=line.strip()
