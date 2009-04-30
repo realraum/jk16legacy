@@ -22,7 +22,7 @@ class StatusDisplay():
   def display_open(self):
     if self.last_status_set != self.url_open:
       self.last_status_set=self.url_open
-      print "accessing %s\n" % self.last_status_set
+      #print "accessing %s\n" % self.last_status_set
       f = urllib.urlopen(self.last_status_set)
       f.read()
       f.close()
@@ -30,7 +30,7 @@ class StatusDisplay():
   def display_closed(self):
     if self.last_status_set != self.url_closed:
       self.last_status_set=self.url_closed
-      print "accessing %s\n" % self.last_status_set
+      #print "accessing %s\n" % self.last_status_set
       f = urllib.urlopen(self.last_status_set)
       f.read()
       f.close()
@@ -62,26 +62,35 @@ class ArduinoUSBThread ( threading.Thread ):
 
   def send_open(self):
     self.send_statusrequest()
+    self.cv_updatestatus.acquire()
     if self.re_isidle.search(self.lastline):
       logging.info("Opening Door")
       print("\nSending o..")
       self.fh.write("o");
       print("done\n")
+    self.cv_updatestatus.release()
     
   def send_close(self):
     self.send_statusrequest()
+    self.cv_updatestatus.acquire()
     if self.re_isidle.search(self.lastline):
       logging.info("Closing Door")
       print("\nSending c..")
       self.fh.write("c");
       print("done\n")
+    self.cv_updatestatus.release()
       
   def send_toggle(self):
     self.send_statusrequest()
+    self.cv_updatestatus.acquire()
     if self.last_status == "open":
+      self.cv_updatestatus.release()
       self.send_close()
     elif self.last_status == "closed":
+      self.cv_updatestatus.release()
       self.send_open()
+    else:
+      self.cv_updatestatus.release()
       
   def send_reset(self):
     logging.info("Resetting Door")
@@ -102,9 +111,8 @@ class ArduinoUSBThread ( threading.Thread ):
       try:
         line = self.fh.readline();
       except IOError, e:
-        time.sleep(1.0)
+        time.sleep(0.5)
         continue
-      print "l"
       self.cv_updatestatus.acquire()
       self.lastline=line
       logging.info(self.file_dev_ttyusb+": "+self.lastline)
