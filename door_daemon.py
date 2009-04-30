@@ -16,7 +16,7 @@ class StatusDisplay():
   def __init__(self):
     self.url_open = 'https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22lime%22%3E%3Ch3%3E%3Ccenter%3ETuer%20ist%20Offen%3C/center%3E%3C/h3%3E%3C/body%3E%3C/html%3E';
     self.url_closed = 'https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22red%22%3E%3Ch3%3E%3Ccenter%3ETuer%20ist%20Geschlossen%3C/center%3E%3C/h3%3E%3C/body%3E%3C/html%3E';
-    self.last_status_set=self.url_open
+    self.last_status_set=""
     #object.__init__(self)
     
   def display_open(self):
@@ -38,7 +38,7 @@ class StatusDisplay():
 
 class ArduinoUSBThread ( threading.Thread ):
   def __init__(self, file_dev_ttyusb):
-    self.re_isidle = re.compile(r'open')
+    self.re_isidle = re.compile(r'idle')
     self.re_isopen = re.compile(r'open')
     self.re_isclosed = re.compile(r'close|closing')
     self.re_toolong = re.compile(r'took too long!')
@@ -49,15 +49,16 @@ class ArduinoUSBThread ( threading.Thread ):
     self.last_status=None
     self.cv_updatestatus = threading.Condition(); #lock ist automatically created withing condition
     self.file_dev_ttyusb=file_dev_ttyusb
-    self.fh = open(self.file_dev_ttyusb,"w+")
+    #self.fh = open(self.file_dev_ttyusb,"w+")
+    self.fh = os.fdopen(os.open(self.file_dev_ttyusb, os.O_RDWR | os.O_NONBLOCK ),"r+")
     self.statusdisplay = StatusDisplay()
     threading.Thread.__init__(self)
     
   def stop(self):
     self.running=False
     self.fh.close()
-    if (self.readfh):
-      self.readfh.close()
+    if (self.fh):
+      self.fh.close()
 
   def send_open(self):
     self.send_statusrequest()
@@ -93,14 +94,16 @@ class ArduinoUSBThread ( threading.Thread ):
     self.fh.write("s");
     print("done\n")
     self.cv_updatestatus.acquire()
-    self.cv_updatestatus.wait(3.0)
+    self.cv_updatestatus.wait(5.0)
     self.cv_updatestatus.release()        
 
   def run (self):
-    self.readfh = open(self.file_dev_ttyusb,"r")
-    while (self.running and self.readfh):
-      print "."
-      line = self.readfh.readline();
+    while (self.running and self.fh):
+      try:
+        line = self.fh.readline();
+      except IOError, e:
+        time.sleep(1.0)
+        continue
       print "l"
       self.cv_updatestatus.acquire()
       self.lastline=line
@@ -118,8 +121,8 @@ class ArduinoUSBThread ( threading.Thread ):
           self.send_reset()
       self.cv_updatestatus.notifyAll()
       self.cv_updatestatus.release()
-    if self.readfh:
-      self.readfh.close()
+    if self.fh:
+      self.fh.close()
 
 class ControlFIFOThread ( threading.Thread ):
   def __init__(self, file_fifo, arduino):
@@ -142,11 +145,10 @@ class ControlFIFOThread ( threading.Thread ):
     self.socket.bind(self.file_fifo)
     self.socket.listen(1)
     while (self.running):
-      print "."
       self.socketconn, addr = self.socket.accept()
       self.conn = os.fdopen(self.socketconn.fileno())
       print "a"
-      while self.socketconn:
+      while 1:
         #~ line=""
         #~ while 1:
           #~ print "d"
@@ -156,6 +158,8 @@ class ControlFIFOThread ( threading.Thread ):
           #~ else:
             #~ line+= data
         line=self.conn.readline()
+        if not line:
+          break
         print "f"
         m = self.re_cmd.match(line)
         if not m is None:
