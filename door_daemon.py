@@ -50,7 +50,7 @@ class ArduinoUSBThread ( threading.Thread ):
     self.cv_updatestatus = threading.Condition(); #lock ist automatically created withing condition
     self.file_dev_ttyusb=file_dev_ttyusb
     #self.fh = open(self.file_dev_ttyusb,"w+")
-    self.fh = os.fdopen(os.open(self.file_dev_ttyusb, os.O_RDWR | os.O_NONBLOCK ),"r+")
+    self.fh = os.fdopen(os.open(self.file_dev_ttyusb, os.O_RDWR | os.O_NONBLOCK),"r+")
     self.statusdisplay = StatusDisplay()
     threading.Thread.__init__(self)
     
@@ -201,8 +201,6 @@ class ControlFIFOThread ( threading.Thread ):
 
 fifofile = "/tmp/door_cmd.socket"
 
-logging.info("Door Daemon started")
-
 arduino = ArduinoUSBThread("/dev/ttyUSB0")
 arduino.start()
 ctrlfifo = ControlFIFOThread(fifofile,arduino)
@@ -216,6 +214,10 @@ def exit_handler(signum, frame):
   arduino.stop()
   sys.exit(0)
   
-signal.signal(signal.SIGTERM, exit_handler)
+#signal.signal(signal.SIGTERM, exit_handler)
 signal.signal(signal.SIGINT, exit_handler)
 signal.signal(signal.SIGQUIT, exit_handler)
+
+logging.info("Door Daemon started")
+arduino.join()
+ctrlfifo.join()
