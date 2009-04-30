@@ -39,8 +39,8 @@ class StatusDisplay():
 class ArduinoUSBThread ( threading.Thread ):
   def __init__(self, file_dev_ttyusb):
     self.re_isidle = re.compile(r'idle')
-    self.re_isopen = re.compile(r'open')
-    self.re_isclosed = re.compile(r'close|closing')
+    self.re_isopen = re.compile(r'Status: opened, idle')
+    self.re_isclosed = re.compile(r'Status: closed, idle')
     self.re_toolong = re.compile(r'took too long!')
     self.min_seconds_between_reset=10;
     self.timestamp_send_reset=0;
@@ -114,14 +114,14 @@ class ArduinoUSBThread ( threading.Thread ):
         time.sleep(0.5)
         continue
       self.cv_updatestatus.acquire()
-      self.lastline=line
+      self.lastline=line.strip()
       logging.info(self.file_dev_ttyusb+": "+self.lastline)
       if self.re_isclosed.search(self.lastline):
         self.last_status="closed"
-        self.statusdisplay.display_open()
+        self.statusdisplay.display_closed()
       elif self.re_isopen.search(self.lastline):
         self.last_status="open"
-        self.statusdisplay.display_closed()
+        self.statusdisplay.display_open()
       elif self.re_toolong.search(self.lastline):
         self.last_status="error"
         if (time.time() - self.timestamp_send_reset) > self.min_seconds_between_reset:
@@ -214,6 +214,7 @@ def exit_handler(signum, frame):
   arduino.stop()
   sys.exit(0)
   
+#signals proapbly don't work because of readline
 #signal.signal(signal.SIGTERM, exit_handler)
 signal.signal(signal.SIGINT, exit_handler)
 signal.signal(signal.SIGQUIT, exit_handler)
