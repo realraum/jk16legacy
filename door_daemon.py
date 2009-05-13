@@ -11,7 +11,7 @@ import re
 import socket
 import serial
 
-logging.basicConfig(level=logging.INFO,filename='/var/log/tuer.log',format="%(asctime)s %(message)s",datefmt="%Y-%m-%d %H:%M")
+logging.basicConfig(level=logging.INFO,filename='/var/log/tmp/tuer.log',format="%(asctime)s %(message)s",datefmt="%Y-%m-%d %H:%M")
 
 class StatusDisplay():
   def __init__(self):
