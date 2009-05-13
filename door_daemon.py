@@ -9,6 +9,7 @@ import time
 import signal
 import re
 import socket
+import serial
 
 logging.basicConfig(level=logging.INFO,filename='/var/log/tuer.log',format="%(asctime)s %(message)s",datefmt="%Y-%m-%d %H:%M")
 
@@ -50,26 +51,22 @@ class ArduinoUSBThread ( threading.Thread ):
     self.shortsleep = 0
     self.cv_updatestatus = threading.Condition(); #lock ist automatically created withing condition
     self.file_dev_ttyusb=file_dev_ttyusb
-    #self.fh = open(self.file_dev_ttyusb,"w+")
-    self.fh = os.fdopen(os.open(self.file_dev_ttyusb, os.O_RDWR | os.O_NONBLOCK),"r+") 
+    self.dev = serial.Serial(port=file_dev_ttyusb, baudrate=9600,timeout=60)
     #pythons sucks just like perl: we need nonblock or we can't write to FileHandle while we block reading on same filehandle
     self.statusdisplay = StatusDisplay()
     threading.Thread.__init__(self)
     
   def stop(self):
     self.running=False
-    self.fh.close()
-    if (self.fh):
-      self.fh.close()
+    if (self.dev.isOpen()):
+      self.dev.close()
 
   def send_open(self):
     self.send_statusrequest()
     self.cv_updatestatus.acquire()
     if self.re_isidle.search(self.lastline):
       logging.info("Opening Door")
-      print("\nSending o..")
-      self.fh.write("o");
-      print("done\n")
+      self.dev.write("o");
     self.cv_updatestatus.release()
     
   def send_close(self):
@@ -77,49 +74,35 @@ class ArduinoUSBThread ( threading.Thread ):
     self.cv_updatestatus.acquire()
     if self.re_isidle.search(self.lastline):
       logging.info("Closing Door")
-      print("\nSending c..")
-      self.fh.write("c");
-      print("done\n")
+      self.dev.write("c");
     self.cv_updatestatus.release()
       
   def send_toggle(self):
     self.send_statusrequest()
     self.cv_updatestatus.acquire()
-    if self.last_status == "open":
-      self.cv_updatestatus.release()
-      self.send_close()
-    elif self.last_status == "closed":
-      self.cv_updatestatus.release()
-      self.send_open()
-    else:
-      self.cv_updatestatus.release()
-      
+    if self.re_isidle.search(self.lastline):
+      logging.info("Toggling Door")
+      self.dev.write("t");
+    self.cv_updatestatus.release()
+    
   def send_reset(self):
     self.shortsleep = 20
     logging.info("Resetting Door")    
-    #print("\nSending r..")
-    self.fh.write("r");
-    #print("done\n")
+    self.dev.write("r");
 
   def send_statusrequest(self):
     self.shortsleep = 20
-    #print("\nSending s..")
-    self.fh.write("s");
-    #print("done\n")
+    self.dev.write("s");
     self.cv_updatestatus.acquire()
     self.cv_updatestatus.wait(5.0)
     self.cv_updatestatus.release()        
 
   def run (self):
-    while (self.running and self.fh):
-      try:
-        line = self.fh.readline();
-      except IOError, e:
-        if self.shortsleep > 0:
-          time.sleep(0.05)
-	  self.shortsleep -= 1
-        else:
-          time.sleep(0.5)
+    if not self.dev.isOpen():
+      self.dev.open()
+    while (self.running and self.dev.isOpen()):
+      line = self.dev.readline()
+      if len(line) == 0:
         continue
       self.cv_updatestatus.acquire()
       self.lastline=line.strip()
@@ -137,8 +120,8 @@ class ArduinoUSBThread ( threading.Thread ):
           self.send_reset()
       self.cv_updatestatus.notifyAll()
       self.cv_updatestatus.release()
-    if self.fh:
-      self.fh.close()
+    if self.dev.isOpen():
+      self.dev.close()
 
 class ControlFIFOThread ( threading.Thread ):
   def __init__(self, file_fifo, arduino):
@@ -150,7 +133,7 @@ class ControlFIFOThread ( threading.Thread ):
   
   def stop(self):
     self.running=False
-    self.fh.close()
+    self.dev.close()
   
   def run (self):
     self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -163,7 +146,6 @@ class ControlFIFOThread ( threading.Thread ):
     while (self.running):
       self.socketconn, addr = self.socket.accept()
       self.conn = os.fdopen(self.socketconn.fileno())
-      print "a"
       while 1:
         #~ line=""
         #~ while 1:
@@ -176,7 +158,6 @@ class ControlFIFOThread ( threading.Thread ):
         line=self.conn.readline()
         if not line:
           break
-        print "f"
         m = self.re_cmd.match(line)
         if not m is None:
           (cmd,who) = m.group(1,2)
@@ -199,7 +180,6 @@ class ControlFIFOThread ( threading.Thread ):
             logging.info(who)
           else:
             logging.info("Invalid Command %s %s" % (cmd,who))
-      print "c"
       self.conn.close()
       self.socketconn.close()
     if self.socket:
