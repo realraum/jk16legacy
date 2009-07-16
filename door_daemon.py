@@ -22,20 +22,25 @@ class StatusDisplay():
     
   def display_open(self):
     if self.last_status_set != self.url_open:
-      self.last_status_set=self.url_open
-      #print "accessing %s\n" % self.last_status_set
-      f = urllib.urlopen(self.last_status_set)
-      f.read()
-      f.close()
-    
+      try:
+        #print "accessing %s\n" % self.last_status_set
+        f = urllib.urlopen(self.last_status_set)
+        f.read()
+        f.close()
+        self.last_status_set=self.url_open
+      except:
+        pass
+
   def display_closed(self):
     if self.last_status_set != self.url_closed:
-      self.last_status_set=self.url_closed
-      #print "accessing %s\n" % self.last_status_set
-      f = urllib.urlopen(self.last_status_set)
-      f.read()
-      f.close()
-
+      try:
+        self.last_status_set=self.url_closed
+        #print "accessing %s\n" % self.last_status_set
+        f = urllib.urlopen(self.last_status_set)
+        f.read()
+        f.close()
+      except:
+        pass
 
 class ArduinoUSBThread ( threading.Thread ):
   def __init__(self, file_dev_ttyusb):
