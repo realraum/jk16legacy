@@ -18,8 +18,9 @@ url_open = 'https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3C
 url_closed = 'https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22red%22%3E%3Cb%3E%3Ccenter%3ET%26uuml%3Br%20ist%20Geschlossen%3C/center%3E%3C/b%3E%3C/body%3E%3C/html%3E'
 sendxmpp_recipients = 'xro@jabber.tittelbach.at otti@wirdorange.org'
 sendxmpp_cmd = 'sendxmpp -u realrauminfo -p 5SPjTdub -j jabber.tittelbach.at -r torwaechter -t '
-sendxmpp_msg_opened="Realraum Tür wurde geöffnet"
-sendxmpp_msg_closed="Realraum Tür wurde geschlossen"
+sendxmpp_msg_opened="Realraum Tür wurde%s geöffnet"
+sendxmpp_msg_closed="Realraum Tür wurde%s geschlossen"
+action_by=""
 
 def display_open():
   try:
@@ -32,7 +33,7 @@ def display_open():
   try:
     logging.debug("Starting " + sendxmpp_cmd+sendxmpp_recipients)
     sppoo = subprocess.Popen(sendxmpp_cmd+sendxmpp_recipients,stdin=subprocess.PIPE,shell=True)
-    sppoo.communicate(input=sendxmpp_msg_opened+time.strftime(" (%Y-%m-%d %T)"))
+    sppoo.communicate(input=(sendxmpp_msg_opened % action_by)+time.strftime(" (%Y-%m-%d %T)"))
     sppoo.wait()
     logging.debug("XMPP Message about door opening sent")
   except:
@@ -50,7 +51,7 @@ def display_closed():
   try:
     logging.debug("Starting " + sendxmpp_cmd+sendxmpp_recipients)
     sppoo = subprocess.Popen(sendxmpp_cmd+sendxmpp_recipients,stdin=subprocess.PIPE,shell=True)
-    sppoo.communicate(input=sendxmpp_msg_closed+time.strftime(" (%Y-%m-%d %T)"))
+    sppoo.communicate(input=(sendxmpp_msg_closed % action_by)+time.strftime(" (%Y-%m-%d %T)"))
     sppoo.wait()
     logging.debug("XMPP Message about door closing sent")
   except Exception, e:
@@ -86,6 +87,7 @@ if len(sys.argv) > 2:
   sendxmpp_recipients = " ".join(sys.argv[2:])
 sockhandle=socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 re_status = re.compile(r'Status: (\w+), idle')
+re_request = re.compile(r'Request: (\w+) (?:Card )?(.+)')
 while True:
   try:
     sockhandle.connect(socketfile)
@@ -102,6 +104,12 @@ while True:
           display_open()
         if status == "closed":
           display_closed()
+      m = re_request.match(line)
+      if not m is None:  
+        #(rq_action,rq_by) = m.group(1,2)
+        action_by=" von "+m.group(2)
+      else:
+        action_by=""
   except Exception, e:
     logging.error(str(e)) 
     try:
