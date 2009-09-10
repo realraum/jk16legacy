@@ -33,7 +33,7 @@ sendxmpp_firstmsg = True
 def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, noofflinemsg = False):
   if type(recipients) == types.ListType:
     recipients = " ".join(recipients)
-  if type(recipients) == type.UnicodeType:
+  if type(recipients) == types.UnicodeType:
     recipients = recipients.decode("utf-8")
   if type(recipients) != types.StringType:
     raise Exception("list of recipients in unknown format, can't send message")
