@@ -48,12 +48,13 @@ class UWSConfig:
   def checkConfigUpdates(self):
     if self.configfile is None:
       return
-    logging.debug("Reading Configfile "+self.configfile)
+    logging.debug("Checking Configfile mtime: "+self.configfile)
     try:
       mtime = os.path.getmtime(self.configfile)
     except IOError:
       return
     if self.config_mtime < mtime:
+      logging.debug("Reading Configfile")
       try:
         self.config_parser.read(self.configfile)
         self.config_mtime=os.path.getmtime(self.configfile)
