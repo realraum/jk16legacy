@@ -118,14 +118,14 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
     logging.error(str(e))
   logging.debug("XMPPmessage sent: '%s'"  % msg)
   
-def distributeXmppMsg(msg):
+def distributeXmppMsg(msg,high_priority=False):
   global xmpp_firstmsg, xmpp_msg_lastmsg
   if xmpp_firstmsg:
     xmpp_msg_lastmsg = msg
     xmpp_firstmsg = False
-  if msg != xmpp_msg_lastmsg:    
+  if msg != xmpp_msg_lastmsg:
     sendXmppMsg(uwscfg.xmpp_recipients_normal, msg)
-    sendXmppMsg(uwscfg.xmpp_recipients_nooffline, msg, noofflinemsg=True)
+    sendXmppMsg(uwscfg.xmpp_recipients_nooffline, msg, noofflinemsg=(not high_priority))
   else:
     sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: " + msg)
   xmpp_msg_lastmsg = msg
@@ -210,7 +210,7 @@ while True:
       if not m is None:
         errorstr = m.group(1)
         if "too long!" in errorstr:
-          distributeXmppMsg(uwscfg.xmpp_recipients_debug, "Door Error: "+errorstr)
+          distributeXmppMsg(uwscfg.xmpp_recipients_debug, "Door Error: "+errorstr, high_priority=True)
         else:
           sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: Error: "+errorstr)
   except Exception, ex:
