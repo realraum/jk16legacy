@@ -119,14 +119,14 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
   try:
     sppoo = subprocess.Popen(cmd, stdin=subprocess.PIPE, shell=True)
     if sys.hexversion >= 0x020600F0:
-      old_shandler = signal.signal(signal.ALARM,lambda sn,sf: sppoo.kill())
+      old_shandler = signal.signal(signal.SIGALRM,lambda sn,sf: sppoo.kill())
     else:
-      old_shandler = signal.signal(signal.ALARM,lambda sn,sf: os.system("kill -9 %d" % sppoo.pid))
+      old_shandler = signal.signal(signal.SIGALRM,lambda sn,sf: os.system("kill -9 %d" % sppoo.pid))
     signal.alarm(ptimeout) #schedule alarm
     sppoo.communicate(input=pinput)
     sppoo.wait()
     signal.alarm(0) #disable pending alarms
-    signal.signal(signal.ALARM, old_shandler) 
+    signal.signal(signal.SIGALRM, old_shandler) 
     logging.debug("popenTimeout2: subprocess %d finished, returncode: %d" % (sppoo.pid,sppoo.returncode))
     if sppoo.returncode < 0:
       logging.error("popenTimeout2: subprocess took too long (>%ds) and pid %d was killed" % (ptimeout,sppoo.pid))
@@ -134,7 +134,7 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
   except Exception, e:
     logging.error("popenTimeout2: "+str(e))
     try:
-      signal.signal(signal.ALARM, old_shandler) 
+      signal.signal(signal.SIGALRM, old_shandler) 
     except:
       pass
     return False
