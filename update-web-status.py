@@ -114,9 +114,10 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
   try:
     sppoo = subprocess.Popen(sendxmpp_cmd, stdin=subprocess.PIPE, shell=True)
     sppoo.communicate(input=msg)
-    while ptimeout > 0:
+    timeout_counter=ptimeout
+    while timeout_counter > 0:
       time.sleep(pcheckint)
-      ptimeout -= pcheckint
+      timeout_counter -= pcheckint
       if sppoo.poll():
         logging.debug("XMPPmessage sent: '%s'"  % msg)
         return
