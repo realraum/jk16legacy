@@ -20,7 +20,7 @@ logging.basicConfig(
   #level=logging.DEBUG,
   filename='/var/log/tmp/update-web-status.log',
   format="%(asctime)s %(message)s",
-  datefmt="%Y-%m-%d %H:%M"
+  datefmt="%Y-%m-%d %H:%M:%S"
   )
 
 class UWSConfig:
@@ -118,7 +118,7 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
     while timeout_counter > 0:
       time.sleep(pcheckint)
       timeout_counter -= pcheckint
-      if sppoo.poll():
+      if not sppoo.poll() is None:
         logging.debug("XMPPmessage sent: '%s'"  % msg)
         return
     #timeout reached
@@ -126,14 +126,14 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
     if sys.hexversion >= 0x020600F0:
       sppoo.terminate()
     else:
-      subprocess.call(["kill",sppoo.pid])
+      subprocess.call(["kill",str(sppoo.pid)])
     time.sleep(1.0)
     if sppoo.poll() is None:
       logging.error("sendxmpp subprocess still alive, sending SIGKILL to pid %d" % (sppoo.pid))
       if sys.hexversion >= 0x020600F0:
         sppoo.kill()
       else:
-        subprocess.call(["kill","-9",sppoo.pid])
+        subprocess.call(["kill","-9",str(sppoo.pid)])
   except Exception, e:
     logging.error("sendXmppMsg: "+str(e))
   
