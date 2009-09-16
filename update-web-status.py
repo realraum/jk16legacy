@@ -84,13 +84,62 @@ class UWSConfig:
     except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
       raise AttributeError
 
+def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
+  logging.debug("popenTimeout1: starting: " + cmd)
+  try:
+    sppoo = subprocess.Popen(cmd, stdin=subprocess.PIPE, shell=True)
+    sppoo.communicate(input=pinput)
+    timeout_counter=ptimeout
+    while timeout_counter > 0:
+      time.sleep(pcheckint)
+      timeout_counter -= pcheckint
+      if not sppoo.poll() is None:
+        logging.debug("popenTimeout2: subprocess %d finished, returncode: %d" % (sppoo.pid,sppoo.returncode))
+        return (sppoo.returncode in returncode_ok)
+    #timeout reached
+    logging.error("popenTimeout1: subprocess took too long (>%fs), sending SIGTERM to pid %d" % (ptimeout,sppoo.pid))
+    if sys.hexversion >= 0x020600F0:
+      sppoo.terminate()
+    else:
+      subprocess.call(["kill",str(sppoo.pid)])
+    time.sleep(1.0)
+    if sppoo.poll() is None:
+      logging.error("popenTimeout1: subprocess still alive, sending SIGKILL to pid %d" % (sppoo.pid))
+      if sys.hexversion >= 0x020600F0:
+        sppoo.kill()
+      else:
+        subprocess.call(["kill","-9",str(sppoo.pid)])
+    return False
+  except Exception, e:
+    logging.error("popenTimeout1: "+str(e))
+    return False
+  
+def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
+  logging.debug("popenTimeout2: starting: " + cmd)
+  try:
+    sppoo = subprocess.Popen(cmd, stdin=subprocess.PIPE, shell=True)
+    if sys.hexversion >= 0x020600F0:
+      old_shandler = signal.signal(signal.ALARM,lambda sn,sf: sppoo.kill())
+    else:
+      old_shandler = signal.signal(signal.ALARM,lambda sn,sf: os.system("kill -9 %d" % sppoo.pid))
+    signal.alarm(ptimeout) #schedule alarm
+    sppoo.communicate(input=pinput)
+    sppoo.wait()
+    signal.alarm(0) #disable pending alarms
+    signal.signal(signal.ALARM, old_shandler) 
+    logging.debug("popenTimeout2: subprocess %d finished, returncode: %d" % (sppoo.pid,sppoo.returncode))
+    if sppoo.returncode < 0:
+      logging.error("popenTimeout2: subprocess took too long (>%ds) and pid %d was killed" % (ptimeout,sppoo.pid))
+    return (sppoo.returncode in returncode_ok)
+  except Exception, e:
+    logging.error("popenTimeout2: "+str(e))
+    try:
+      signal.signal(signal.ALARM, old_shandler) 
+    except:
+      pass
+    return False
 
-
-xmpp_msg_lastmsg = ""
-action_by = ""
-xmpp_firstmsg = True
-
-def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, noofflinemsg = False, ptimeout = 20.0, pcheckint = 0.5):
+def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, noofflinemsg = False):
   if type(recipients) == types.ListType:
     recipients = " ".join(recipients)
   if type(recipients) == types.UnicodeType:
@@ -110,33 +159,13 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
   if addtimestamp:
     msg += time.strftime(" (%Y-%m-%d %T)")
   
-  logging.debug("Starting " + sendxmpp_cmd)
-  try:
-    sppoo = subprocess.Popen(sendxmpp_cmd, stdin=subprocess.PIPE, shell=True)
-    sppoo.communicate(input=msg)
-    timeout_counter=ptimeout
-    while timeout_counter > 0:
-      time.sleep(pcheckint)
-      timeout_counter -= pcheckint
-      if not sppoo.poll() is None:
-        logging.debug("XMPPmessage sent: '%s'"  % msg)
-        return
-    #timeout reached
-    logging.error("sendxmpp subprocess took too long (>%fs), sending SIGTERM to pid %d" % (ptimeout,sppoo.pid))
-    if sys.hexversion >= 0x020600F0:
-      sppoo.terminate()
-    else:
-      subprocess.call(["kill",str(sppoo.pid)])
-    time.sleep(1.0)
-    if sppoo.poll() is None:
-      logging.error("sendxmpp subprocess still alive, sending SIGKILL to pid %d" % (sppoo.pid))
-      if sys.hexversion >= 0x020600F0:
-        sppoo.kill()
-      else:
-        subprocess.call(["kill","-9",str(sppoo.pid)])
-  except Exception, e:
-    logging.error("sendXmppMsg: "+str(e))
-  
+  popenTimeout2(sendxmpp_cmd, msg)
+
+
+xmpp_msg_lastmsg = ""
+action_by = ""
+xmpp_firstmsg = True
+
 def distributeXmppMsg(msg,high_priority=False):
   global xmpp_firstmsg, xmpp_msg_lastmsg
   if xmpp_firstmsg:
