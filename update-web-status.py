@@ -14,10 +14,11 @@ import subprocess
 import types
 import ConfigParser
 
-#logging.basicConfig(level=logging.INFO,filename='/var/log/tmp/tuer.log',format="%(asctime)s %(message)s",datefmt="%Y-%m-%d %H:%M")
 logging.basicConfig(
-  level=logging.ERROR,  
+  level=logging.INFO,
+  #level=logging.ERROR,
   #level=logging.DEBUG,
+  filename='/var/log/tmp/update-web-status.log',
   format="%(asctime)s %(message)s",
   datefmt="%Y-%m-%d %H:%M"
   )
@@ -89,13 +90,13 @@ xmpp_msg_lastmsg = ""
 action_by = ""
 xmpp_firstmsg = True
 
-def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, noofflinemsg = False):
+def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, noofflinemsg = False, ptimeout = 20.0, pcheckint = 0.5):
   if type(recipients) == types.ListType:
     recipients = " ".join(recipients)
   if type(recipients) == types.UnicodeType:
     recipients = recipients.decode("utf-8")
   if type(recipients) != types.StringType:
-    raise Exception("list of recipients in unknown format, can't send message")
+    raise Exception("argument recipients not a space separated string or xmpp addresses, can't send message")
   if recipients == "" or msg == "":
     return
   
@@ -113,10 +114,21 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
   try:
     sppoo = subprocess.Popen(sendxmpp_cmd, stdin=subprocess.PIPE, shell=True)
     sppoo.communicate(input=msg)
-    sppoo.wait()
+    while ptimeout > 0:
+      time.sleep(pcheckint)
+      ptimeout -= pcheckint
+      if sppoo.poll():
+        logging.debug("XMPPmessage sent: '%s'"  % msg)
+        return
+    #timeout reached
+    logging.error("sendxmpp subprocess took too long (>%fs), sending SIGTERM to pid %d" % (ptimeout,sppoo.pid))
+    sppoo.terminate()
+    time.sleep(1.0)
+    if sppoo.poll() is None:
+      logging.error("sendxmpp subprocess still alive, sending SIGKILL to pid %d" % (sppoo.pid))
+      sppoo.kill()
   except Exception, e:
     logging.error(str(e))
-  logging.debug("XMPPmessage sent: '%s'"  % msg)
   
 def distributeXmppMsg(msg,high_priority=False):
   global xmpp_firstmsg, xmpp_msg_lastmsg
