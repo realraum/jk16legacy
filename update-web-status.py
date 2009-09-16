@@ -16,7 +16,7 @@ import ConfigParser
 
 logging.basicConfig(
   level=logging.INFO,
-  #level=logging.ERROR,
+  #level=f,
   #level=logging.DEBUG,
   filename='/var/log/tmp/update-web-status.log',
   format="%(asctime)s %(message)s",
@@ -122,13 +122,19 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
         return
     #timeout reached
     logging.error("sendxmpp subprocess took too long (>%fs), sending SIGTERM to pid %d" % (ptimeout,sppoo.pid))
-    sppoo.terminate()
+    if sys.hexversion >= 0x020600F0:
+      sppoo.terminate()
+    else:
+      subprocess.call(["kill",sppoo.pid])
     time.sleep(1.0)
     if sppoo.poll() is None:
       logging.error("sendxmpp subprocess still alive, sending SIGKILL to pid %d" % (sppoo.pid))
-      sppoo.kill()
+      if sys.hexversion >= 0x020600F0:
+        sppoo.kill()
+      else:
+        subprocess.call(["kill","-9",sppoo.pid])
   except Exception, e:
-    logging.error(str(e))
+    logging.error("sendXmppMsg: "+str(e))
   
 def distributeXmppMsg(msg,high_priority=False):
   global xmpp_firstmsg, xmpp_msg_lastmsg
@@ -148,7 +154,7 @@ def touchURL(url):
     f.read()
     f.close()
   except Exception, e:
-    logging.error(str(e))
+    logging.error("tochURL: "+str(e))
   
 def displayOpen():
   touchURL(uwscfg.url_open)
@@ -226,7 +232,7 @@ while True:
         else:
           sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: Error: "+errorstr)
   except Exception, ex:
-    logging.error(str(ex)) 
+    logging.error("main: "+str(ex)) 
     try:
       conn.close()
     except:
