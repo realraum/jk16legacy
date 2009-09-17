@@ -18,7 +18,7 @@ logging.basicConfig(
   level=logging.INFO,
   #level=f,
   #level=logging.DEBUG,
-  filename='/var/log/tmp/update-web-status.log',
+  filename='/var/log/tmp/update-xmpp-status.log',
   format="%(asctime)s %(message)s",
   datefmt="%Y-%m-%d %H:%M:%S"
   )
@@ -27,9 +27,12 @@ class UWSConfig:
   def __init__(self,configfile=None):
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
-    self.config_parser.add_section('url')
-    self.config_parser.set('url','open','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22lime%22%3E%3Ccenter%3E%3Cb%3ET%26uuml%3Br%20ist%20Offen%3C/b%3E%3C/center%3E%3C/body%3E%3C/html%3E')
-    self.config_parser.set('url','closed','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22red%22%3E%3Cb%3E%3Ccenter%3ET%26uuml%3Br%20ist%20Geschlossen%3C/center%3E%3C/b%3E%3C/body%3E%3C/html%3E')
+    self.config_parser.add_section('xmpp')
+    self.config_parser.set('xmpp','recipients_debug','xro@jabber.tittelbach.at')
+    self.config_parser.set('xmpp','recipients_normal','xro@jabber.tittelbach.at otti@wirdorange.org')
+    self.config_parser.set('xmpp','recipients_nooffline','the-equinox@jabber.org')
+    self.config_parser.set('xmpp','msg_opened',"Realraum Tür wurde%s geöffnet")
+    self.config_parser.set('xmpp','msg_closed',"Realraum Tür wurde%s geschlossen")
     self.config_mtime=0
     if not self.configfile is None:
       try:
@@ -133,6 +136,45 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
       pass
     return False
 
+def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, noofflinemsg = False):
+  if type(recipients) == types.ListType:
+    recipients = " ".join(recipients)
+  if type(recipients) == types.UnicodeType:
+    recipients = recipients.decode("utf-8")
+  if type(recipients) != types.StringType:
+    raise Exception("argument recipients not a space separated string or xmpp addresses, can't send message")
+  if recipients == "" or msg == "":
+    return
+  
+  sendxmpp_cmd = "sendxmpp -u realrauminfo -p 5SPjTdub -j jabber.tittelbach.at -t "
+  if resource:
+    sendxmpp_cmd += "-r %s " % resource
+  if noofflinemsg:
+    sendxmpp_cmd += "--headline "
+  sendxmpp_cmd += recipients
+  
+  if addtimestamp:
+    msg += time.strftime(" (%Y-%m-%d %T)")
+  
+  popenTimeout2(sendxmpp_cmd, msg)
+
+
+xmpp_msg_lastmsg = ""
+action_by = ""
+xmpp_firstmsg = True
+
+def distributeXmppMsg(msg,high_priority=False):
+  global xmpp_firstmsg, xmpp_msg_lastmsg
+  if xmpp_firstmsg:
+    xmpp_msg_lastmsg = msg
+    xmpp_firstmsg = False
+  if msg != xmpp_msg_lastmsg:
+    sendXmppMsg(uwscfg.xmpp_recipients_normal, msg)
+    sendXmppMsg(uwscfg.xmpp_recipients_nooffline, msg, noofflinemsg=(not high_priority))
+  else:
+    sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: " + msg)
+  xmpp_msg_lastmsg = msg
+  
 def touchURL(url):
   try:
     f = urllib.urlopen(url)
@@ -140,15 +182,15 @@ def touchURL(url):
     f.close()
   except Exception, e:
     logging.error("tochURL: "+str(e))
-
+  
 def displayOpen():
-  touchURL(uwscfg.url_open)
+  distributeXmppMsg(uwscfg.xmpp_msg_opened % action_by)
   
 def displayClosed():
-  touchURL(uwscfg.url_closed)
+  distributeXmppMsg(uwscfg.xmpp_msg_closed % action_by)
   
 def exitHandler(signum, frame):
-  logging.info("Update-Web-Status stopping")
+  logging.info("Door Status Listener stopping")
   try:
     conn.close()
   except:
@@ -164,7 +206,7 @@ def exitHandler(signum, frame):
 signal.signal(signal.SIGINT, exitHandler)
 signal.signal(signal.SIGQUIT, exitHandler)
 
-logging.info("Door Status Listener started")
+logging.info("Update-Xmpp-Status started")
 
 if len(sys.argv) > 1:
   socketfile = sys.argv[1]
@@ -175,6 +217,8 @@ if len(sys.argv) > 2:
   uwscfg = UWSConfig(sys.argv[2])
 else:
   uwscfg = UWSConfig()
+
+sendXmppMsg(uwscfg.xmpp_recipients_debug,"D: update-xmpp-status.py started")
 
 sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 RE_STATUS = re.compile(r'Status: (\w+), idle')
@@ -199,16 +243,19 @@ while True:
           displayOpen()
         if status == "closed":
           displayClosed()
-      #~ m = RE_REQUEST.match(line)
-      #~ if not m is None:  
-        #~ #(rq_action,rq_by) = m.group(1,2)
-        #~ action_by = " von " + m.group(2)
-      #~ else:
-        #~ action_by = ""
-      #~ m = RE_ERROR.match(line)
-      #~ if not m is None:
-        #~ errorstr = m.group(1)
-        #~ #handle Error
+      m = RE_REQUEST.match(line)
+      if not m is None:  
+        #(rq_action,rq_by) = m.group(1,2)
+        action_by = " von " + m.group(2)
+      else:
+        action_by = ""
+      m = RE_ERROR.match(line)
+      if not m is None:
+        errorstr = m.group(1)
+        if "too long!" in errorstr:
+          distributeXmppMsg(uwscfg.xmpp_recipients_debug, "Door Error: "+errorstr, high_priority=True)
+        else:
+          sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: Error: "+errorstr)
   except Exception, ex:
     logging.error("main: "+str(ex)) 
     try:
