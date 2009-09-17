@@ -27,9 +27,10 @@ class UWSConfig:
   def __init__(self,configfile=None):
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
-    self.config_parser.add_section('url')
-    self.config_parser.set('url','open','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22lime%22%3E%3Ccenter%3E%3Cb%3ET%26uuml%3Br%20ist%20Offen%3C/b%3E%3C/center%3E%3C/body%3E%3C/html%3E')
-    self.config_parser.set('url','closed','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=%3Chtml%3E%3Cbody%20bgcolor=%22red%22%3E%3Cb%3E%3Ccenter%3ET%26uuml%3Br%20ist%20Geschlossen%3C/center%3E%3C/b%3E%3C/body%3E%3C/html%3E')
+    self.config_parser.add_section('web')
+    self.config_parser.set('web','cgiuri','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=')
+    self.config_parser.set('web','htmlopen','<html><body bgcolor="lime"><center><b>T&uuml;r ist Offen</b></center></body></html>')
+    self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>T&uuml;r ist Geschlossen</center></b></body></html>')
     self.config_mtime=0
     if not self.configfile is None:
       try:
@@ -136,16 +137,23 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
 def touchURL(url):
   try:
     f = urllib.urlopen(url)
-    f.read()
+    rq_response = f.read()
+    logging.debug("touchURL: Response "+rq_response)
     f.close()
+    return rq_response
   except Exception, e:
     logging.error("touchURL: "+str(e))
 
+def setRealraumHtmlStatus(htmlcode):
+  htmlcode_escaped = re.sub(r'[^\x30-\x39\x41-\x7E]',lambda m:"%%%x"%ord(m.group(0)),htmlcode)
+  if touchURL(uwscfg.web_cgiuri + htmlcode_escaped) != htmlcode:
+    logging.error("setRealraumHtmlStatus: Error setting Status, Output does not match Input")
+  
 def displayOpen():
-  touchURL(uwscfg.url_open)
+  setRealraumHtmlStatus(uwscfg.web_htmlopen)
   
 def displayClosed():
-  touchURL(uwscfg.url_closed)
+  setRealraumHtmlStatus(uwscfg.web_htmlclosed)
   
 def exitHandler(signum, frame):
   logging.info("Update-Web-Status stopping")
@@ -176,6 +184,7 @@ if len(sys.argv) > 2:
 else:
   uwscfg = UWSConfig()
 
+socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 RE_STATUS = re.compile(r'Status: (\w+), idle')
 RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')

@@ -254,7 +254,7 @@ while True:
       if not m is None:
         errorstr = m.group(1)
         if "too long!" in errorstr:
-          distributeXmppMsg(uwscfg.xmpp_recipients_debug, "Door Error: "+errorstr, high_priority=True)
+          distributeXmppMsg("Door Error: "+errorstr, high_priority=True)
         else:
           sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: Error: "+errorstr)
   except Exception, ex:
