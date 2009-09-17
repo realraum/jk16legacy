@@ -5,6 +5,7 @@ import os.path
 import sys
 #import threading
 import logging
+import logging.handlers
 import urllib
 import time
 import signal
@@ -14,14 +15,13 @@ import subprocess
 import types
 import ConfigParser
 
-logging.basicConfig(
-  level=logging.INFO,
-  #level=f,
-  #level=logging.DEBUG,
-  filename='/var/log/tmp/update-web-status.log',
-  format="%(asctime)s %(message)s",
-  datefmt="%Y-%m-%d %H:%M:%S"
-  )
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+lh_syslog = logging.handlers.SysLogHandler(address="/dev/log",facility=logging.handlers.SysLogHandler.LOG_LOCAL2)
+lh_syslog.setFormatter(logging.Formatter('update-web-status.py: %(levelname)s %(message)s'))
+logger.addHandler(lh_syslog)
+lh_stderr = logging.StreamHandler()
+logger.addHandler(lh_stderr)
 
 class UWSConfig:
   def __init__(self,configfile=None):
@@ -139,7 +139,7 @@ def touchURL(url):
     f.read()
     f.close()
   except Exception, e:
-    logging.error("tochURL: "+str(e))
+    logging.error("touchURL: "+str(e))
 
 def displayOpen():
   touchURL(uwscfg.url_open)

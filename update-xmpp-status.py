@@ -5,6 +5,7 @@ import os.path
 import sys
 #import threading
 import logging
+import logging.handlers
 import urllib
 import time
 import signal
@@ -14,14 +15,14 @@ import subprocess
 import types
 import ConfigParser
 
-logging.basicConfig(
-  level=logging.INFO,
-  #level=f,
-  #level=logging.DEBUG,
-  filename='/var/log/tmp/update-xmpp-status.log',
-  format="%(asctime)s %(message)s",
-  datefmt="%Y-%m-%d %H:%M:%S"
-  )
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
+lh_syslog = logging.handlers.SysLogHandler(address="/dev/log",facility=logging.handlers.SysLogHandler.LOG_LOCAL2)
+lh_syslog.setFormatter(logging.Formatter('update-xmpp-status.py: %(levelname)s %(message)s'))
+logger.addHandler(lh_syslog)
+lh_stderr = logging.StreamHandler()
+logger.addHandler(lh_stderr)
 
 class UWSConfig:
   def __init__(self,configfile=None):
@@ -150,7 +151,7 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
   if resource:
     sendxmpp_cmd += "-r %s " % resource
   if noofflinemsg:
-    sendxmpp_cmd += "--headline "
+    sendxmpp_cmd += "--message-type=headline "
   sendxmpp_cmd += recipients
   
   if addtimestamp:
@@ -181,7 +182,7 @@ def touchURL(url):
     f.read()
     f.close()
   except Exception, e:
-    logging.error("tochURL: "+str(e))
+    logging.error("touchURL: "+str(e))
   
 def displayOpen():
   distributeXmppMsg(uwscfg.xmpp_msg_opened % action_by)

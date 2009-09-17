@@ -153,7 +153,7 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
   if resource:
     sendxmpp_cmd += "-r %s " % resource
   if noofflinemsg:
-    sendxmpp_cmd += "--headline "
+    sendxmpp_cmd += "--message-type=headline "
   sendxmpp_cmd += recipients
   
   if addtimestamp:
