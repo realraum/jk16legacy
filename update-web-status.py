@@ -31,6 +31,8 @@ class UWSConfig:
     self.config_parser.set('web','cgiuri','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=')
     self.config_parser.set('web','htmlopen','<html><body bgcolor="lime"><center><b>T&uuml;r ist Offen</b></center></body></html>')
     self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>T&uuml;r ist Geschlossen</center></b></body></html>')
+    self.config_parser.add_section('debug')
+    self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
     if not self.configfile is None:
       try:
@@ -42,6 +44,7 @@ class UWSConfig:
         self.checkConfigUpdates()
     
   def checkConfigUpdates(self):
+    global logger
     if self.configfile is None:
       return
     logging.debug("Checking Configfile mtime: "+self.configfile)
@@ -56,6 +59,10 @@ class UWSConfig:
         self.config_mtime=os.path.getmtime(self.configfile)
       except ConfigParser.ParsingError, pe_ex:
         logging.error("Error parsing Configfile: "+str(pe_ex))
+      if self.config_parser.get('debug','enabled') == "True":
+        logger.setLevel(logging.DEBUG)
+      else:
+        logger.setLevel(logging.INFO)
 
   def writeConfigFile(self):
     if self.configfile is None:
@@ -184,7 +191,7 @@ if len(sys.argv) > 2:
 else:
   uwscfg = UWSConfig()
 
-socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
+#socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 RE_STATUS = re.compile(r'Status: (\w+), idle')
 RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')

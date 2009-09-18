@@ -34,6 +34,8 @@ class UWSConfig:
     self.config_parser.set('xmpp','recipients_nooffline','the-equinox@jabber.org')
     self.config_parser.set('xmpp','msg_opened',"Realraum Tür wurde%s geöffnet")
     self.config_parser.set('xmpp','msg_closed',"Realraum Tür wurde%s geschlossen")
+    self.config_parser.add_section('debug')
+    self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
     if not self.configfile is None:
       try:
@@ -45,6 +47,7 @@ class UWSConfig:
         self.checkConfigUpdates()
     
   def checkConfigUpdates(self):
+    global logger
     if self.configfile is None:
       return
     logging.debug("Checking Configfile mtime: "+self.configfile)
@@ -59,6 +62,10 @@ class UWSConfig:
         self.config_mtime=os.path.getmtime(self.configfile)
       except ConfigParser.ParsingError, pe_ex:
         logging.error("Error parsing Configfile: "+str(pe_ex))
+      if self.config_parser.get('debug','enabled') == "True":
+        logger.setLevel(logging.DEBUG)
+      else:
+        logger.setLevel(logging.INFO)
 
   def writeConfigFile(self):
     if self.configfile is None:
