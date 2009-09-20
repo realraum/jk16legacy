@@ -283,6 +283,9 @@ while True:
       
       uwscfg.checkConfigUpdates()
       
+      if line == "":
+        raise Exception("EOF on Socket, daemon seems to have quit")      
+      
       m = RE_STATUS.match(line)
       if not m is None:
         status = m.group(1)

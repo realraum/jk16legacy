@@ -200,7 +200,7 @@ while True:
     if not os.path.exists(socketfile):
       logging.debug("Socketfile '%s' not found, waiting 5 secs" % socketfile)
       time.sleep(5)
-      continue    
+      continue
     sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sockhandle.connect(socketfile)
     conn = os.fdopen(sockhandle.fileno())
@@ -211,6 +211,9 @@ while True:
       logging.debug("Got Line: " + line)
       
       uwscfg.checkConfigUpdates()
+      
+      if line == "":
+        raise Exception("EOF on Socket, daemon seems to have quit")
       
       m = RE_STATUS.match(line)
       if not m is None:
