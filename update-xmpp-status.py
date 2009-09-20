@@ -32,8 +32,13 @@ class UWSConfig:
     self.config_parser.set('xmpp','recipients_debug','xro@jabber.tittelbach.at')
     self.config_parser.set('xmpp','recipients_normal','xro@jabber.tittelbach.at otti@wirdorange.org')
     self.config_parser.set('xmpp','recipients_nooffline','the-equinox@jabber.org')
-    self.config_parser.set('xmpp','msg_opened',"Realraum Tür wurde%s geöffnet")
-    self.config_parser.set('xmpp','msg_closed',"Realraum Tür wurde%s geschlossen")
+    self.config_parser.add_section('msg')
+    self.config_parser.set('msg','format',"${status_msg}${request_msg}${comment_msg}")
+    self.config_parser.set('msg','status_opened_msg',"RealRaum door now open")
+    self.config_parser.set('msg','status_closed_msg',"RealRaum door now closed")
+    self.config_parser.set('msg','status_error_msg',"ERROR Last Operation took too long !!!")
+    self.config_parser.set('msg','request_msg'," after ${request} request")
+    self.config_parser.set('msg','comment_msg'," (${comment})")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -167,36 +172,39 @@ def sendXmppMsg(recipients, msg, resource = "torwaechter", addtimestamp = True, 
   popenTimeout2(sendxmpp_cmd, msg)
 
 
-xmpp_msg_lastmsg = ""
-action_by = ""
-xmpp_firstmsg = True
-
-def distributeXmppMsg(msg,high_priority=False):
-  global xmpp_firstmsg, xmpp_msg_lastmsg
-  if xmpp_firstmsg:
-    xmpp_msg_lastmsg = msg
-    xmpp_firstmsg = False
-  if msg != xmpp_msg_lastmsg:
+def distributeXmppMsg(msg,high_priority=False,debug=False):
+  if debug == False:
     sendXmppMsg(uwscfg.xmpp_recipients_normal, msg)
     sendXmppMsg(uwscfg.xmpp_recipients_nooffline, msg, noofflinemsg=(not high_priority))
   else:
     sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: " + msg)
-  xmpp_msg_lastmsg = msg
   
-def touchURL(url):
-  try:
-    f = urllib.urlopen(url)
-    f.read()
-    f.close()
-  except Exception, e:
-    logging.error("touchURL: "+str(e))
-  
-def displayOpen():
-  distributeXmppMsg(uwscfg.xmpp_msg_opened % action_by)
-  
-def displayClosed():
-  distributeXmppMsg(uwscfg.xmpp_msg_closed % action_by)
-  
+current_status = (None,None,None) 
+def filterAndFormatMessage(new_status):
+  global current_status
+  if current_status == new_status or new_status == (current_status[0],None,None):
+    distributeXmppMsg("Status recieved but filtered: (%s,%s,%s)" % new_status ,debug=True)
+  else:
+    (status,req,req_comment) = new_status
+    high_priority_msg = False
+    if status == "opened":
+      status_msg = uwscfg.msg_status_opened_msg
+    elif status == "closed":
+      status_msg = uwscfg.msg_status_closed_msg
+    elif status == "error":
+      status_msg = uwscfg.msg_status_error_msg
+      high_priority_msg=True
+    else:
+      distributeXmppMsg("Unknown Status: (%s,%s,%s)" % new_status ,debug=True)
+      return
+    if req:
+      req_msg = uwscfg.msg_request_msg.replace("${request}",req)
+    if req_comment:
+      comment_msg = uwscfg.msg_comment_msg.replace("${comment}",req_comment)
+    msg = uwscfg.msg_format.replace("${status_msg}", status_msg).replace("${request_msg}",req_msg).replace("${comment_msg}",comment_msg)
+    distributeXmppMsg(msg, high_priority=high_priority_msg)
+    current_status=new_status    
+
 def exitHandler(signum, frame):
   logging.info("Door Status Listener stopping")
   try:
@@ -226,7 +234,7 @@ if len(sys.argv) > 2:
 else:
   uwscfg = UWSConfig()
 
-sendXmppMsg(uwscfg.xmpp_recipients_debug,"D: update-xmpp-status.py started")
+distributeXmppMsg("update-xmpp-status.py started", debug=True)
 
 sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 RE_STATUS = re.compile(r'Status: (\w+), idle')
@@ -238,6 +246,7 @@ while True:
     conn = os.fdopen(sockhandle.fileno())
     sockhandle.send("listen\n")
     sockhandle.send("status\n")
+    last_request = (None,None)
     while True:
       line = conn.readline()
       logging.debug("Got Line: " + line)
@@ -247,23 +256,20 @@ while True:
       m = RE_STATUS.match(line)
       if not m is None:
         status = m.group(1)
-        if status == "opened":
-          displayOpen()
-        if status == "closed":
-          displayClosed()
+        filterAndFormatMessage((status,) + last_request)
       m = RE_REQUEST.match(line)
       if not m is None:  
-        #(rq_action,rq_by) = m.group(1,2)
-        action_by = " von " + m.group(2)
+        last_request = m.group(1,2)
       else:
-        action_by = ""
+        last_request = (None,None)
       m = RE_ERROR.match(line)
       if not m is None:
         errorstr = m.group(1)
         if "too long!" in errorstr:
-          distributeXmppMsg("Door Error: "+errorstr, high_priority=True)
+          filterAndFormatMessage(("error",) + last_request)
         else:
-          sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: Error: "+errorstr)
+          logging.error("Recieved Error: "+errorstr)
+          distributeXmppMsg("Error: "+errorstr, debug=True)
   except Exception, ex:
     logging.error("main: "+str(ex)) 
     try:
