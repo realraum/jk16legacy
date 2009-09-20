@@ -37,8 +37,8 @@ class UWSConfig:
     self.config_parser.set('msg','status_opened_msg',"RealRaum door now open")
     self.config_parser.set('msg','status_closed_msg',"RealRaum door now closed")
     self.config_parser.set('msg','status_error_msg',"ERROR Last Operation took too long !!!")
-    self.config_parser.set('msg','request_msg'," after ${request} request")
-    self.config_parser.set('msg','comment_msg'," (${comment})")
+    self.config_parser.set('msg','request_msg',"\safter ${request} request")
+    self.config_parser.set('msg','comment_msg',"\s(${comment})")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -67,6 +67,11 @@ class UWSConfig:
         self.config_mtime=os.path.getmtime(self.configfile)
       except (ConfigParser.ParsingError, IOError), pe_ex:
         logging.error("Error parsing Configfile: "+str(pe_ex))
+      self.config_parser.set('msg','comment_msg', self.config_parser.get('msg','comment_msg').replace("\s"," "))
+      self.config_parser.set('msg','request_msg', self.config_parser.get('msg','request_msg').replace("\s"," "))
+      self.config_parser.set('msg','status_error_msg', self.config_parser.get('msg','status_error_msg').replace("\s"," "))
+      self.config_parser.set('msg','status_closed_msg', self.config_parser.get('msg','status_closed_msg').replace("\s"," "))
+      self.config_parser.set('msg','status_opened_msg', self.config_parser.get('msg','status_opened_msg').replace("\s"," "))
       if self.config_parser.get('debug','enabled') == "True":
         logger.setLevel(logging.DEBUG)
       else:
