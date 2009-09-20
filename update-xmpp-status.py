@@ -58,14 +58,14 @@ class UWSConfig:
     logging.debug("Checking Configfile mtime: "+self.configfile)
     try:
       mtime = os.path.getmtime(self.configfile)
-    except IOError:
+    except (IOError,OSError):
       return
     if self.config_mtime < mtime:
       logging.debug("Reading Configfile")
       try:
         self.config_parser.read(self.configfile)
         self.config_mtime=os.path.getmtime(self.configfile)
-      except ConfigParser.ParsingError, pe_ex:
+      except (ConfigParser.ParsingError, IOError), pe_ex:
         logging.error("Error parsing Configfile: "+str(pe_ex))
       if self.config_parser.get('debug','enabled') == "True":
         logger.setLevel(logging.DEBUG)
@@ -235,13 +235,12 @@ else:
   uwscfg = UWSConfig()
 
 distributeXmppMsg("update-xmpp-status.py started", debug=True)
-
-sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 RE_STATUS = re.compile(r'Status: (\w+), idle')
 RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')
 RE_ERROR = re.compile(r'Error: (.+)')
 while True:
   try:
+    sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sockhandle.connect(socketfile)
     conn = os.fdopen(sockhandle.fileno())
     sockhandle.send("listen\n")
@@ -272,10 +271,6 @@ while True:
           distributeXmppMsg("Error: "+errorstr, debug=True)
   except Exception, ex:
     logging.error("main: "+str(ex)) 
-    try:
-      conn.close()
-    except:
-      pass
     try:
       sockhandle.close()
     except:
