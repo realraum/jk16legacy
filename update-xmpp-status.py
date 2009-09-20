@@ -187,6 +187,9 @@ def filterAndFormatMessage(new_status):
   else:
     (status,req,req_comment) = new_status
     high_priority_msg = False
+    req_msg=""
+    status_msg=""
+    comment_msg=""
     if status == "opened":
       status_msg = uwscfg.msg_status_opened_msg
     elif status == "closed":
