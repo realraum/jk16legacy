@@ -179,11 +179,14 @@ def distributeXmppMsg(msg,high_priority=False,debug=False):
   else:
     sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: " + msg)
   
-current_status = (None,None,None) 
+current_status = (None, None, None) 
 def filterAndFormatMessage(new_status):
   global current_status
-  if current_status == new_status or new_status == (current_status[0],None,None):
+  if new_status in [current_status, (current_status[0], None, None)] :
     distributeXmppMsg("Status recieved but filtered: (%s,%s,%s)" % new_status ,debug=True)
+  elif current_status == (None, None, None):
+    current_status=new_status
+    distributeXmppMsg("Initial Status: (%s,%s,%s)" % new_status ,debug=True)
   else:
     (status,req,req_comment) = new_status
     high_priority_msg = False
@@ -206,7 +209,7 @@ def filterAndFormatMessage(new_status):
       comment_msg = uwscfg.msg_comment_msg.replace("${comment}",req_comment)
     msg = uwscfg.msg_format.replace("${status_msg}", status_msg).replace("${request_msg}",req_msg).replace("${comment_msg}",comment_msg)
     distributeXmppMsg(msg, high_priority=high_priority_msg)
-    current_status=new_status    
+    current_status=new_status
 
 def exitHandler(signum, frame):
   logging.info("Door Status Listener stopping")
@@ -252,7 +255,7 @@ while True:
     conn = os.fdopen(sockhandle.fileno())
     sockhandle.send("listen\n")
     sockhandle.send("status\n")
-    last_request = (None,None)
+    last_request = (None, None)
     while True:
       line = conn.readline()
       logging.debug("Got Line: " + line)
@@ -267,7 +270,7 @@ while True:
       if not m is None:  
         last_request = m.group(1,2)
       else:
-        last_request = (None,None)
+        last_request = (None, None)
       m = RE_ERROR.match(line)
       if not m is None:
         errorstr = m.group(1)
@@ -282,5 +285,7 @@ while True:
       sockhandle.close()
     except:
       pass
+    conn=None
+    sockhandle=None
     time.sleep(5)
 
