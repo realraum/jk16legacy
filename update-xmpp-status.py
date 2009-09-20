@@ -39,6 +39,8 @@ class UWSConfig:
     self.config_parser.set('msg','status_error_msg',"ERROR Last Operation took too long !!!")
     self.config_parser.set('msg','request_msg',"\safter ${request} request")
     self.config_parser.set('msg','comment_msg',"\s(${comment})")
+    self.config_parser.set('msg','status_still_opened_msg',"Door remains closed")
+    self.config_parser.set('msg','status_still_closed_msg',"Door remains open")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -67,11 +69,13 @@ class UWSConfig:
         self.config_mtime=os.path.getmtime(self.configfile)
       except (ConfigParser.ParsingError, IOError), pe_ex:
         logging.error("Error parsing Configfile: "+str(pe_ex))
-      self.config_parser.set('msg','comment_msg', self.config_parser.get('msg','comment_msg').replace("\s"," "))
-      self.config_parser.set('msg','request_msg', self.config_parser.get('msg','request_msg').replace("\s"," "))
-      self.config_parser.set('msg','status_error_msg', self.config_parser.get('msg','status_error_msg').replace("\s"," "))
-      self.config_parser.set('msg','status_closed_msg', self.config_parser.get('msg','status_closed_msg').replace("\s"," "))
-      self.config_parser.set('msg','status_opened_msg', self.config_parser.get('msg','status_opened_msg').replace("\s"," "))
+      self.config_parser.set('msg','comment_msg', self.config_parser.get('msg','comment_msg').replace("\\s"," "))
+      self.config_parser.set('msg','request_msg', self.config_parser.get('msg','request_msg').replace("\\s"," "))
+      self.config_parser.set('msg','status_error_msg', self.config_parser.get('msg','status_error_msg').replace("\\s"," "))
+      self.config_parser.set('msg','status_closed_msg', self.config_parser.get('msg','status_closed_msg').replace("\\s"," "))
+      self.config_parser.set('msg','status_opened_msg', self.config_parser.get('msg','status_opened_msg').replace("\\s"," "))
+      self.config_parser.set('msg','status_still_closed_msg', self.config_parser.get('msg','status_still_closed_msg').replace("\\s"," "))
+      self.config_parser.set('msg','status_still_opened_msg', self.config_parser.get('msg','status_still_opened_msg').replace("\\s"," "))      
       if self.config_parser.get('debug','enabled') == "True":
         logger.setLevel(logging.DEBUG)
       else:
@@ -198,16 +202,28 @@ def filterAndFormatMessage(new_status):
     req_msg=""
     status_msg=""
     comment_msg=""
-    if status == "opened":
-      status_msg = uwscfg.msg_status_opened_msg
-    elif status == "closed":
-      status_msg = uwscfg.msg_status_closed_msg
-    elif status == "error":
+    if status == "error":
       status_msg = uwscfg.msg_status_error_msg
       high_priority_msg=True
     else:
-      distributeXmppMsg("Unknown Status: (%s,%s,%s)" % new_status ,debug=True)
-      return
+      if current_status[0] == status:
+        if status == "opened":
+          status_msg = uwscfg.msg_status_still_opened_msg
+        elif status == "closed":
+          status_msg = uwscfg.msg_status_still_closed_msg
+        else:
+          logging.error("Unknown Status recieved: (%s,%s,%s)" % new_status)
+          distributeXmppMsg("Unknown Status: (%s,%s,%s)" % new_status ,debug=True)
+          return          
+      else:
+        if status == "opened":
+          status_msg = uwscfg.msg_status_opened_msg
+        elif status == "closed":
+          status_msg = uwscfg.msg_status_closed_msg      
+        else:
+          logging.error("Unknown Status recieved: (%s,%s,%s)" % new_status)
+          distributeXmppMsg("Unknown Status: (%s,%s,%s)" % new_status ,debug=True)
+          return
     if req:
       req_msg = uwscfg.msg_request_msg.replace("${request}",req)
     if req_comment:
