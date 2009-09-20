@@ -240,6 +240,10 @@ RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')
 RE_ERROR = re.compile(r'Error: (.+)')
 while True:
   try:
+    if not os.path.exists(socketfile):
+      logging.debug("Socketfile '%s' not found, waiting 5 secs" % socketfile)
+      time.sleep(5)
+      continue
     sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sockhandle.connect(socketfile)
     conn = os.fdopen(sockhandle.fileno())
