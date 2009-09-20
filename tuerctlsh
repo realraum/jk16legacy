@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# make this the default shell for user tuerctl and add 
+# the following line to sudoers file:
+#
+# tuerctl ALL=(tuer) NOPASSWD: /flash/tuer/tuer_socat.sh
+
+sudo -u tuer /flash/tuer/tuer_socat.sh
