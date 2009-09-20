@@ -312,4 +312,3 @@ while True:
     conn=None
     sockhandle=None
     time.sleep(5)
-

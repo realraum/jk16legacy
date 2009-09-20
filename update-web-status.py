@@ -238,5 +238,6 @@ while True:
       sockhandle.close()
     except:
       pass
+    conn=None
+    sockhandle=None      
     time.sleep(5)
-
