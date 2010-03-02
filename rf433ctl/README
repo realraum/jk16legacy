@@ -1,0 +1,19 @@
+Realraum tuer instructions:
+
+1. install avr-gcc and tools:
+    $ sudo aptitude install gcc-avr avr-libc avrdude
+
+2. download arduino:
+    $ wget http://arduino.googlecode.com/files/arduino-0013-linux2.tgz
+
+3. unpack and add link:
+    $ tar -xzf arduino-0013-linux2.tgz
+    $ ln -s arduino-0013 arduino
+    
+4. update Makefile variables INSTALL_DIR and PORT to your needs
+
+5. build it
+    $ make
+
+6. flash it (press reset)
+    $ make upload 
