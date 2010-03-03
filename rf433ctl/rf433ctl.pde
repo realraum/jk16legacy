@@ -10,10 +10,11 @@
 #define IR_MOVEMENT_PIN 9
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
+//movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 20000
 #define IR_TRESHOLD 13000
-#define PB_SAMPLE_DURATION 5000
-#define PB_TRESHOLD 5000
+//duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Repots, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
+#define PB_TRESHOLD 1000
 
 OneWire  onewire(ONE_WIRE_PIN);
 DallasTemperature dallas_sensors(&onewire);
@@ -227,15 +228,19 @@ void setup()
 
 unsigned int ir_time=IR_SAMPLE_DURATION;
 unsigned int ir_count=0;
-unsigned int pb_time=PB_SAMPLE_DURATION;
-unsigned int pb_count=0;
+boolean pb_last_state=0;
+boolean pb_state=0;
+boolean pb_postth_state=0;
+unsigned int pb_time=0;
 
 void loop()
 {
   ir_time--;
-  pb_time--;
   ir_count += (digitalRead(IR_MOVEMENT_PIN) == HIGH);
-  pb_count += (digitalRead(PANIC_BUTTON_PIN) == LOW);
+
+  if (pb_time < PB_TRESHOLD)
+    pb_time++;
+  pb_state=(digitalRead(PANIC_BUTTON_PIN) == LOW);
   
   if (ir_time == 0)
   {
@@ -244,15 +249,23 @@ void loop()
     ir_time=IR_SAMPLE_DURATION;
     ir_count=0;
   }
-
-  if (pb_time == 0)
-  {
-    if (pb_count >= PB_TRESHOLD)
-      Serial.println("PanicButton");
-    pb_time=PB_SAMPLE_DURATION;
-    pb_count=0;
-  }
   
+  if (pb_state == pb_last_state && pb_time >= PB_TRESHOLD)
+  {
+    if (pb_state && ! pb_postth_state)
+    {   
+      pb_postth_state=1;
+      Serial.println("PanicButton");
+    }
+    else if (!pb_state)
+      pb_postth_state=0;
+  }
+  else if (pb_state != pb_last_state)
+  {
+    pb_time=0;
+    pb_last_state=pb_state;
+  }
+    
   if(Serial.available()) {
     char command = Serial.read();
     
