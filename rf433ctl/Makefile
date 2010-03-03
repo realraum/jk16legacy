@@ -1,7 +1,8 @@
 ## see README file
 
 TARGET = rf433ctl
-INSTALL_DIR = /home/equinox/realraum/rf433ctl/arduino
+#TARGET = find_onewire
+INSTALL_DIR = $(PWD)/arduino
 PORT = /dev/ttyUSB0
 UPLOAD_RATE = 57600
 AVRDUDE_PROGRAMMER = stk500v1
@@ -17,7 +18,7 @@ SRC =  $(ARDUINO)/pins_arduino.c $(ARDUINO)/wiring.c \
 $(ARDUINO)/wiring_analog.c $(ARDUINO)/wiring_digital.c \
 $(ARDUINO)/wiring_pulse.c $(ARDUINO)/wiring_serial.c \
 $(ARDUINO)/wiring_shift.c $(ARDUINO)/WInterrupts.c
-CXXSRC = $(ARDUINO)/HardwareSerial.cpp $(ARDUINO)/Print.cpp $(ARDUINO)/WMath.cpp
+CXXSRC = OneWire/OneWire.cpp DallasTemperature/DallasTemperature.cpp  $(ARDUINO)/HardwareSerial.cpp $(ARDUINO)/Print.cpp $(ARDUINO)/WMath.cpp
 FORMAT = ihex
 
 
@@ -36,8 +37,8 @@ CDEFS = -DF_CPU=$(F_CPU)
 CXXDEFS = -DF_CPU=$(F_CPU)
 
 # Place -I options here
-CINCS = -I$(ARDUINO)
-CXXINCS = -I$(ARDUINO)
+CINCS =  -I ./OneWire -I ./DallasTemperature -I$(ARDUINO)
+CXXINCS = -I ./OneWire -I ./DallasTemperature -I$(ARDUINO)
 
 # Compiler flag to set the C Standard level.
 # c89   - "ANSI" C
@@ -51,7 +52,7 @@ CTUNING = -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 #CEXTRA = -Wa,-adhlns=$(<:.c=.lst)
 
 CFLAGS = $(CDEBUG) $(CDEFS) $(CINCS) -O$(OPT) $(CWARN) $(CSTANDARD) $(CEXTRA)
-CXXFLAGS = $(CDEFS) $(CINCS) -O$(OPT)
+CXXFLAGS = $(CDEFS) $(CXXINCS) -O$(OPT)
 #ASFLAGS = -Wa,-adhlns=$(<:.S=.lst),-gstabs 
 LDFLAGS = -lm
 

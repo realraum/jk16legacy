@@ -17,3 +17,11 @@ Realraum tuer instructions:
 
 6. flash it (press reset)
     $ make upload 
+
+
+
+Arduino OneWire Lib 2.0:
+http://www.pjrc.com/teensy/td_libs_OneWire.html
+
+Dallas Temperature Library:
+http://download.milesburton.com/Arduino/MaximTemperature/DallasTemperature_350.zip

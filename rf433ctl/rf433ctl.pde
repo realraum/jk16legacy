@@ -1,10 +1,23 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <inttypes.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 //********************************************************************//
 
 #define DATA_OUT_PIN 13
+#define IR_MOVEMENT_PIN 9
+#define ONE_WIRE_PIN 8
+#define PANIC_BUTTON_PIN 7
+#define IR_SAMPLE_DURATION 20000
+#define IR_TRESHOLD 13000
+#define PB_SAMPLE_DURATION 5000
+#define PB_TRESHOLD 5000
+
+OneWire  onewire(ONE_WIRE_PIN);
+DallasTemperature dallas_sensors(&onewire);
+DeviceAddress onShieldTemp = { 0x10, 0xE7, 0x77, 0xD3, 0x01, 0x08, 0x00, 0x3F };
 
 typedef struct {
   byte offset;
@@ -180,15 +193,66 @@ void send_frame(const word_t w)
 
 //********************************************************************//
 
+void printTemperature(DeviceAddress deviceAddress)
+{
+  dallas_sensors.requestTemperatures();
+  float tempC = dallas_sensors.getTempC(deviceAddress);
+  Serial.print("Temp C: ");
+  Serial.println(tempC);
+  //Serial.print(" Temp F: ");
+  //Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
+}
+
+//********************************************************************//
+
 void setup()
 {
   pinMode(DATA_OUT_PIN, OUTPUT);
   digitalWrite(DATA_OUT_PIN, LOW);
+  pinMode(IR_MOVEMENT_PIN, INPUT);      // set pin to input
+  digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pullup resistors  
+  pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
+  digitalWrite(PANIC_BUTTON_PIN, HIGH);  // turn on pullup resistors 
+  
+  onewire.reset();
+  onewire.reset_search();
+  dallas_sensors.begin();
+  //in case we change temp sensor:
+  if (!dallas_sensors.getAddress(onShieldTemp, 0)) 
+    Serial.println("Unable to find address for Device 0"); 
+  dallas_sensors.setResolution(onShieldTemp, 9);
+  
   Serial.begin(9600);
 }
 
+unsigned int ir_time=IR_SAMPLE_DURATION;
+unsigned int ir_count=0;
+unsigned int pb_time=PB_SAMPLE_DURATION;
+unsigned int pb_count=0;
+
 void loop()
 {
+  ir_time--;
+  pb_time--;
+  ir_count += (digitalRead(IR_MOVEMENT_PIN) == HIGH);
+  pb_count += (digitalRead(PANIC_BUTTON_PIN) == LOW);
+  
+  if (ir_time == 0)
+  {
+    if (ir_count >= IR_TRESHOLD)
+      Serial.println("movement");
+    ir_time=IR_SAMPLE_DURATION;
+    ir_count=0;
+  }
+
+  if (pb_time == 0)
+  {
+    if (pb_count >= PB_TRESHOLD)
+      Serial.println("PanicButton");
+    pb_time=PB_SAMPLE_DURATION;
+    pb_count=0;
+  }
+  
   if(Serial.available()) {
     char command = Serial.read();
     
@@ -227,6 +291,7 @@ void loop()
       send_frame(words[D2_ON]);
     else if(command == 'k')
       send_frame(words[D2_OFF]);
-
+    else if(command == 'T')
+      printTemperature(onShieldTemp);
   }
 }
