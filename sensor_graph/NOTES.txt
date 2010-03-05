@@ -1,0 +1,5 @@
+http://nuwiki.openwrt.org/oldwiki/rrdtrafficwatch
+http://oss.oetiker.ch/rrdtool/tut/rrd-beginners.en.html
+http://oss.oetiker.ch/rrdtool/prog/rrdlua.en.html
+http://www.tecgraf.puc-rio.br/~diego/professional/luasocket/
+http://lua-users.org/lists/lua-l/2008-07/msg00460.html
