@@ -29,8 +29,10 @@ class UWSConfig:
     self.config_parser=ConfigParser.ConfigParser()
     self.config_parser.add_section('web')
     self.config_parser.set('web','cgiuri','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=')
-    self.config_parser.set('web','htmlopen','<html><body bgcolor="lime"><center><b>T&uuml;r ist Offen</b></center></body></html>')
-    self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>T&uuml;r ist Geschlossen</center></b></body></html>')
+    #~ self.config_parser.set('web','htmlopen','<html><body bgcolor="lime"><center><b>T&uuml;r ist Offen</b></center></body></html>')
+    #~ self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>T&uuml;r ist Geschlossen</center></b></body></html>')
+    self.config_parser.set('web','htmlopen','<html><body bgcolor="lime"><center><b>Leute Anwesend</b></center></body></html>')
+    self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>Keiner Da</center></b></body></html>')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
@@ -184,30 +186,23 @@ signal.signal(signal.SIGQUIT, exitHandler)
 logging.info("Door Status Listener started")
 
 if len(sys.argv) > 1:
-  socketfile = sys.argv[1]
-else:
-  socketfile = "/var/run/tuer/door_cmd.socket"
-  
-if len(sys.argv) > 2:
-  uwscfg = UWSConfig(sys.argv[2])
+  uwscfg = UWSConfig(sys.argv[1])
 else:
   uwscfg = UWSConfig()
 
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-RE_STATUS = re.compile(r'Status: (\w+), idle')
-RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')
-RE_ERROR = re.compile(r'Error: (.+)')
+RE_STATUS = re.compile(r'Status: (people present|room empty)')
 while True:
   try:
-    if not os.path.exists(socketfile):
-      logging.debug("Socketfile '%s' not found, waiting 5 secs" % socketfile)
+    if not os.path.exists(uwscfg.tracker_socket):
+      logging.debug("Socketfile '%s' not found, waiting 5 secs" % uwscfg.tracker_socket)
       time.sleep(5)
       continue
     sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sockhandle.connect(socketfile)
+    sockhandle.connect(uwscfg.tracker_socket)
     conn = os.fdopen(sockhandle.fileno())
-    sockhandle.send("listen\n")
-    sockhandle.send("status\n")
+    #sockhandle.send("listen\n")
+    #sockhandle.send("status\n")
     while True:
       line = conn.readline()
       logging.debug("Got Line: " + line)
@@ -220,20 +215,10 @@ while True:
       m = RE_STATUS.match(line)
       if not m is None:
         status = m.group(1)
-        if status == "opened":
+        if status == "people present":
           displayOpen()
-        if status == "closed":
+        if status == "room empty":
           displayClosed()
-      #~ m = RE_REQUEST.match(line)
-      #~ if not m is None:  
-        #~ #(rq_action,rq_by) = m.group(1,2)
-        #~ action_by = " von " + m.group(2)
-      #~ else:
-        #~ action_by = ""
-      #~ m = RE_ERROR.match(line)
-      #~ if not m is None:
-        #~ errorstr = m.group(1)
-        #~ #handle Error
   except Exception, ex:
     logging.error("main: "+str(ex)) 
     try:

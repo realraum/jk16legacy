@@ -319,9 +319,9 @@ class ConnectionListener:
   
   def statusString(self,somebody_present):
     if somebody_present:
-      return "people present" + "\n"
+      return "Status: people present" + "\n"
     else:
-      return "room empty" + "\n"
+      return "Status: room empty" + "\n"
   
   def updateStatus(self,somebody_present):
     presence_status_data = self.statusString(somebody_present)
