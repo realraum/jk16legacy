@@ -336,9 +336,9 @@ class ConnectionListener:
     except OSError:
         pass
     self.server_socket.bind(self.uwscfg.tracker_server_socket)
-    self.server_socket.listen(backlog=2)
+    self.server_socket.listen(2)
     while (self.running):
-      (ready_to_read, ready_to_write, in_error) = select.select(rlist=[self.server_socket]+self.client_sockets, wlist=[],  xlist=[])
+      (ready_to_read, ready_to_write, in_error) = select.select([self.server_socket]+self.client_sockets, [],  [])
       for socket_to_read in ready_to_read:
         if socket_to_read == self.server_socket:
           newsocketconn, addr = self.server_socket.accept()
@@ -386,3 +386,4 @@ track_sensorstatus_thread = threading.Thread(target=trackSensorStatusThread,args
 track_sensorstatus_thread.start()
 #ConnectionListener servers incoming socket connections and distributes status update
 connection_listener = ConnectionListener(uwscfg, status_tracker)
+connection_listener.serve()
