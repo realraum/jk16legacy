@@ -33,6 +33,8 @@ class UWSConfig:
     self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>T&uuml;r ist Geschlossen</center></b></body></html>')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
+    self.config_parser.add_section('tracker')
+    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")    
     self.config_mtime=0
     if not self.configfile is None:
       try:
