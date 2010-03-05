@@ -13,7 +13,7 @@ Notes:
 
 == Replys of daemon ==
 
-CMDREPLY:= ok | error $ERRORSTR
+CMDREPLY:= OK | Error: $ERRORSTR
 ERRORSTR:=no connection | unknown device | ....
 
 == Listener Data from Daemon ==
