@@ -138,7 +138,7 @@ class UWSConfig:
 
 ######## Status Listener Threads ############
 
-def trackSensorStatusThread(uwscfg,status_tracker):
+def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
   #RE_TEMP = re.compile(r'temp\d: (\d+\.\d+)')
   RE_PHOTO = re.compile(r'photo\d: (\d+\.\d+)')
   RE_MOVEMENT = re.compile(r'movement|button\d?')
@@ -161,6 +161,8 @@ def trackSensorStatusThread(uwscfg,status_tracker):
           raise Exception("EOF on Subprocess, daemon seems to have quit")
         if not sshp.poll() is None:
           raise Exception("trackSensorStatusThread: subprocess %d finished, returncode: %d" % (sshp.pid,sshp.returncode))
+          
+        connection_listener.distributeData(line)
         m = RE_MOVEMENT.match(line)
         if not m is None:
           status_tracker.movementDetected()
@@ -189,7 +191,7 @@ def trackSensorStatusThread(uwscfg,status_tracker):
       time.sleep(5)  
   
 
-def trackDoorStatusThread(uwscfg, status_tracker):
+def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
   #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
   RE_STATUS = re.compile(r'Status: (\w+), idle')
   RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')
@@ -213,6 +215,7 @@ def trackDoorStatusThread(uwscfg, status_tracker):
         if line == "":
           raise Exception("EOF on Socket, daemon seems to have quit")
         
+        connection_listener.distributeData(line)
         m = RE_STATUS.match(line)
         if not m is None:
           (status,who) = m.group(1,2)
@@ -319,15 +322,17 @@ class ConnectionListener:
   
   def statusString(self,somebody_present):
     if somebody_present:
-      return "Status: people present" + "\n"
+      return "Presence: yes" + "\n"
     else:
-      return "Status: room empty" + "\n"
+      return "Presence: no" + "\n"
   
   def updateStatus(self,somebody_present):
-    presence_status_data = self.statusString(somebody_present)
+    self.distributeData(self.statusString(somebody_present))
+    
+  def distributeData(self,data):
     with self.lock:
       for socket_to_send_to in self.client_sockets:
-        socket_to_send_to.send(presence_status_data)
+        socket_to_send_to.send(data)
     
   def serve(self):
     self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -342,8 +347,7 @@ class ConnectionListener:
       for socket_to_read in ready_to_read:
         if socket_to_read == self.server_socket:
           newsocketconn, addr = self.server_socket.accept()
-          presence_status_data = self.statusString(self.status_tracker.somebodyPresent())
-          newsocketconn.send(presence_status_data)
+          newsocketconn.send(self.statusString(self.status_tracker.somebodyPresent()))
           with self.lock:
             self.client_sockets.append(newsocketconn)
         else:
@@ -378,12 +382,14 @@ else:
 
 #Status Tracker keeps track of stuff and derives peoples presence from current state
 status_tracker = StatusTracker(uwscfg)
-#Thread listening for door status changes
-track_doorstatus_thread = threading.Thread(target=trackDoorStatusThread,args=(uwscfg,status_tracker),name="trackDoorStatusThread")
-track_doorstatus_thread.start()
-#Thread listening for movement
-track_sensorstatus_thread = threading.Thread(target=trackSensorStatusThread,args=(uwscfg,status_tracker),name="trackSensorStatusThread")
-track_sensorstatus_thread.start()
 #ConnectionListener servers incoming socket connections and distributes status update
 connection_listener = ConnectionListener(uwscfg, status_tracker)
+#Thread listening for door status changes
+track_doorstatus_thread = threading.Thread(target=trackDoorStatusThread,args=(uwscfg,status_tracker,connection_listener),name="trackDoorStatusThread")
+track_doorstatus_thread.start()
+#Thread listening for movement
+track_sensorstatus_thread = threading.Thread(target=trackSensorStatusThread,args=(uwscfg,status_tracker,connection_listener),name="trackSensorStatusThread")
+track_sensorstatus_thread.start()
+
+#main routine: serve connections
 connection_listener.serve()

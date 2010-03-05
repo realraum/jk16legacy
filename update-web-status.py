@@ -191,7 +191,8 @@ else:
   uwscfg = UWSConfig()
 
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-RE_STATUS = re.compile(r'Status: (people present|room empty)')
+#RE_STATUS = re.compile(r'Status: (\w+), idle')
+RE_PRESENCE = re.compile(r'Presence: (yes|no)')
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
@@ -212,12 +213,12 @@ while True:
       if line == "":
         raise Exception("EOF on Socket, daemon seems to have quit")
       
-      m = RE_STATUS.match(line)
+      m = RE_PRESENCE.match(line)
       if not m is None:
         status = m.group(1)
-        if status == "people present":
+        if status == "yes":
           displayOpen()
-        if status == "room empty":
+        else:
           displayClosed()
   except Exception, ex:
     logging.error("main: "+str(ex)) 

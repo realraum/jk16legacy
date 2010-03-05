@@ -41,6 +41,8 @@ class UWSConfig:
     self.config_parser.set('msg','comment_msg',"\s(${comment})")
     self.config_parser.set('msg','status_still_opened_msg',"Door remains closed")
     self.config_parser.set('msg','status_still_closed_msg',"Door remains open")
+    self.config_parser.add_section('tracker')
+    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")        
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -187,7 +189,13 @@ def distributeXmppMsg(msg,high_priority=False,debug=False):
     sendXmppMsg(uwscfg.xmpp_recipients_nooffline, msg, noofflinemsg=(not high_priority))
   else:
     sendXmppMsg(uwscfg.xmpp_recipients_debug, "D: " + msg)
-  
+
+def formatAndDistributePresence(presence):
+  if presence == "yes":
+    distributeXmppMsg("Somebody is present right now")
+  else:
+    distributeXmppMsg("Nobody is here, everybody left")
+
 current_status = (None, None, None) 
 def filterAndFormatMessage(new_status):
   global current_status
@@ -250,32 +258,28 @@ signal.signal(signal.SIGINT, exitHandler)
 signal.signal(signal.SIGQUIT, exitHandler)
 
 logging.info("Update-Xmpp-Status started")
-
+ 
 if len(sys.argv) > 1:
-  socketfile = sys.argv[1]
-else:
-  socketfile = "/var/run/tuer/door_cmd.socket"
-  
-if len(sys.argv) > 2:
-  uwscfg = UWSConfig(sys.argv[2])
+  uwscfg = UWSConfig(sys.argv[1])
 else:
   uwscfg = UWSConfig()
 
 distributeXmppMsg("update-xmpp-status.py started", debug=True)
 RE_STATUS = re.compile(r'Status: (\w+), idle')
 RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')
+RE_PRESENCE = re.compile(r'Presence: (yes|no)')
 RE_ERROR = re.compile(r'Error: (.+)')
 while True:
   try:
-    if not os.path.exists(socketfile):
-      logging.debug("Socketfile '%s' not found, waiting 5 secs" % socketfile)
+    if not os.path.exists(uwscfg.tracker_socket):
+      logging.debug("Socketfile '%s' not found, waiting 5 secs" % uwscfg.tracker_socket)
       time.sleep(5)
       continue
     sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sockhandle.connect(socketfile)
+    sockhandle.connect(uwscfg.tracker_socket)
     conn = os.fdopen(sockhandle.fileno())
-    sockhandle.send("listen\n")
-    sockhandle.send("status\n")
+    #sockhandle.send("listen\n")
+    #sockhandle.send("status\n")
     last_request = (None, None)
     while True:
       line = conn.readline()
@@ -286,23 +290,30 @@ while True:
       if line == "":
         raise Exception("EOF on Socket, daemon seems to have quit")      
       
+      m = RE_PRESENCE.match(line)
+      if not m is None:
+        formatAndDistributePresence(m.group(1))
+        continue
       m = RE_STATUS.match(line)
       if not m is None:
         status = m.group(1)
         filterAndFormatMessage((status,) + last_request)
+        last_request = (None, None)
+        continue
       m = RE_REQUEST.match(line)
       if not m is None:  
         last_request = m.group(1,2)
-      else:
-        last_request = (None, None)
+        continue
       m = RE_ERROR.match(line)
       if not m is None:
         errorstr = m.group(1)
         if "too long!" in errorstr:
           filterAndFormatMessage(("error",) + last_request)
+          last_request = (None, None)
         else:
           logging.error("Recieved Error: "+errorstr)
           distributeXmppMsg("Error: "+errorstr, debug=True)
+          last_request = (None, None)
   except Exception, ex:
     logging.error("main: "+str(ex)) 
     try:
