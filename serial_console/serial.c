@@ -134,6 +134,9 @@ int main(int argc, char* argv[])
   int door_fd = 0;
   struct termios tmio_prev;
   
+  if (argc > 0)
+    door_dev_ = argv[1];
+  
   for(;;) 
   {
     door_fd = open(door_dev_, O_RDWR | O_NONBLOCK); // | O_NOCTTY
