@@ -87,8 +87,8 @@ int restore_tty(int fd, struct termios  *termios_prev)
   int ret = tcsetattr(fd, TCSANOW, termios_prev);
   if(ret) {
     fprintf(stderr, "Error on tcsetattr(): %s", strerror(errno));
-    return ret;
   }
+  return ret;  
 }
 
 void  connect_terminal(int door_fd)
@@ -106,7 +106,7 @@ void  connect_terminal(int door_fd)
   {
     if (FD_ISSET(door_fd,&fds_r))
     {
-      if (num_byte = read(door_fd,buffer, 1) > 0)
+      if ((num_byte = read(door_fd,buffer, 1)) > 0)
       {
         write(STDOUT_FILENO,buffer,num_byte);
       }
@@ -115,7 +115,7 @@ void  connect_terminal(int door_fd)
     }    
     if (FD_ISSET(STDIN_FILENO,&fds_r))
     {
-      while(num_byte = read(STDIN_FILENO,buffer, 256) > 0)
+      while((num_byte = read(STDIN_FILENO,buffer, 256)) > 0)
       {
         write(door_fd,buffer,num_byte);
       }
