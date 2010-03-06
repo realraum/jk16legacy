@@ -44,9 +44,12 @@ class UWSConfig:
     self.config_parser.set('sensors','remote_socket',"/var/run/power_sensor.socket")
     self.config_parser.set('sensors','remote_shell',"usocket")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','sec_wait_movement_after_door_closed',2.0)
-    self.config_parser.set('tracker','sec_general_movement_timeout',1800)
+    self.config_parser.set('tracker','sec_wait_movement_after_door_closed',2.5)
+    self.config_parser.set('tracker','sec_general_movement_timeout',3600)
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
+    self.config_parser.set('tracker','photo_flashlight',950)
+    self.config_parser.set('tracker','photo_daylight',500)
+    self.config_parser.set('tracker','photo_artif_light',150)
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -153,7 +156,7 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
         raise Exception("trackSensorStatusThread: subprocess %d finished, returncode: %d" % (sshp.pid,sshp.returncode))
       (stdoutdata, stderrdata) = sshp.communicate(input="listen movement\n")
       (stdoutdata, stderrdata) = sshp.communicate(input="listen button\n")
-      (stdoutdata, stderrdata) = sshp.communicate(input="listen photo0\n")
+      (stdoutdata, stderrdata) = sshp.communicate(input="listen photo\n")
       while True:
         line = sshp.stdout.readline()
         logging.debug("Got Line: " + line)
@@ -244,6 +247,8 @@ class StatusTracker: #(threading.Thread):
     self.door_manual_switch_used=False
     self.last_door_operation_unixts=0
     self.last_movement_unixts=0
+    self.last_light_value=0
+    self.last_light_unixts=0
     self.lock=threading.Lock()
     #Notify State locked by self.presence_notify_lock
     self.last_somebody_present_result=False
@@ -276,10 +281,28 @@ class StatusTracker: #(threading.Thread):
     self.lock.release()
     self.checkPresenceStateChangeAndNotify()
 
-  def currentLightLevel(self):
+  def currentLightLevel(self, value):
     self.uwscfg.checkConfigUpdates()
-    #...
+    self.last_light_unixts=time.time()
+    self.last_light_value=value;
     self.checkPresenceStateChangeAndNotify()
+  
+  def checkLight(self, somebody_present=None):
+    if somebody_present is None:
+      somebody_present=self.somebodyPresent()
+    
+    if self.last_light_value > self.uwscfg.tracker_photo_flashlight:
+      return "Light: flashlight"
+    elif self.last_light_value > self.uwscfg.tracker_photo_daylight:
+      return "Light: daylight"
+    elif self.last_light_value > self.uwscfg.tracker_photo_artif_light:
+      if not somebody_present and self.last_light_unixts > self.last_door_operation_unixts:
+        return "Light: forgotten"
+      else:
+        return "Light: on"      
+    else:
+      return "Light: off"
+
   
   #TODO: check brightness level from cam or an arduino sensor
   def somebodyPresent(self):
@@ -294,7 +317,7 @@ class StatusTracker: #(threading.Thread):
         self.timer=threading.Timer(self.uwscfg.tracker_sec_wait_movement, self.checkPresenceStateChangeAndNotify)
         self.timer.start()
         return True
-      elif (self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < self.uwscfg.tracker_sec_general_movement_timeout):
+      elif (self.last_movement_unixts > self.last_door_operation_unixts and (self.door_manual_switch_used or ( time.time() - self.last_movement_unixts < self.uwscfg.tracker_sec_general_movement_timeout))):
         return True
       else:
         return False
