@@ -6,14 +6,14 @@
 
 //********************************************************************//
 
-#define DATA_OUT_PIN 13
+#define RF_DATA_OUT_PIN 13
 #define IR_MOVEMENT_PIN 9
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 20000
 #define IR_TRESHOLD 13000
-//duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Repots, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
+//duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Reports, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
 #define PB_TRESHOLD 1000
 
 OneWire  onewire(ONE_WIRE_PIN);
@@ -136,9 +136,9 @@ void init_word(const word_t w)
   bit_cnt = 0;
 
   if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-    digitalWrite(DATA_OUT_PIN, HIGH);
+    digitalWrite(RF_DATA_OUT_PIN, HIGH);
   else
-    digitalWrite(DATA_OUT_PIN, LOW);
+    digitalWrite(RF_DATA_OUT_PIN, LOW);
 
   start_timer();
 }
@@ -152,9 +152,9 @@ ISR(TIMER1_COMPA_vect)
   chunk_cnt++;
   if(bit_defs[current_word[bit_cnt]][chunk_cnt].offset != 0) {
     if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-      digitalWrite(DATA_OUT_PIN, HIGH);
+      digitalWrite(RF_DATA_OUT_PIN, HIGH);
     else
-      digitalWrite(DATA_OUT_PIN, LOW);
+      digitalWrite(RF_DATA_OUT_PIN, LOW);
     return;
   }
   
@@ -163,13 +163,13 @@ ISR(TIMER1_COMPA_vect)
     alpha_cnt = 0;
     chunk_cnt = 0;
     if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-      digitalWrite(DATA_OUT_PIN, HIGH);
+      digitalWrite(RF_DATA_OUT_PIN, HIGH);
     else
-      digitalWrite(DATA_OUT_PIN, LOW);
+      digitalWrite(RF_DATA_OUT_PIN, LOW);
     return;
   }
   stop_timer();
-  digitalWrite(DATA_OUT_PIN, LOW);
+  digitalWrite(RF_DATA_OUT_PIN, LOW);
 
   word_cnt++;
   if(word_cnt < FRAME_LEN)
@@ -190,6 +190,8 @@ void send_frame(const word_t w)
   for(;;)
     if(frame_finished)
       break;
+
+  Serial.println("Ok");
 }
 
 //********************************************************************//
@@ -208,8 +210,8 @@ void printTemperature(DeviceAddress deviceAddress)
 
 void setup()
 {
-  pinMode(DATA_OUT_PIN, OUTPUT);
-  digitalWrite(DATA_OUT_PIN, LOW);
+  pinMode(RF_DATA_OUT_PIN, OUTPUT);
+  digitalWrite(RF_DATA_OUT_PIN, LOW);
   pinMode(IR_MOVEMENT_PIN, INPUT);      // set pin to input
   digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pullup resistors  
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
