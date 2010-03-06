@@ -308,5 +308,8 @@ void loop()
       send_frame(words[D2_OFF]);
     else if(command == 'T')
       printTemperature(onShieldTemp);
+
+    else
+      Serial.println("Error: unknown command");
   }
 }
