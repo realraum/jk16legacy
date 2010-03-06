@@ -222,7 +222,7 @@ void setup()
   dallas_sensors.begin();
   //in case we change temp sensor:
   if (!dallas_sensors.getAddress(onShieldTemp, 0)) 
-    Serial.println("Unable to find address for Device 0"); 
+    Serial.println("Error: Unable to find address for Device 0"); 
   dallas_sensors.setResolution(onShieldTemp, 9);
   
   Serial.begin(9600);
@@ -271,40 +271,40 @@ void loop()
   if(Serial.available()) {
     char command = Serial.read();
     
-    if(command == 'q')
+    if(command == 'A')
       send_frame(words[A1_ON]);
     else if(command == 'a')
       send_frame(words[A1_OFF]);
-    else if(command == 'w')
+    else if(command == 'B')
       send_frame(words[A2_ON]);
-    else if(command == 's')
+    else if(command == 'b')
       send_frame(words[A2_OFF]);
 
-    else if(command == 'e')
+    else if(command == 'C')
       send_frame(words[B1_ON]);
-    else if(command == 'd')
+    else if(command == 'c')
       send_frame(words[B1_OFF]);
-    else if(command == 'r')
+    else if(command == 'D')
       send_frame(words[B2_ON]);
-    else if(command == 'f')
+    else if(command == 'd')
       send_frame(words[B2_OFF]);
 
-    else if(command == 't')
+    else if(command == 'E')
       send_frame(words[C1_ON]);
-    else if(command == 'g')
+    else if(command == 'e')
       send_frame(words[C1_OFF]);
-    else if(command == 'z')
+    else if(command == 'F')
       send_frame(words[C2_ON]);
-    else if(command == 'h')
+    else if(command == 'f')
       send_frame(words[C2_OFF]);
 
-    else if(command == 'u')
+    else if(command == 'G')
       send_frame(words[D1_ON]);
-    else if(command == 'j')
+    else if(command == 'g')
       send_frame(words[D1_OFF]);
-    else if(command == 'i')
+    else if(command == 'H')
       send_frame(words[D2_ON]);
-    else if(command == 'k')
+    else if(command == 'h')
       send_frame(words[D2_OFF]);
     else if(command == 'T')
       printTemperature(onShieldTemp);

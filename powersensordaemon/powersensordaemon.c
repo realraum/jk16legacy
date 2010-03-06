@@ -136,6 +136,17 @@ int send_response(int fd, const char* response)
   return ret;
 }
 
+#define SEND_TO_LISTENER(LISTENER_TYPE, TYPE_NAME, FD, STRING)                        \
+      client_t* client;                                                               \
+      int listener_cnt = 0;                                                           \
+      for(client = client_lst; client; client = client->next)                         \
+        if(client->LISTENER_TYPE && client->fd != FD) {                               \
+          send_response(client->fd, STRING);                                          \
+          listener_cnt++;                                                             \
+        }                                                                             \
+      log_printf(DEBUG, "sent %s to %d additional listeners", TYPE_NAME,listener_cnt);
+  
+
 int process_cmd(const char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst)
 {
   log_printf(DEBUG, "processing command from %d", fd);
@@ -167,15 +178,8 @@ int process_cmd(const char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst)
     if(resp) {
       char* linefeed = strchr(resp, '\n');
       if(linefeed) linefeed[0] = 0;
-      client_t* client;
-      int listener_cnt = 0;
-      for(client = client_lst; client; client = client->next)
-        if(client->request_listener && client->fd != fd) {
-          send_response(client->fd, resp);
-          listener_cnt++;
-        }
+      SEND_TO_LISTENER(request_listener, "request", fd, resp);
       free(resp);
-      log_printf(DEBUG, "sent request to %d additional listeners", listener_cnt);
     }
 // else silently ignore memory alloc error
   }
@@ -305,7 +309,7 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
       if(buffer->offset > 0 && buffer->buf[buffer->offset-1] == '\r')
         buffer->buf[buffer->offset-1] = 0;
 
-      log_printf(NOTICE, "tty-firmware: %s", buffer->buf);      
+      log_printf(NOTICE, "firmware: %s", buffer->buf);      
 
       int cmd_fd = -1;
       if(cmd_q && (*cmd_q)) {
@@ -314,16 +318,21 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
       }
       
       if(!strncmp(buffer->buf, "Error:", 6)) {
-        client_t* client;
-        int listener_cnt = 0;
-        for(client = client_lst; client; client = client->next)
-          if(client->error_listener && client->fd != cmd_fd) {
-            send_response(client->fd, buffer->buf);
-            listener_cnt++;
-          }
-        log_printf(DEBUG, "sent error to %d additional listeners", listener_cnt);
+        SEND_TO_LISTENER(error_listener, "error", cmd_fd, buffer->buf);
       }
       
+      if(!strncmp(buffer->buf, "movement", 8)) {
+        SEND_TO_LISTENER(movement_listener, "movement", cmd_fd, buffer->buf);
+      }
+
+      if(!strncmp(buffer->buf, "PanicButton", 11)) {
+        SEND_TO_LISTENER(button_listener, "panic buttont", cmd_fd, buffer->buf);
+      }
+
+      if(!strncmp(buffer->buf, "Temp ", 5)) {
+        SEND_TO_LISTENER(temp_listener, "", cmd_fd, buffer->buf);
+      }
+
       cmd_pop(cmd_q);
       buffer->offset = 0;
       return 0;

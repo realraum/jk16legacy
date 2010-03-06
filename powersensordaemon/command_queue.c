@@ -86,7 +86,7 @@ int cmd_has_expired(cmd_t cmd)
   struct timeval now;
   timerclear(&now);
   gettimeofday(&now, NULL);
-  cmd.tv_start.tv_sec++;
+  cmd.tv_start.tv_sec+=2;
 
   return timercmp(&cmd.tv_start, &now, <);
 }
