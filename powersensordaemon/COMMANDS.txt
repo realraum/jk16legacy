@@ -1,15 +1,14 @@
 
 == Commands accepted by daemon ==
 
-COMMAND:= power $POWERID (on|off) |  listen $EVENT | sample $SAMPLEDEV
+COMMAND:= power $POWERID (on|off) |  listen $EVENT | sample $SAMPLEDEV | log <logtext>
 POWERID:= werkzeug | stereo | labor | schreibtisch | logo | idee
-EVENT:= all | temp | photo | movement | button
+EVENT:= all | request | temp | photo | movement | button | none
 SAMPLEDEV:=temp[0-9]+ | photo[0-9]+
 
 Notes:
   * subscription to events is cummulativ
   * the "sample" command instructs the daemon to immediately get new sensor data of device $SAMPLEDEV
-  * if listeners for sensors (temp | photo) exist, the daemon should periodically get and distribute sample data without waiting for a "sample" command
 
 == Replys of daemon ==
 
