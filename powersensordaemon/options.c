@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "log.h"
 
@@ -182,18 +183,52 @@ int options_parse(options_t* opt, int argc, char* argv[])
   return 0;
 }
 
-void options_parse_post(options_t* opt)
+
+int options_parse_key_value_file(const char* filename, key_value_storage_t* storage)
+{
+  FILE* file = fopen(filename, "r");
+  if(file) {
+    char buf[100];
+    while(fgets(buf, 100, file) != NULL) {
+      char* tmp, *key, *value;
+      for(tmp = buf;*tmp == ' '; ++tmp);
+      if(*(key = tmp) == 0) continue;
+      for(;*tmp != ' ' && *tmp != 0;++tmp);
+      if(*tmp == 0) continue;
+      *tmp=0;
+      ++tmp;
+      for(;*tmp == ' ';++tmp);
+      if(*(value = tmp) == 0) continue;
+      for(;*tmp != ' ' && *tmp != 0 && *tmp != '\n';++tmp);
+      *tmp = 0;
+      
+      if(key_value_storage_add(storage, key, value))
+        return -2;
+    }
+    fclose(file);
+  }
+  else {
+    log_printf(ERROR,"unable to open conf file (%s): %s", filename, strerror(errno));
+    return -1;
+  }
+}
+
+int options_parse_post(options_t* opt)
 {
   if(!opt)
-    return;
+    return -1;
 
-/*   if(opt->powerid_file_) { */
-/*         // read powerids */
-/*   }   */
+  if(opt->powerid_file_) {
+    int ret = options_parse_key_value_file(opt->powerid_file_, &opt->powerids_);
+    if(ret)
+      return ret;
+  }
 
-/*   if(opt->sampledev_file_) { */
-/*         // read powerids */
-/*   }   */
+  if(opt->sampledev_file_) {
+    int ret = options_parse_key_value_file(opt->sampledev_file_, &opt->sampledevs_);
+    if(ret)
+      return ret;
+  }
 }
 
 void options_default(options_t* opt)
@@ -212,7 +247,9 @@ void options_default(options_t* opt)
   opt->tty_dev_ = strdup("/dev/ttyUSB0");
   opt->command_sock_ = strdup("/var/run/powersensordaemon/cmd.sock");
   opt->powerid_file_ = NULL;
+  key_value_storage_init(&opt->powerids_);
   opt->sampledev_file_ = NULL;
+  key_value_storage_init(&opt->sampledevs_);
 }
 
 void options_clear(options_t* opt)
@@ -238,6 +275,10 @@ void options_clear(options_t* opt)
     free(opt->command_sock_);
   if(opt->powerid_file_)
     free(opt->powerid_file_);
+  key_value_storage_clear(&opt->powerids_);
+  if(opt->sampledev_file_)
+    free(opt->sampledev_file_);
+  key_value_storage_clear(&opt->sampledevs_);
 }
 
 void options_print_usage()
@@ -275,5 +316,9 @@ void options_print(options_t* opt)
   printf("tty_dev: '%s'\n", opt->tty_dev_);
   printf("command_sock: '%s'\n", opt->command_sock_);
   printf("powerid_file: '%s'\n", opt->powerid_file_);
+  printf("powerids: \n");
+  key_value_storage_print(&opt->powerids_, "  '", "' -> '", "'\n");
   printf("sampledev_file: '%s'\n", opt->sampledev_file_);
+  printf("sampledevs: \n");
+  key_value_storage_print(&opt->sampledevs_, "  '", "' -> '", "'\n");
 }

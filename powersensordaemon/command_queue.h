@@ -24,7 +24,7 @@
 
 #include <sys/time.h>
 
-enum cmd_id_enum { POWER, SAMPLE, LOG , LISTEN };
+enum cmd_id_enum { POWER_ON, POWER_OFF, SAMPLE, LOG , LISTEN };
 typedef enum cmd_id_enum cmd_id_t;
 
 struct cmd_struct {

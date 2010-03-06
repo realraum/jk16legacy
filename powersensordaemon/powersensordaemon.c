@@ -81,12 +81,22 @@ int send_command(int tty_fd, cmd_t* cmd)
   
   char c;
   switch(cmd->cmd) {
-  case POWER: {
-    c = 'A'; // get command from powerids[cmd->param]
+  case POWER_ON: {
+    if(!cmd->param)
+      return 0;
+    c = toupper(cmd->param[0]);
+    break;
+  }
+  case POWER_OFF: {
+    if(!cmd->param)
+      return 0;
+    c = tolower(cmd->param[0]);
     break;
   }
   case SAMPLE: {
-    c = 'T'; // get command from sampledevs[cmd->param]
+    if(!cmd->param)
+      return 0;
+    c = cmd->param[0];
     break;
   }
   default: return 0;
@@ -147,7 +157,7 @@ int send_response(int fd, const char* response)
       log_printf(DEBUG, "sent %s to %d additional listeners", TYPE_NAME,listener_cnt);
   
 
-int process_cmd(const char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst)
+int process_cmd(char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst, options_t* opt)
 {
   log_printf(DEBUG, "processing command from %d", fd);
 
@@ -155,8 +165,14 @@ int process_cmd(const char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst)
     return -1;
   
   cmd_id_t cmd_id;
-  if(!strncmp(cmd, "power", 5))
-    cmd_id = POWER;
+  if(!strncmp(cmd, "power on", 8)) {
+    cmd_id = POWER_ON;
+    cmd[5] = '_';
+  }
+  else if(!strncmp(cmd, "power off", 9)) {
+    cmd_id = POWER_OFF;
+    cmd[5] = '_';
+  }
   else if(!strncmp(cmd, "sample", 6))
     cmd_id = SAMPLE;
   else if(!strncmp(cmd, "log", 3))
@@ -169,10 +185,28 @@ int process_cmd(const char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst)
     return 0;
   }
   char* param = strchr(cmd, ' ');
-  if(param) 
+  if(param)
     param++;
 
-  if(cmd_id == POWER || cmd_id == SAMPLE) {
+  if(cmd_id == POWER_ON || cmd_id == POWER_OFF) {
+    char* orig_param = param;
+    param = key_value_storage_find(&opt->powerids_, param);
+    if(!param) {
+      send_response(fd, "Error: invalid power id");
+      log_printf(WARNING, "invalid power id '%s' in command from %d", orig_param, fd);
+    }
+  }
+
+  if(cmd_id == SAMPLE) {
+    char* orig_param = param;
+    param = key_value_storage_find(&opt->sampledevs_, param);
+    if(!param) {
+      send_response(fd, "Error: invalid sample device");
+      log_printf(WARNING, "invalid sample device '%s' in command from %d", orig_param, fd);
+    }
+  }
+
+  if(cmd_id == POWER_ON || cmd_id == POWER_OFF || cmd_id == SAMPLE) {
     char* resp;
     asprintf(&resp, "Request: %s", cmd);
     if(resp) {
@@ -185,7 +219,8 @@ int process_cmd(const char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst)
   }
 
   switch(cmd_id) {
-  case POWER:
+  case POWER_ON:
+  case POWER_OFF:
   case SAMPLE: {
     int ret = cmd_push(cmd_q, fd, cmd_id, param);
     if(ret)
@@ -248,7 +283,7 @@ int process_cmd(const char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst)
   return 0;
 }
 
-int nonblock_recvline(read_buffer_t* buffer, int fd, cmd_t** cmd_q, client_t* client_lst)
+int nonblock_recvline(read_buffer_t* buffer, int fd, cmd_t** cmd_q, client_t* client_lst, options_t* opt)
 {
   int ret = 0;
   for(;;) {
@@ -262,7 +297,7 @@ int nonblock_recvline(read_buffer_t* buffer, int fd, cmd_t** cmd_q, client_t* cl
 
     if(buffer->buf[buffer->offset] == '\n') {
       buffer->buf[buffer->offset] = 0;
-      ret = process_cmd(buffer->buf, fd, cmd_q, client_lst);
+      ret = process_cmd(buffer->buf, fd, cmd_q, client_lst, opt);
       buffer->offset = 0;
       break;
     }
@@ -349,7 +384,7 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
   return ret;
 }
 
-int main_loop(int tty_fd, int cmd_listen_fd)
+int main_loop(int tty_fd, int cmd_listen_fd, options_t* opt)
 {
   log_printf(NOTICE, "entering main loop");
 
@@ -424,7 +459,7 @@ int main_loop(int tty_fd, int cmd_listen_fd)
     client_t* lst = client_lst;
     while(lst) {
       if(FD_ISSET(lst->fd, &tmpfds)) {
-        return_value = nonblock_recvline(&(lst->buffer), lst->fd, &cmd_q, client_lst);
+        return_value = nonblock_recvline(&(lst->buffer), lst->fd, &cmd_q, client_lst, opt);
         if(return_value == 2) {
           log_printf(DEBUG, "removing closed command connection (fd=%d)", lst->fd);
           client_t* deletee = lst;
@@ -550,7 +585,13 @@ int main(int argc, char* argv[])
     }
   }
   log_printf(NOTICE, "just started...");
-  options_parse_post(&opt);
+  if(options_parse_post(&opt)) {
+    options_clear(&opt);
+    log_close();
+    exit(-1);
+  }
+
+  options_print(&opt);
 
   priv_info_t priv;
   if(opt.username_)
@@ -610,7 +651,7 @@ int main(int argc, char* argv[])
       if(ret)
         ret = 2;
       else
-        ret = main_loop(tty_fd, cmd_listen_fd);
+        ret = main_loop(tty_fd, cmd_listen_fd, &opt);
     }
 
     if(ret == 2) {

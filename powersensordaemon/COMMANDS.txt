@@ -1,7 +1,7 @@
 
 == Commands accepted by daemon ==
 
-COMMAND:= power $POWERID (on|off) |  listen $EVENT | sample $SAMPLEDEV | log <logtext>
+COMMAND:= power (on|off) $POWERID | listen $EVENT | sample $SAMPLEDEV | log <logtext>
 POWERID:= werkzeug | stereo | labor | schreibtisch | logo | idee
 EVENT:= all | request | temp | photo | movement | button | none
 SAMPLEDEV:=temp[0-9]+ | photo[0-9]+

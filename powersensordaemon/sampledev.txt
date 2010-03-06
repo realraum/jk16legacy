@@ -1,1 +1,1 @@
-T temp0
+temp0     T

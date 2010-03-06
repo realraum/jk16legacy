@@ -1,6 +1,6 @@
-a werkzeug
-b stereo
-c labor
-d schreibtisch
-e logo
-f idee
+werkzeug      a
+stereo        b
+labor         c
+schreibtisch  d
+logo          e
+idee          f

@@ -23,6 +23,7 @@
 #define POWERSENSORDAEMON_options_h_INCLUDED
 
 #include "string_list.h"
+#include "key_value_storage.h"
 
 struct options_struct {
   char* progname_;
@@ -36,14 +37,17 @@ struct options_struct {
   char* tty_dev_;
   char* command_sock_;
   char* powerid_file_;
+  key_value_storage_t powerids_;
   char* sampledev_file_;
+  key_value_storage_t sampledevs_;
 };
 typedef struct options_struct options_t;
 
 int options_parse_hex_string(const char* hex, buffer_t* buffer);
 
 int options_parse(options_t* opt, int argc, char* argv[]);
-void options_parse_post(options_t* opt);
+int options_parse_key_value_file(const char* filename, key_value_storage_t* storage);
+int options_parse_post(options_t* opt);
 void options_default(options_t* opt);
 void options_clear(options_t* opt);
 void options_print_usage();

@@ -29,6 +29,7 @@ OBJ := log.o \
        sig_handler.o \
        options.o \
        string_list.o \
+       key_value_storage.o \
        command_queue.o \
        client_list.o \
        powersensordaemon.o
