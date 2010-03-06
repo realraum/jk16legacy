@@ -10,12 +10,14 @@
 #define IR_MOVEMENT_PIN 9
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
-#define PHOTO_ANALOGPIN 1
+#define BLUELED_PWM_PIN 6
+#define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 20000
 #define IR_TRESHOLD 13000
 //duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Reports, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
 #define PB_TRESHOLD 1000
+#define PHOTO_SAMPLE_INTERVAL 4000
 
 OneWire  onewire(ONE_WIRE_PIN);
 DallasTemperature dallas_sensors(&onewire);
@@ -209,10 +211,50 @@ void printTemperature(DeviceAddress deviceAddress)
 
 //********************************************************************//
 
-void printLightLevel(unsigned int pin)
+unsigned int light_level_mean_ = 0;
+unsigned int light_sample_time_ = 0;
+
+void updateLightLevel(unsigned int pin)
+{
+  light_sample_time_++;
+  if (light_sample_time_ < PHOTO_SAMPLE_INTERVAL)
+    return;
+  light_sample_time_ = 0;
+  
+  unsigned int value = analogRead(pin);
+  if (value == light_level_mean_)
+    return;
+  
+  unsigned int diff = abs(value - light_level_mean_);
+  if (diff > 250)
+    light_level_mean_ = value;
+  else
+      light_level_mean_=(unsigned int) ( ((float) light_level_mean_) * 0.98 + ((float)value)*0.02 );
+}
+
+void printLightLevel()
 {
   Serial.print("Photo: ");
-  Serial.println(analogRead(pin));
+  Serial.println(light_level_mean_);
+}
+
+//********************************************************************//
+
+unsigned int flash_led_time_=0;
+void calculate_led_level(unsigned int pwm_pin)
+{
+  if (flash_led_time_ == 0)
+    return;
+  if (millis() % 10)
+    return;
+  flash_led_time_--;
+  int c = abs(sin(float(flash_led_time_) / 100.0)) * 256;
+  analogWrite(pwm_pin,c);
+}
+
+void flash_led(int times)
+{
+  flash_led_time_=314*times;
 }
 
 //********************************************************************//
@@ -225,6 +267,7 @@ void setup()
   digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pullup resistors  
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
   digitalWrite(PANIC_BUTTON_PIN, HIGH);  // turn on pullup resistors 
+  analogWrite(BLUELED_PWM_PIN,0);
   
   onewire.reset();
   onewire.reset_search();
@@ -256,7 +299,10 @@ void loop()
   if (ir_time == 0)
   {
     if (ir_count >= IR_TRESHOLD)
+    {
+      flash_led(1);
       Serial.println("movement");
+    }
     ir_time=IR_SAMPLE_DURATION;
     ir_count=0;
   }
@@ -267,6 +313,7 @@ void loop()
     {   
       pb_postth_state=1;
       Serial.println("PanicButton");
+      flash_led(7);
     }
     else if (!pb_state)
       pb_postth_state=0;
@@ -276,7 +323,10 @@ void loop()
     pb_time=0;
     pb_last_state=pb_state;
   }
-    
+  
+  updateLightLevel(PHOTO_ANALOGPIN);
+  calculate_led_level(BLUELED_PWM_PIN);
+  
   if(Serial.available()) {
     char command = Serial.read();
     
@@ -318,7 +368,7 @@ void loop()
     else if(command == 'T')
       printTemperature(onShieldTemp);
     else if(command == 'P')
-      printLightLevel(PHOTO_ANALOGPIN);
+      printLightLevel();
 
     else
       Serial.println("Error: unknown command");
