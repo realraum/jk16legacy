@@ -10,6 +10,7 @@
 #define IR_MOVEMENT_PIN 9
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
+#define PHOTO_ANALOGPIN 1
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 20000
 #define IR_TRESHOLD 13000
@@ -208,6 +209,14 @@ void printTemperature(DeviceAddress deviceAddress)
 
 //********************************************************************//
 
+void printLightLevel(unsigned int pin)
+{
+  Serial.print("Photo: ");
+  Serial.println(analogRead(pin));
+}
+
+//********************************************************************//
+
 void setup()
 {
   pinMode(RF_DATA_OUT_PIN, OUTPUT);
@@ -308,6 +317,8 @@ void loop()
       send_frame(words[D2_OFF]);
     else if(command == 'T')
       printTemperature(onShieldTemp);
+    else if(command == 'P')
+      printLightLevel(PHOTO_ANALOGPIN);
 
     else
       Serial.println("Error: unknown command");
