@@ -31,6 +31,7 @@ struct autosample_device_struct {
 };
 typedef struct autosample_device_struct autosample_device_t;
 
+int send_sample_cmd(int fd, const char* device_name);
 int start_autosample_process(options_t* opt);
 int autosample_process(options_t *opt, int pipefd);
 

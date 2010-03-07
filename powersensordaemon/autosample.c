@@ -25,6 +25,7 @@
 #include "log.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -33,6 +34,40 @@
 
 #include "autosample.h"
  
+int send_sample_cmd(int fd, const char* device_name)
+{
+  if(!device_name)
+    return -1;
+
+  char* buf;
+  int len = asprintf(&buf, "sample %s\n", device_name);
+  if(len <= 0)
+    return len;
+  int offset = 0;
+  int ret;
+  for(;;) {
+    ret = write(fd, &buf[offset], len - offset);
+    if(ret < 0) {
+      if(errno != EINTR) {
+        free(buf);
+        return ret;
+      }
+
+      ret = 0;
+    }
+
+    offset += ret;
+    if(offset+1 >= len)
+      break;
+  }
+  free(buf);
+
+  if(ret > 0)
+    return 0;
+
+  return ret;
+}
+
 int start_autosample_process(options_t* opt)
 {
   int pipefd[2];
@@ -112,7 +147,7 @@ int autosample_process(options_t *opt, int pipefd)
         devices[i].cnt_++;
         if(devices[i].cnt_ >= devices[i].delay_) {
           log_printf(DEBUG, "autosample send sample command for '%s'", devices[i].device_name_);
-              // call send sample
+          send_sample_cmd(pipefd, devices[i].device_name_);
           devices[i].cnt_ = 0;
         }
       }

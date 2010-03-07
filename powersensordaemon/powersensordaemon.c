@@ -76,6 +76,25 @@ int init_command_socket(const char* path)
   return fd;
 }
 
+void clear_fd(int fd)
+{
+  fd_set fds;
+  struct timeval tv;
+  FD_ZERO(&fds);
+  FD_SET(fd, &fds);
+  tv.tv_sec = 0;
+  tv.tv_usec = 50000;
+  for(;;) {
+    int ret = select(fd+1, &fds, NULL, NULL, &tv);
+    if(ret > 0) {
+      char buffer[100];
+      ret = read(fd, buffer, sizeof(buffer));
+    }
+    else
+      break;
+  }
+}
+
 int send_command(int tty_fd, cmd_t* cmd)
 {
   if(!cmd)
@@ -390,6 +409,9 @@ int main_loop(int tty_fd, int cmd_listen_fd, int autosample_fd, options_t* opt)
 {
   log_printf(NOTICE, "entering main loop");
 
+  clear_fd(tty_fd);
+  clear_fd(autosample_fd);
+
   fd_set readfds, tmpfds;
   FD_ZERO(&readfds);
   FD_SET(tty_fd, &readfds);
@@ -540,21 +562,7 @@ int setup_tty(int fd)
     return ret;
   }
 
-  fd_set fds;
-  struct timeval tv;
-  FD_ZERO(&fds);
-  FD_SET(fd, &fds);
-  tv.tv_sec = 0;
-  tv.tv_usec = 50000;
-  for(;;) {
-    ret = select(fd+1, &fds, NULL, NULL, &tv);
-    if(ret > 0) {
-      char buffer[100];
-      ret = read(fd, buffer, sizeof(buffer));
-    }
-    else
-      break;
-  }
+  clear_fd(fd);
 
   return 0;
 }
