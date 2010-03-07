@@ -33,6 +33,7 @@ class UWSConfig:
     self.config_parser.set('xmpp','recipients_normal','xro@jabber.tittelbach.at otti@wirdorange.org')
     self.config_parser.set('xmpp','recipients_nooffline','the-equinox@jabber.org')
     self.config_parser.add_section('msg')
+    self.config_parser.set('msg','bored',"Somebody is bored and in need of company. Go Visit !")
     self.config_parser.set('msg','format',"${status_msg}${request_msg}${comment_msg}")
     self.config_parser.set('msg','status_opened_msg',"RealRaum door now open")
     self.config_parser.set('msg','status_closed_msg',"RealRaum door now closed")
@@ -268,6 +269,7 @@ distributeXmppMsg("update-xmpp-status.py started", debug=True)
 RE_STATUS = re.compile(r'Status: (\w+), idle')
 RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')
 RE_PRESENCE = re.compile(r'Presence: (yes|no)')
+RE_BUTTON = re.compile(r'button\d?')
 RE_ERROR = re.compile(r'Error: (.+)')
 while True:
   try:
@@ -290,6 +292,10 @@ while True:
       if line == "":
         raise Exception("EOF on Socket, daemon seems to have quit")      
       
+      m = RE_BUTTON.match(line)
+      if not m is None:
+        distributeXmppMsg(uwscfg.msg_bored)
+        continue      
       m = RE_PRESENCE.match(line)
       if not m is None:
         formatAndDistributePresence(m.group(1))

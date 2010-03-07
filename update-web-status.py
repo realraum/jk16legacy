@@ -31,6 +31,7 @@ class UWSConfig:
     self.config_parser.set('web','cgiuri','https://www.realraum.at/cgi/status.cgi?pass=jako16&set=')
     #~ self.config_parser.set('web','htmlopen','<html><body bgcolor="lime"><center><b>T&uuml;r ist Offen</b></center></body></html>')
     #~ self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>T&uuml;r ist Geschlossen</center></b></body></html>')
+    self.config_parser.set('web','htmlbored','<html><body bgcolor="lime"><center><b>Panic! Present&Bored</b></center></body></html>')
     self.config_parser.set('web','htmlopen','<html><body bgcolor="lime"><center><b>Leute Anwesend</b></center></body></html>')
     self.config_parser.set('web','htmlclosed','<html><body bgcolor="red"><b><center>Keiner Da</center></b></body></html>')
     self.config_parser.add_section('debug')
@@ -165,7 +166,10 @@ def displayOpen():
   
 def displayClosed():
   setRealraumHtmlStatus(uwscfg.web_htmlclosed)
-  
+
+def displayPanic():
+  setRealraumHtmlStatus(uwscfg.web_htmlbored)
+
 def exitHandler(signum, frame):
   logging.info("Update-Web-Status stopping")
   try:
@@ -193,6 +197,7 @@ else:
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 #RE_STATUS = re.compile(r'Status: (\w+), idle')
 RE_PRESENCE = re.compile(r'Presence: (yes|no)')
+RE_BUTTON = re.compile(r'button\d?')
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
@@ -220,6 +225,12 @@ while True:
           displayOpen()
         else:
           displayClosed()
+        continue
+      m = RE_BUTTON.match(line)
+      if not m is None:
+        displayPanic()
+        continue
+          
   except Exception, ex:
     logging.error("main: "+str(ex)) 
     try:
