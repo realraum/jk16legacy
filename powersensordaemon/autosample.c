@@ -24,6 +24,7 @@
 #include "options.h"
 #include "log.h"
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -63,6 +64,29 @@ int autosample_process(options_t *opt, int pipefd)
 {
   log_printf(NOTICE, "autosample process just started");
 
+  int device_num = key_value_storage_length(&opt->autosampledevs_);
+  if(device_num <= 0) {
+    log_printf(WARNING, "autosample no devices to sample, exiting");
+    return 0;
+  }
+
+  autosample_device_t* devices = malloc(sizeof(autosample_device_t)*device_num);
+  if(!devices) {
+    log_printf(WARNING, "autosample memory error, exiting");
+    return -3;
+  }
+
+  int i = 0;
+  string_list_element_t* k = opt->autosampledevs_.keys_.first_;
+  string_list_element_t* v = opt->autosampledevs_.values_.first_;
+  while(k && v) {
+    devices[i].delay_ = atoi(v->string_);
+    devices[i].cnt_ = 0;
+    devices[i].device_name_ = k->string_;
+    k = k->next_;
+    v = v->next_;
+  }
+
   int sig_fd = signal_init();
   if(sig_fd < 0)
     return -3;
@@ -83,10 +107,15 @@ int autosample_process(options_t *opt, int pipefd)
     if(ret == -1)
       continue;
     if(!ret) {
-          // timout has expired...
-      write(pipefd, "sample temp0", 12);
-      char c = '\n';
-      write(pipefd, &c, 1);
+      int i;
+      for(i = 0; i < device_num; i++) {
+        devices[i].cnt_++;
+        if(devices[i].cnt_ >= devices[i].delay_) {
+          log_printf(DEBUG, "autosample send sample command for '%s'", devices[i].device_name_);
+              // call send sample
+          devices[i].cnt_ = 0;
+        }
+      }
     }
 
     if(FD_ISSET(sig_fd, &readfds)) {
@@ -98,6 +127,7 @@ int autosample_process(options_t *opt, int pipefd)
   }
 
   signal_stop();
+  free(devices);
   return return_value;
 }
 

@@ -40,6 +40,7 @@ struct options_struct {
   key_value_storage_t powerids_;
   char* sampledev_file_;
   key_value_storage_t sampledevs_;
+  key_value_storage_t autosampledevs_;
 };
 typedef struct options_struct options_t;
 

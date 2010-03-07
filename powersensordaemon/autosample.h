@@ -24,6 +24,13 @@
 
 #include "options.h"
 
+struct autosample_device_struct {
+  int delay_;
+  int cnt_;
+  char* device_name_;
+};
+typedef struct autosample_device_struct autosample_device_t;
+
 int start_autosample_process(options_t* opt);
 int autosample_process(options_t *opt, int pipefd);
 

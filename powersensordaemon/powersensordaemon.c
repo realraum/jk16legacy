@@ -651,7 +651,7 @@ int main(int argc, char* argv[])
   }
   
   int autosample_fd = -1;
-//  if(opt.led_filename_) {
+  if(key_value_storage_length(&opt.autosampledevs_) > 0) {
     log_printf(NOTICE, "starting autosample process");
     autosample_fd = start_autosample_process(&opt);
     if(autosample_fd == -1) {
@@ -671,7 +671,7 @@ int main(int argc, char* argv[])
       log_close();
       exit(1);
     }
-//  }
+  }
 
   int cmd_listen_fd = init_command_socket(opt.command_sock_);
   if(cmd_listen_fd < 0) {

@@ -110,6 +110,22 @@
       i++;                                               \
     }
 
+#define PARSE_KEY_VALUE(SHORT, LONG, SEP, KV)            \
+    else if(!strcmp(str,SHORT) || !strcmp(str,LONG))     \
+    {                                                    \
+      if(argc < 1 || argv[i+1][0] == '-')                \
+        return i;                                        \
+      char* value = strchr(argv[i+1], SEP);              \
+      if(!value || value[1] == 0)                        \
+        return i+1;                                      \
+      value[0] = 0;                                      \
+      value++;                                           \
+      if(key_value_storage_add(&KV, argv[i+1], value))   \
+        return -2;                                       \
+      argc--;                                            \
+      i++;                                               \
+    }
+
 int options_parse_hex_string(const char* hex, buffer_t* buffer)
 {
   if(!hex || !buffer)
@@ -176,6 +192,8 @@ int options_parse(options_t* opt, int argc, char* argv[])
     PARSE_STRING_PARAM("-s","--socket", opt->command_sock_)
     PARSE_STRING_PARAM("-p","--powerid-file", opt->powerid_file_)
     PARSE_STRING_PARAM("-a","--sampledev-file", opt->sampledev_file_)
+    PARSE_STRING_PARAM("-a","--sampledev-file", opt->sampledev_file_)
+    PARSE_KEY_VALUE("-A","--autosampledev", ',', opt->autosampledevs_)
     else 
       return i;
   }
@@ -229,6 +247,23 @@ int options_parse_post(options_t* opt)
     if(ret)
       return ret;
   }
+
+  string_list_element_t* k = opt->autosampledevs_.keys_.first_;
+  string_list_element_t* v = opt->autosampledevs_.values_.first_;
+  while(k && v) {
+    if(!key_value_storage_find(&opt->sampledevs_, k->string_)) {
+      log_printf(ERROR, "sample dev '%s' not in file '%s'", k->string_, opt->sampledev_file_);
+      return -1;
+    }
+    if(atoi(v->string_) <= 0) {
+      log_printf(ERROR, "invalid rate '%s' for sample dev '%s'", v->string_, k->string_);
+      return -1;
+    }
+    k = k->next_;
+    v = v->next_;
+  }
+  
+  return 0;
 }
 
 void options_default(options_t* opt)
@@ -250,6 +285,7 @@ void options_default(options_t* opt)
   key_value_storage_init(&opt->powerids_);
   opt->sampledev_file_ = NULL;
   key_value_storage_init(&opt->sampledevs_);
+  key_value_storage_init(&opt->autosampledevs_);
 }
 
 void options_clear(options_t* opt)
@@ -279,6 +315,7 @@ void options_clear(options_t* opt)
   if(opt->sampledev_file_)
     free(opt->sampledev_file_);
   key_value_storage_clear(&opt->sampledevs_);
+  key_value_storage_clear(&opt->autosampledevs_);
 }
 
 void options_print_usage()
@@ -297,6 +334,8 @@ void options_print_usage()
   printf("            [-s|--command-sock] <unix sock>     the command socket e.g. /var/run/powersensordaemon/cmd.sock\n");
   printf("            [-p|--powerid-file] <path>          file that contains the power ids\n");
   printf("            [-a|--sampledev-file] <path>        file that contains all sample devices\n");
+  printf("            [-A|--autosampledev] <device>,<delay between samples in seconds>\n");
+  printf("                                                automatic sample this devices, can be invoked several times\n");
 }
 
 void options_print(options_t* opt)
@@ -321,4 +360,5 @@ void options_print(options_t* opt)
   printf("sampledev_file: '%s'\n", opt->sampledev_file_);
   printf("sampledevs: \n");
   key_value_storage_print(&opt->sampledevs_, "  '", "' -> '", "'\n");
+  key_value_storage_print(&opt->autosampledevs_, "  '", "' -> '", "'\n");
 }

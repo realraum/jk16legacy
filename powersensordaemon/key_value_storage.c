@@ -76,6 +76,21 @@ char* key_value_storage_find(key_value_storage_t* stor, const char* key)
   return NULL;
 }
 
+int key_value_storage_length(key_value_storage_t* stor)
+{
+  if(!stor)
+    return 0;
+
+  int length = 0;
+  string_list_element_t* k = stor->keys_.first_;
+  while(k) {
+    length++;
+    k = k->next_;
+  }
+
+  return length;
+}
+
 void key_value_storage_print(key_value_storage_t* stor, const char* head, const char* sep, const char* tail)
 {
   if(!stor)
