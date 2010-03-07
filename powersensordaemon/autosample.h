@@ -24,6 +24,13 @@
 
 #include "options.h"
 
+struct autosample_process_struct {
+  pid_t pid_;
+  int read_fd_;
+  int write_fd_;
+};
+typedef struct autosample_process_struct autosample_process_t;
+
 struct autosample_device_struct {
   int delay_;
   int cnt_;
@@ -32,7 +39,7 @@ struct autosample_device_struct {
 typedef struct autosample_device_struct autosample_device_t;
 
 int send_sample_cmd(int fd, const char* device_name);
-int start_autosample_process(options_t* opt);
-int autosample_process(options_t *opt, int pipefd);
+int start_autosample_process(options_t* opt, autosample_process_t* a);
+int autosample_process(options_t *opt, int writefd, int readfd);
 
 #endif

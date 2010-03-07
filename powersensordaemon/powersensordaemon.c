@@ -405,20 +405,24 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
   return ret;
 }
 
-int main_loop(int tty_fd, int cmd_listen_fd, int autosample_fd, options_t* opt)
+int main_loop(int tty_fd, int cmd_listen_fd, autosample_process_t* autosample, options_t* opt)
 {
   log_printf(NOTICE, "entering main loop");
 
-  clear_fd(tty_fd);
-  clear_fd(autosample_fd);
-
   fd_set readfds, tmpfds;
   FD_ZERO(&readfds);
+
+  clear_fd(tty_fd);
   FD_SET(tty_fd, &readfds);
   FD_SET(cmd_listen_fd, &readfds);
   int max_fd = tty_fd > cmd_listen_fd ? tty_fd : cmd_listen_fd;
-  FD_SET(autosample_fd, &readfds);
-  max_fd = (max_fd < autosample_fd) ? autosample_fd : max_fd;
+
+  int autosample_enabled = 0;
+  if(autosample->pid_ > 0) {
+    clear_fd(autosample->write_fd_);
+    FD_SET(autosample->write_fd_, &readfds);
+    max_fd = (max_fd < autosample->write_fd_) ? autosample->write_fd_ : max_fd;
+  }
   cmd_t* cmd_q = NULL;
   client_t* client_lst = NULL;
 
@@ -484,11 +488,11 @@ int main_loop(int tty_fd, int cmd_listen_fd, int autosample_fd, options_t* opt)
       client_add(&client_lst, new_fd);
     }
 
-    if(FD_ISSET(autosample_fd, &tmpfds)) {
-      return_value = nonblock_readline(&autosample_buffer, autosample_fd, &cmd_q, client_lst, opt);
+    if(autosample->pid_ > 0 && FD_ISSET(autosample->write_fd_, &tmpfds)) {
+      return_value = nonblock_readline(&autosample_buffer, autosample->write_fd_, &cmd_q, client_lst, opt);
       if(return_value == 2) {
         log_printf(WARNING, "autosample not running, removing pipe to it");
-        FD_CLR(autosample_fd, &readfds);
+        FD_CLR(autosample->write_fd_, &readfds);
         return_value = 0;
         continue;
       }
@@ -518,6 +522,25 @@ int main_loop(int tty_fd, int cmd_listen_fd, int autosample_fd, options_t* opt)
 
     if(cmd_q && !cmd_q->sent)
       send_command(tty_fd, cmd_q);
+
+    if(autosample->pid_ > 0) {
+      lst = client_lst;
+      int listener_cnt = 0;
+      while(lst) {
+        if(lst->temp_listener || lst->photo_listener)
+          listener_cnt++;
+        lst = lst->next;
+      }
+      if((!autosample_enabled && listener_cnt > 0) ||
+         (autosample_enabled && listener_cnt == 0)) {
+        if(autosample_enabled) autosample_enabled = 0;
+        else autosample_enabled = 1;
+        int ret;
+        do {
+          ret = write(autosample->read_fd_, &autosample_enabled, 1);
+        } while(!ret || (ret == -1 && errno == EINTR));
+      }
+    }
   }
 
   cmd_clear(&cmd_q);
@@ -658,23 +681,14 @@ int main(int argc, char* argv[])
     fclose(pid_file);
   }
   
-  int autosample_fd = -1;
+  autosample_process_t autosample;
+  autosample.pid_ = -1;
+  autosample.write_fd_ = -1;
+  autosample.read_fd_ = -1;
   if(key_value_storage_length(&opt.autosampledevs_) > 0) {
     log_printf(NOTICE, "starting autosample process");
-    autosample_fd = start_autosample_process(&opt);
-    if(autosample_fd == -1) {
-      options_clear(&opt);
-      log_close();
-      exit(1);
-    }
-    else if(autosample_fd <= 0) {
-      if(!autosample_fd)
-        log_printf(NOTICE, "autosample process normal shutdown");
-      else if(autosample_fd == -2)
-        log_printf(NOTICE, "autosample shutdown after signal");
-      else
-        log_printf(NOTICE, "autosample shutdown after error");
-      
+    int ret = start_autosample_process(&opt, &autosample);
+    if(ret == -1) {
       options_clear(&opt);
       log_close();
       exit(1);
@@ -698,7 +712,7 @@ int main(int argc, char* argv[])
       if(ret)
         ret = 2;
       else
-        ret = main_loop(tty_fd, cmd_listen_fd, autosample_fd, &opt);
+        ret = main_loop(tty_fd, cmd_listen_fd, &autosample, &opt);
     }
 
     if(ret == 2) {
@@ -714,6 +728,8 @@ int main(int argc, char* argv[])
   close(cmd_listen_fd);
   if(tty_fd > 0)
     close(tty_fd);
+  if(autosample.pid_ > 0)
+    kill(autosample.pid_, SIGTERM);
 
   if(!ret)
     log_printf(NOTICE, "normal shutdown");

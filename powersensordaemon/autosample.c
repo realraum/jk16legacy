@@ -26,6 +26,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -68,34 +69,59 @@ int send_sample_cmd(int fd, const char* device_name)
   return ret;
 }
 
-int start_autosample_process(options_t* opt)
+int start_autosample_process(options_t* opt, autosample_process_t* a)
 {
-  int pipefd[2];
+  int write_pipefd[2];
+  int read_pipefd[2];
   pid_t cpid;
   
-  if (pipe(pipefd) == -1) {
+  if (pipe(write_pipefd) == -1) {
     log_printf(ERROR, "autosample_process: pipe() failed: %s", strerror(errno));
+    return -1;
+  }
+
+  if (pipe(read_pipefd) == -1) {
+    log_printf(ERROR, "autosample_process: pipe() failed: %s", strerror(errno));
+    close(write_pipefd[0]);
+    close(write_pipefd[1]);
     return -1;
   }
   
   cpid = fork();
   if (cpid == -1) {
     log_printf(ERROR, "autosample_process: fork() failed: %s", strerror(errno));
-    close(pipefd[0]);
-    close(pipefd[1]);
+    close(write_pipefd[0]);
+    close(write_pipefd[1]);
+    close(read_pipefd[0]);
+    close(read_pipefd[1]);
     return -1;
   }
   
   if (cpid == 0) {
-    close(pipefd[0]);
-    return autosample_process(opt, pipefd[1]);
+    close(write_pipefd[0]);
+    close(read_pipefd[1]);
+    int ret = autosample_process(opt, write_pipefd[1], read_pipefd[0]);
+    if(!ret)
+      log_printf(NOTICE, "autosample process normal shutdown");
+    else if(ret > 0)
+      log_printf(NOTICE, "autosample shutdown after signal");
+    else
+      log_printf(NOTICE, "autosample shutdown after error");
+    
+    options_clear(opt);
+    log_close();
+    exit(0);
   }
 
-  close(pipefd[1]);
-  return pipefd[0];
+  close(write_pipefd[1]);
+  close(read_pipefd[0]);
+  a->pid_ = cpid;
+  a->write_fd_ = write_pipefd[0];
+  a->read_fd_ = read_pipefd[1];
+  return 0;
 }
 
-int autosample_process(options_t *opt, int pipefd)
+int autosample_process(options_t *opt, int writefd, int readfd)
 {
   log_printf(NOTICE, "autosample process just started");
 
@@ -124,16 +150,22 @@ int autosample_process(options_t *opt, int pipefd)
 
   int sig_fd = signal_init();
   if(sig_fd < 0)
-    return -3;
+    return -1;
 
-  fd_set readfds;
+  fd_set readfds, tmpfds;
+  FD_ZERO(&readfds);
+  FD_SET(readfd, &readfds);
+  FD_SET(sig_fd, &readfds);
+  int max_fd = (readfd < sig_fd) ? sig_fd : readfd;
+
   struct timeval timeout;
   int return_value = 0;
+  unsigned char sample_enabled = 0;
   while(!return_value) {
-    FD_SET(sig_fd, &readfds);
+    memcpy(&tmpfds, &readfds, sizeof(tmpfds));
     timeout.tv_sec = 0;
     timeout.tv_usec = 1000000;
-    int ret = select(sig_fd+1, &readfds, NULL, NULL, &timeout);
+    int ret = select(max_fd+1, &tmpfds, NULL, NULL, &timeout);
     if(ret == -1 && errno != EINTR) {
       log_printf(ERROR, "autosample process select returned with error: %s", strerror(errno));
       return_value = -3;
@@ -146,16 +178,26 @@ int autosample_process(options_t *opt, int pipefd)
       for(i = 0; i < device_num; i++) {
         devices[i].cnt_++;
         if(devices[i].cnt_ >= devices[i].delay_) {
-          log_printf(DEBUG, "autosample send sample command for '%s'", devices[i].device_name_);
-          send_sample_cmd(pipefd, devices[i].device_name_);
+          if(sample_enabled) {
+            log_printf(DEBUG, "autosample send sample command for '%s'", devices[i].device_name_);
+            send_sample_cmd(writefd, devices[i].device_name_);
+          }
           devices[i].cnt_ = 0;
         }
       }
     }
 
-    if(FD_ISSET(sig_fd, &readfds)) {
+    if(FD_ISSET(readfd, &tmpfds)) {
+      int ret;
+      do {
+        ret = read(readfd, &sample_enabled, 1);
+      } while(!ret || (ret == -1 && errno == EINTR));
+      log_printf(NOTICE, "autosample %s", sample_enabled == 0 ? "disabled" : "enabled");
+    }
+
+    if(FD_ISSET(sig_fd, &tmpfds)) {
       if(signal_handle()) {
-        return_value = -2;
+        return_value = 1;
         break;
       }
     } 
