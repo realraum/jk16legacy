@@ -35,7 +35,7 @@ local client = assert(socket.connect("127.0.0.1",2010))
 --socket.unix = require("socket.unix")
 --local socket = assert(socket.unix())
 --local client = assert(socket:connect("/var/run/power_sensor.socket"))
-client:settimeout(10)
+client:settimeout(30)
 
 
 
