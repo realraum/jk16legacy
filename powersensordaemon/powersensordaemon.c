@@ -465,7 +465,7 @@ int main_loop(int tty_fd, int cmd_listen_fd, int autosample_fd, options_t* opt)
     if(FD_ISSET(autosample_fd, &tmpfds)) {
       return_value = nonblock_readline(&autosample_buffer, autosample_fd, &cmd_q, client_lst, opt);
       if(return_value == 2) {
-        log_printf(WARNING, "autosample process has crashed, removing pipe to it");
+        log_printf(WARNING, "autosample not running, removing pipe to it");
         FD_CLR(autosample_fd, &readfds);
         return_value = 0;
         continue;

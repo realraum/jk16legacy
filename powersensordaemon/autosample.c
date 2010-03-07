@@ -51,12 +51,12 @@ int start_autosample_process(options_t* opt)
   }
   
   if (cpid == 0) {
-    close(pipefd[1]);
-    return autosample_process(opt, pipefd[0]);
+    close(pipefd[0]);
+    return autosample_process(opt, pipefd[1]);
   }
 
-  close(pipefd[0]);
-  return pipefd[1];
+  close(pipefd[1]);
+  return pipefd[0];
 }
 
 int autosample_process(options_t *opt, int pipefd)
@@ -82,9 +82,12 @@ int autosample_process(options_t *opt, int pipefd)
     }
     if(ret == -1)
       continue;
-//    if(!ret) {
+    if(!ret) {
           // timout has expired...
-//    }
+      write(pipefd, "sample temp0", 12);
+      char c = '\n';
+      write(pipefd, &c, 1);
+    }
 
     if(FD_ISSET(sig_fd, &readfds)) {
       if(signal_handle()) {
