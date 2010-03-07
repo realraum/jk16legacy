@@ -63,9 +63,39 @@ int autosample_process(options_t *opt, int pipefd)
 {
   log_printf(NOTICE, "autosample process just started");
 
-  sleep(5);
+  int sig_fd = signal_init();
+  if(sig_fd < 0)
+    return -3;
 
-  return 0;
+  fd_set readfds;
+  struct timeval timeout;
+  int return_value = 0;
+  while(!return_value) {
+    FD_SET(sig_fd, &readfds);
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 1000000;
+    int ret = select(sig_fd+1, &readfds, NULL, NULL, &timeout);
+    if(ret == -1 && errno != EINTR) {
+      log_printf(ERROR, "autosample process select returned with error: %s", strerror(errno));
+      return_value = -3;
+      break;
+    }
+    if(ret == -1)
+      continue;
+//    if(!ret) {
+          // timout has expired...
+//    }
+
+    if(FD_ISSET(sig_fd, &readfds)) {
+      if(signal_handle()) {
+        return_value = -2;
+        break;
+      }
+    } 
+  }
+
+  signal_stop();
+  return return_value;
 }
 
 
