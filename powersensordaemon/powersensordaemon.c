@@ -40,6 +40,8 @@
 
 #include "daemon.h"
 
+#include "autosample.h"
+
 int init_command_socket(const char* path)
 {
   int fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -283,14 +285,14 @@ int process_cmd(char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst, options_
   return 0;
 }
 
-int nonblock_recvline(read_buffer_t* buffer, int fd, cmd_t** cmd_q, client_t* client_lst, options_t* opt)
+int nonblock_readline(read_buffer_t* buffer, int fd, cmd_t** cmd_q, client_t* client_lst, options_t* opt)
 {
   int ret = 0;
   for(;;) {
-    ret = recv(fd, &buffer->buf[buffer->offset], 1, 0);
-    if(!ret)
+    ret = read(fd, &buffer->buf[buffer->offset], 1);
+    if(!ret || (ret == -1 && errno == EBADF))
       return 2;
-    if(ret == -1 && errno == EAGAIN)
+    if(ret == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
       return 0;
     else if(ret < 0)
       break;
@@ -384,7 +386,7 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
   return ret;
 }
 
-int main_loop(int tty_fd, int cmd_listen_fd, options_t* opt)
+int main_loop(int tty_fd, int cmd_listen_fd, int autosample_fd, options_t* opt)
 {
   log_printf(NOTICE, "entering main loop");
 
@@ -393,11 +395,15 @@ int main_loop(int tty_fd, int cmd_listen_fd, options_t* opt)
   FD_SET(tty_fd, &readfds);
   FD_SET(cmd_listen_fd, &readfds);
   int max_fd = tty_fd > cmd_listen_fd ? tty_fd : cmd_listen_fd;
+  FD_SET(autosample_fd, &readfds);
+  max_fd = (max_fd < autosample_fd) ? autosample_fd : max_fd;
   cmd_t* cmd_q = NULL;
   client_t* client_lst = NULL;
 
   read_buffer_t tty_buffer;
   tty_buffer.offset = 0;
+  read_buffer_t autosample_buffer;
+  autosample_buffer.offset = 0;
 
   int sig_fd = signal_init();
   if(sig_fd < 0)
@@ -456,10 +462,22 @@ int main_loop(int tty_fd, int cmd_listen_fd, options_t* opt)
       client_add(&client_lst, new_fd);
     }
 
+    if(FD_ISSET(autosample_fd, &tmpfds)) {
+      return_value = nonblock_readline(&autosample_buffer, autosample_fd, &cmd_q, client_lst, opt);
+      if(return_value == 2) {
+        log_printf(WARNING, "autosample process has crashed, removing pipe to it");
+        FD_CLR(autosample_fd, &readfds);
+        return_value = 0;
+        continue;
+      }
+      if(return_value)
+        break;
+    }
+
     client_t* lst = client_lst;
     while(lst) {
       if(FD_ISSET(lst->fd, &tmpfds)) {
-        return_value = nonblock_recvline(&(lst->buffer), lst->fd, &cmd_q, client_lst, opt);
+        return_value = nonblock_readline(&(lst->buffer), lst->fd, &cmd_q, client_lst, opt);
         if(return_value == 2) {
           log_printf(DEBUG, "removing closed command connection (fd=%d)", lst->fd);
           client_t* deletee = lst;
@@ -591,8 +609,6 @@ int main(int argc, char* argv[])
     exit(-1);
   }
 
-  options_print(&opt);
-
   priv_info_t priv;
   if(opt.username_)
     if(priv_init(&priv, opt.username_, opt.groupname_)) {
@@ -633,6 +649,29 @@ int main(int argc, char* argv[])
     fprintf(pid_file, "%d", pid);
     fclose(pid_file);
   }
+  
+  int autosample_fd = -1;
+//  if(opt.led_filename_) {
+    log_printf(NOTICE, "starting autosample process");
+    autosample_fd = start_autosample_process(&opt);
+    if(autosample_fd == -1) {
+      options_clear(&opt);
+      log_close();
+      exit(1);
+    }
+    else if(autosample_fd <= 0) {
+      if(!autosample_fd)
+        log_printf(NOTICE, "autosample process normal shutdown");
+      else if(autosample_fd == -2)
+        log_printf(NOTICE, "autosample shutdown after signal");
+      else
+        log_printf(NOTICE, "autosample shutdown after error");
+      
+      options_clear(&opt);
+      log_close();
+      exit(1);
+    }
+//  }
 
   int cmd_listen_fd = init_command_socket(opt.command_sock_);
   if(cmd_listen_fd < 0) {
@@ -651,7 +690,7 @@ int main(int argc, char* argv[])
       if(ret)
         ret = 2;
       else
-        ret = main_loop(tty_fd, cmd_listen_fd, &opt);
+        ret = main_loop(tty_fd, cmd_listen_fd, autosample_fd, &opt);
     }
 
     if(ret == 2) {

@@ -32,6 +32,7 @@ OBJ := log.o \
        key_value_storage.o \
        command_queue.o \
        client_list.o \
+       autosample.o \
        powersensordaemon.o
 
 
