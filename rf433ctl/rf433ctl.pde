@@ -240,12 +240,32 @@ void printLightLevel()
 
 //********************************************************************//
 
+unsigned long wm_start_=0;
+bool wait_millis(unsigned long ms)
+{
+  if (wm_start_ > 0)
+  {
+    if (millis() < wm_start_ || millis() > wm_start_+ ms)
+    {
+      wm_start_=0;
+      return false;
+    }
+    else
+      return true;
+  }
+  else
+  {
+    wm_start_=millis();
+    return true;
+  }
+}
+
 unsigned int flash_led_time_=0;
 void calculate_led_level(unsigned int pwm_pin)
 {
   if (flash_led_time_ == 0)
     return;
-  if (millis() % 10)
+  if (wait_millis(10))
     return;
   flash_led_time_--;
   int c = abs(sin(float(flash_led_time_) / 100.0)) * 256;
