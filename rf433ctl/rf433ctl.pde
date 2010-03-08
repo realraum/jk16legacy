@@ -227,7 +227,7 @@ void updateLightLevel(unsigned int pin)
     return;
   
   unsigned int diff = abs(value - light_level_mean_);
-  if (diff > 250)
+  if (light_level_mean_ < 6 || diff > 250)
     light_level_mean_ = value;
   else
       light_level_mean_=(unsigned int) ( ((float) light_level_mean_) * 0.98 + ((float)value)*0.02 );
