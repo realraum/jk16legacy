@@ -274,7 +274,7 @@ void calculate_led_level(unsigned int pwm_pin)
 
 void flash_led(int times)
 {
-  flash_led_time_=314*times;
+  flash_led_time_ += 314*times;
 }
 
 //********************************************************************//
