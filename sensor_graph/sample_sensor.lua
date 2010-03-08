@@ -24,36 +24,42 @@ function parse_value(str)
    last_movement=1
    --print "something moved"
   end
-
 end
 
 
-
-
 local socket = require("socket")
-local client = assert(socket.connect("127.0.0.1",2010))
---socket.unix = require("socket.unix")
---local socket = assert(socket.unix())
---local client = assert(socket:connect("/var/run/power_sensor.socket"))
-client:settimeout(30)
-
-
-
 
 while 1 do
-  local line, err = client:receive()
-  if not err then 
-    parse_value(line) 
+  local client = socket.connect("127.0.0.1",2010)
+  --socket.unix = require("socket.unix")
+  --local socket = assert(socket.unix())
+  --local client = assert(socket:connect("/var/run/power_sensor.socket"))
+  if client then
+    client:settimeout(30)
+    while 1 do
+      local line, err = client:receive()
+      if not err then 
+        parse_value(line) 
+      elseif err ~= "timeout" then
+        break
+      end
+      client:send("T")
+      line, err = client:receive()
+      if not err then 
+        parse_value(line)
+      elseif err ~= "timeout" then
+        break
+      end
+      client:send("P")
+      line, err = client:receive()
+      if not err then 
+        parse_value(line)
+      elseif err ~= "timeout" then
+        break
+      end
+      save_values()
+    end
+    client:shutdown("both")
   end
-  client:send("T")
-  line, err = client:receive()
-  if not err then 
-    parse_value(line)
-  end
-  client:send("P")
-  line, err = client:receive()
-  if not err then 
-    parse_value(line)
-  end
-  save_values()
+  socket.select(nil, nil, 10)
 end
