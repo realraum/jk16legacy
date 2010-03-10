@@ -22,7 +22,7 @@
 OneWire  onewire(ONE_WIRE_PIN);
 DallasTemperature dallas_sensors(&onewire);
 DeviceAddress onShieldTemp = { 0x10, 0xE7, 0x77, 0xD3, 0x01, 0x08, 0x00, 0x3F };
-#define TEMPC_OFFSET
+#define TEMPC_OFFSET_ARDUINO_GENEREATED_HEAT -4.0
 
 typedef struct {
   byte offset;
@@ -205,7 +205,7 @@ void printTemperature(DeviceAddress deviceAddress)
   dallas_sensors.requestTemperatures();
   float tempC = dallas_sensors.getTempC(deviceAddress);
   Serial.print("Temp C: ");
-  Serial.println(tempC TEMPC_OFFSET);
+  Serial.println(tempC TEMPC_OFFSET_ARDUINO_GENEREATED_HEAT);
   //Serial.print(" Temp F: ");
   //Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
 }
