@@ -360,5 +360,6 @@ void options_print(options_t* opt)
   printf("sampledev_file: '%s'\n", opt->sampledev_file_);
   printf("sampledevs: \n");
   key_value_storage_print(&opt->sampledevs_, "  '", "' -> '", "'\n");
+  printf("autosampledevs: \n");
   key_value_storage_print(&opt->autosampledevs_, "  '", "' -> '", "'\n");
 }

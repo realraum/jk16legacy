@@ -146,6 +146,7 @@ int autosample_process(options_t *opt, int writefd, int readfd)
     devices[i].device_name_ = k->string_;
     k = k->next_;
     v = v->next_;
+    i++;
   }
 
   int sig_fd = signal_init();
