@@ -263,16 +263,14 @@ int process_cmd(char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst, options_
       if(!param || !strncmp(param, "all", 3)) {
         listener->request_listener = 1;
         listener->error_listener = 1;
-        listener->temp_listener = 1;
-        listener->photo_listener = 1;
+        listener->sensor_listener = 1;
         listener->movement_listener = 1;
         listener->button_listener = 1;
       }
       else if(!strncmp(param, "none", 4)) {
         listener->request_listener = 0;
         listener->error_listener = 0;
-        listener->temp_listener = 0;
-        listener->photo_listener = 0;
+        listener->sensor_listener = 0;
         listener->movement_listener = 0;
         listener->button_listener = 0;
       }
@@ -280,10 +278,8 @@ int process_cmd(char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst, options_
         listener->request_listener = 1;
       else if(!strncmp(param, "error", 5))
         listener->error_listener = 1;
-      else if(!strncmp(param, "temp", 4))
-        listener->temp_listener = 1;      
-      else if(!strncmp(param, "photo", 5))
-        listener->photo_listener = 1;      
+      else if(!strncmp(param, "sensor", 6))
+        listener->sensor_listener = 1;      
       else if(!strncmp(param, "movement", 8))
         listener->movement_listener = 1;      
       else if(!strncmp(param, "button", 6))
@@ -385,12 +381,8 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
         SEND_TO_LISTENER(button_listener, "panic button", cmd_fd, buffer->buf);
       }
 
-      if(!strncmp(buffer->buf, "Temp ", 5)) {
-        SEND_TO_LISTENER(temp_listener, "", cmd_fd, buffer->buf);
-      }
-
-      if(!strncmp(buffer->buf, "Photo: ", 5)) {
-        SEND_TO_LISTENER(photo_listener, "", cmd_fd, buffer->buf);
+      if(!strncmp(buffer->buf, "Sensor ", 7)) {
+        SEND_TO_LISTENER(sensor_listener, "", cmd_fd, buffer->buf);
       }
 
       cmd_pop(cmd_q);
@@ -531,7 +523,7 @@ int main_loop(int tty_fd, int cmd_listen_fd, autosample_process_t* autosample, o
       lst = client_lst;
       int listener_cnt = 0;
       while(lst) {
-        if(lst->temp_listener || lst->photo_listener)
+        if(lst->sensor_listener)
           listener_cnt++;
         lst = lst->next;
       }

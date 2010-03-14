@@ -28,8 +28,7 @@ struct client_struct {
   int fd;
   int request_listener;
   int error_listener;
-  int temp_listener;
-  int photo_listener;
+  int sensor_listener;
   int movement_listener;
   int button_listener;
   struct client_struct* next;

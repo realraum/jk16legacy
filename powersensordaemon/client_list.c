@@ -48,8 +48,7 @@ int client_add(client_t** first, int fd)
   new_client->fd = fd;
   new_client->request_listener = 0;
   new_client->error_listener = 0;
-  new_client->temp_listener = 0;
-  new_client->photo_listener = 0;
+  new_client->sensor_listener = 0;
   new_client->movement_listener = 0;
   new_client->button_listener = 0;
   new_client->next = NULL;
