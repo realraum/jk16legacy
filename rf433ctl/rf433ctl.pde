@@ -308,8 +308,9 @@ boolean pb_state=0;
 boolean pb_postth_state=0;
 unsigned int pb_time=0;
 
-void echoCommand(char command)
+void sensorEchoCommand(char command)
 {
+  Serial.print("Sensor ");
   Serial.print(command);
   Serial.print(": ");
 }
@@ -394,12 +395,12 @@ void loop()
       send_frame(words[D2_OFF]);
     else if(command == 'T')
     {
-      echoCommand(command);
+      sensorEchoCommand(command);
       printTemperature(onShieldTemp);
     }
     else if(command == 'P')
     {
-      echoCommand(command);
+      sensorEchoCommand(command);
       printLightLevel();
     }
     else
