@@ -13,11 +13,11 @@ end
 
 function parse_value(str)
   if string.find(str,"Temp C:") then
-    last_temp = tonumber(string.sub(str,8))
+    last_temp = tonumber(string.sub(str,11))
     --print(string.format("t: %f Grad Celsius",last_temp))
   end
   if string.find(str,"Photo:") then
-    last_light = tonumber(string.sub(str,7))
+    last_light = tonumber(string.sub(str,10))
     --print(string.format("p: %d",last_light))
   end
   if string.find(str,"movement") then
