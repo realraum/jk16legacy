@@ -289,6 +289,8 @@ void setup()
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
   digitalWrite(PANIC_BUTTON_PIN, HIGH);  // turn on pullup resistors 
   analogWrite(BLUELED_PWM_PIN,0);
+
+  Serial.begin(9600);
   
   onewire.reset();
   onewire.reset_search();
@@ -296,9 +298,7 @@ void setup()
   //in case we change temp sensor:
   if (!dallas_sensors.getAddress(onShieldTemp, 0)) 
     Serial.println("Error: Unable to find address for Device 0"); 
-  dallas_sensors.setResolution(onShieldTemp, 9);
-  
-  Serial.begin(9600);
+  dallas_sensors.setResolution(onShieldTemp, 9);  
 }
 
 unsigned int ir_time=IR_SAMPLE_DURATION;
