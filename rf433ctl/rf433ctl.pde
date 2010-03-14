@@ -308,6 +308,12 @@ boolean pb_state=0;
 boolean pb_postth_state=0;
 unsigned int pb_time=0;
 
+void echoCommand(char command)
+{
+  Serial.print(command);
+  Serial.print(": ");
+}
+
 void loop()
 {
   ir_time--;
@@ -387,10 +393,15 @@ void loop()
     else if(command == 'h')
       send_frame(words[D2_OFF]);
     else if(command == 'T')
+    {
+      echoCommand(command);
       printTemperature(onShieldTemp);
+    }
     else if(command == 'P')
+    {
+      echoCommand(command);
       printLightLevel();
-
+    }
     else
       Serial.println("Error: unknown command");
   }

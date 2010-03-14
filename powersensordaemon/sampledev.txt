@@ -1,1 +1,2 @@
 temp0     T
+photo0    P
