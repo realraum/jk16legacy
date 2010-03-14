@@ -382,11 +382,15 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
       }
 
       if(!strncmp(buffer->buf, "PanicButton", 11)) {
-        SEND_TO_LISTENER(button_listener, "panic buttont", cmd_fd, buffer->buf);
+        SEND_TO_LISTENER(button_listener, "panic button", cmd_fd, buffer->buf);
       }
 
       if(!strncmp(buffer->buf, "Temp ", 5)) {
         SEND_TO_LISTENER(temp_listener, "", cmd_fd, buffer->buf);
+      }
+
+      if(!strncmp(buffer->buf, "Photo: ", 5)) {
+        SEND_TO_LISTENER(photo_listener, "", cmd_fd, buffer->buf);
       }
 
       cmd_pop(cmd_q);
