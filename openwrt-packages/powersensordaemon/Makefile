@@ -27,11 +27,12 @@ endef
 
 define Package/powersensordaemon/install
 	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_DIR) $(1)/etc/powersensordaemon/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/powersensordaemon $(1)/usr/sbin/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/sampledev.txt $(1)/etc/powersensordaemon/
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/powerids.txt $(1)/etc/powersensordaemon/
+	$(INSTALL_DIR) $(1)/etc/powersensordaemon
+	# produces error
+	#$(INSTALL_DIR) $(1)/var/run/powersensordaemon
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/powersensordaemon $(1)/usr/sbin/powersensordaemon
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/sampledev.txt $(1)/etc/powersensordaemon/sampledev.txt
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/powerids.txt $(1)/etc/powersensordaemon/powerids.txt
 endef
 
 $(eval $(call BuildPackage,powersensordaemon))
-
