@@ -440,7 +440,7 @@ int main_loop(int tty_fd, int cmd_listen_fd, autosample_process_t* autosample, o
   FD_SET(cmd_listen_fd, &readfds);
   int max_fd = tty_fd > cmd_listen_fd ? tty_fd : cmd_listen_fd;
 
-  int autosample_enabled = 0;
+  u_int8_t autosample_enabled = 0;
   if(autosample->pid_ > 0) {
     clear_fd(autosample->write_fd_);
     FD_SET(autosample->write_fd_, &readfds);

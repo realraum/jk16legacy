@@ -164,8 +164,8 @@ int autosample_process(options_t *opt, int writefd, int readfd)
   unsigned char sample_enabled = 0;
   while(!return_value) {
     memcpy(&tmpfds, &readfds, sizeof(tmpfds));
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 1000000;
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 0;
     int ret = select(max_fd+1, &tmpfds, NULL, NULL, &timeout);
     if(ret == -1 && errno != EINTR) {
       log_printf(ERROR, "autosample process select returned with error: %s", strerror(errno));
