@@ -332,6 +332,7 @@ int nonblock_readline(read_buffer_t* buffer, int fd, cmd_t** cmd_q, client_t* cl
 
 int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* client_lst, options_t* opt)
 {
+  u_int8_t *response_data;
   int ret = 0;
   struct timeval tv;
   fd_set fds;
@@ -363,49 +364,53 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
 
       log_printf(NOTICE, "firmware: %s", buffer->buf);      
 
-      int cmd_fd = -1;
-      if(cmd_q && (*cmd_q)) {
-        cmd_fd = (*cmd_q)->fd;
-        send_response(cmd_fd, buffer->buf);
-      }
-      
-      if(!strncmp(buffer->buf, "Error:", 6)) {
-        SEND_TO_LISTENER(error_listener, "error", cmd_fd, buffer->buf);
-      }
-      
-      if(!strncmp(buffer->buf, "movement", 8)) {
-        SEND_TO_LISTENER(movement_listener, "movement", cmd_fd, buffer->buf);
-      }
-
-      if(!strncmp(buffer->buf, "PanicButton", 11)) {
-        SEND_TO_LISTENER(button_listener, "panic button", cmd_fd, buffer->buf);
-      }
-
+      /* modify response if necessary */
+      response_data = buffer->buf;
       if(!strncmp(buffer->buf, "Sensor ", 7)) {
         if (buffer->buf[7] != 0)
         {
-          char const *sampledev_key;
-          if (asprintf(sampledev_key, "%c",buffer->buf[7]))
+          char *sampledev_key;
+          if (asprintf(&sampledev_key, "%c",buffer->buf[7]))
           {
             char const *sampledev_name = key_value_storage_find_first_stringvalue(&(opt->sampledevs_), sampledev_key);
             if(sampledev_name)
             {
-              char const *rev_lookuped_output;
-              if (asprintf(rev_lookuped_output, "%s%s", sampledev_name, &(buffer->buf[8])))
-              {
-                SEND_TO_LISTENER(sensor_listener, "", cmd_fd, rev_lookuped_output);
-                free((void*) rev_lookuped_output);
-              }
+              char *rev_lookuped_output;
+              if (asprintf(&rev_lookuped_output, "%s%s", sampledev_name, &(buffer->buf[8]) ))
+                response_data = rev_lookuped_output;
             }
             else
-            {
               log_printf(WARNING, "unknown sample device key '%s' encountered", sampledev_key);
-              SEND_TO_LISTENER(sensor_listener, "", cmd_fd, buffer->buf);
-            }
-            free((void*) sampledev_key);
+            free(sampledev_key);
           }
         }
       }
+
+      int cmd_fd = -1;
+      if(cmd_q && (*cmd_q)) {
+        cmd_fd = (*cmd_q)->fd;
+        send_response(cmd_fd, response_data);
+      }
+      
+      if(!strncmp(buffer->buf, "Error:", 6)) {
+        SEND_TO_LISTENER(error_listener, "error", cmd_fd, response_data);
+      }
+      
+      if(!strncmp(buffer->buf, "movement", 8)) {
+        SEND_TO_LISTENER(movement_listener, "movement", cmd_fd, response_data);
+      }
+
+      if(!strncmp(buffer->buf, "PanicButton", 11)) {
+        SEND_TO_LISTENER(button_listener, "panic button", cmd_fd, response_data);
+      }
+
+      if(!strncmp(buffer->buf, "Sensor ", 7)) {
+        SEND_TO_LISTENER(sensor_listener, "sensor data", cmd_fd, response_data);
+      }
+
+      /* free allocated buffer if response was modified */
+      if (response_data != buffer->buf)
+        free(response_data);
 
       cmd_pop(cmd_q);
       buffer->offset = 0;

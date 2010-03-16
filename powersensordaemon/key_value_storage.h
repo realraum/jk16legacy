@@ -35,7 +35,7 @@ void key_value_storage_clear(key_value_storage_t* stor);
 int key_value_storage_add(key_value_storage_t* stor, const char* key, const char* value);
 char* key_value_storage_find(key_value_storage_t* stor, const char* key);
 /* Warning: this function only works if you actually store \0-terminated strings as values!! */
-char* key_value_storage_find_first_stringvalue(key_value_storage_t* stor, const char* value);
+char const * key_value_storage_find_first_stringvalue(key_value_storage_t* stor, char const * value);
 int key_value_storage_length(key_value_storage_t* stor);
 
 void key_value_storage_print(key_value_storage_t* stor, const char* head, const char* sep, const char* tail);

@@ -77,7 +77,7 @@ char* key_value_storage_find(key_value_storage_t* stor, const char* key)
 }
 
 /* Warning: this function only works if you actually store \0-terminated strings as values!! */
-char* key_value_storage_find_first_stringvalue(key_value_storage_t* stor, const char* value)
+char const * key_value_storage_find_first_stringvalue(key_value_storage_t* stor, char const * value)
 {
   if(!stor || !value)
     return NULL;
