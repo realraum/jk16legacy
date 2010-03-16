@@ -10,5 +10,5 @@
 #include <sys/select.h>
 #include <sys/un.h>
 
-char const *socket_file_="/var/run/sensor.socket";
+char const *socket_file_="/var/run/powersensordaemon/cmd.sock";
 

@@ -64,7 +64,7 @@ void  connect_terminal(int fd)
       {
         send(fd,buffer,num_byte,0);
       }
-      if (num_byte <0 && errno != EAGAIN)
+      if (num_byte == 0 || (num_byte <0 && errno != EAGAIN))
         return;
     }
     
@@ -109,30 +109,23 @@ int main(int argc, char* argv[])
   if (argc > 0)
     socket_file_ = argv[1];
   
-  for(;;) 
+  socket_fd = establish_socket_connection(socket_file_);
+  if(socket_fd)
   {
-    socket_fd = establish_socket_connection(socket_file_);
-    if(socket_fd < 0)
-      ret = 2;
-    else {
-      //~ ret = set_tty_raw(STDIN_FILENO,&tmio_prev);
-      //~ if (ret)
-        //~ break;
-      fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-      connect_terminal(socket_fd);
-        
-      //~ ret = restore_tty(STDIN_FILENO,&tmio_prev);
-      //~ if (ret)
-        //~ break;        
-    }
-    if (ret == 2) {
-      fprintf(stderr, "%s error, trying to reopen in 5 seconds..\n", socket_file_);
-      if(socket_fd > 0)
-        shutdown(socket_fd,SHUT_RDWR);
-      sleep(5);
-    }
-    else
-      break;
+    //~ ret = set_tty_raw(STDIN_FILENO,&tmio_prev);
+    //~ if (ret)
+      //~ break;
+    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+    connect_terminal(socket_fd);
+      
+    //~ ret = restore_tty(STDIN_FILENO,&tmio_prev);
+    //~ if (ret)
+      //~ break;        
+  }
+  else
+  {
+    fprintf(stderr, "%s error, aborting..\n", socket_file_);
+    ret=2;
   }
 
   if(socket_fd > 0)
