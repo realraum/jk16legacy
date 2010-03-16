@@ -76,6 +76,25 @@ char* key_value_storage_find(key_value_storage_t* stor, const char* key)
   return NULL;
 }
 
+/* Warning: this function only works if you actually store \0-terminated strings as values!! */
+char* key_value_storage_find_first_stringvalue(key_value_storage_t* stor, const char* value)
+{
+  if(!stor || !value)
+    return NULL;
+
+  string_list_element_t* k = stor->keys_.first_;
+  string_list_element_t* v = stor->values_.first_;
+  while(v && k) {
+    if(!strcmp(v->string_, value))
+      return k->string_;
+    
+    k = k->next_;
+    v = v->next_;
+  }
+
+  return NULL;
+}
+
 int key_value_storage_length(key_value_storage_t* stor)
 {
   if(!stor)

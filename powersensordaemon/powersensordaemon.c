@@ -211,7 +211,7 @@ int process_cmd(char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst, options_
 
   if(cmd_id == POWER_ON || cmd_id == POWER_OFF) {
     char* orig_param = param;
-    param = key_value_storage_find(&opt->powerids_, param);
+    param = key_value_storage_find(&(opt->powerids_), param);
     if(!param) {
       send_response(fd, "Error: invalid power id");
       log_printf(WARNING, "invalid power id '%s' in command from %d", orig_param, fd);
@@ -220,7 +220,7 @@ int process_cmd(char* cmd, int fd, cmd_t **cmd_q, client_t* client_lst, options_
 
   if(cmd_id == SAMPLE) {
     char* orig_param = param;
-    param = key_value_storage_find(&opt->sampledevs_, param);
+    param = key_value_storage_find(&(opt->sampledevs_), param);
     if(!param) {
       send_response(fd, "Error: invalid sample device");
       log_printf(WARNING, "invalid sample device '%s' in command from %d", orig_param, fd);
@@ -330,7 +330,7 @@ int nonblock_readline(read_buffer_t* buffer, int fd, cmd_t** cmd_q, client_t* cl
   return ret;
 }
 
-int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* client_lst)
+int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* client_lst, options_t* opt)
 {
   int ret = 0;
   struct timeval tv;
@@ -382,7 +382,29 @@ int process_tty(read_buffer_t* buffer, int tty_fd, cmd_t **cmd_q, client_t* clie
       }
 
       if(!strncmp(buffer->buf, "Sensor ", 7)) {
-        SEND_TO_LISTENER(sensor_listener, "", cmd_fd, buffer->buf);
+        if (buffer->buf[7] != 0)
+        {
+          char const *sampledev_key;
+          if (asprintf(sampledev_key, "%c",buffer->buf[7]))
+          {
+            char const *sampledev_name = key_value_storage_find_first_stringvalue(&(opt->sampledevs_), sampledev_key);
+            if(sampledev_name)
+            {
+              char const *rev_lookuped_output;
+              if (asprintf(rev_lookuped_output, "%s%s", sampledev_name, &(buffer->buf[8])))
+              {
+                SEND_TO_LISTENER(sensor_listener, "", cmd_fd, rev_lookuped_output);
+                free((void*) rev_lookuped_output);
+              }
+            }
+            else
+            {
+              log_printf(WARNING, "unknown sample device key '%s' encountered", sampledev_key);
+              SEND_TO_LISTENER(sensor_listener, "", cmd_fd, buffer->buf);
+            }
+            free((void*) sampledev_key);
+          }
+        }
       }
 
       cmd_pop(cmd_q);
@@ -465,7 +487,7 @@ int main_loop(int tty_fd, int cmd_listen_fd, autosample_process_t* autosample, o
     }
    
     if(FD_ISSET(tty_fd, &tmpfds)) {
-      return_value = process_tty(&tty_buffer, tty_fd, &cmd_q, client_lst);
+      return_value = process_tty(&tty_buffer, tty_fd, &cmd_q, client_lst, opt);
       if(return_value)
         break;
     }

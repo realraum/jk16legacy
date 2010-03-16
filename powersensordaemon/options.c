@@ -192,7 +192,6 @@ int options_parse(options_t* opt, int argc, char* argv[])
     PARSE_STRING_PARAM("-s","--socket", opt->command_sock_)
     PARSE_STRING_PARAM("-p","--powerid-file", opt->powerid_file_)
     PARSE_STRING_PARAM("-a","--sampledev-file", opt->sampledev_file_)
-    PARSE_STRING_PARAM("-a","--sampledev-file", opt->sampledev_file_)
     PARSE_KEY_VALUE("-A","--autosampledev", ',', opt->autosampledevs_)
     else 
       return i;
