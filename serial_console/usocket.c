@@ -108,13 +108,12 @@ int main(int argc, char* argv[])
   int socket_fd = 0;
   char *socket_file;
   //~ struct termios tmio_prev;
-  
-  if (argc > 0)
+  if (argc > 1)
     socket_file = argv[1];
   else
     socket_file = default_socket_file_;
   
-  if (argc > 1)
+  if (argc > 2)
     quit_on_eof_=0;
   
   socket_fd = establish_socket_connection(socket_file);
