@@ -64,7 +64,9 @@ void  connect_terminal(int fd)
       {
         send(fd,buffer,num_byte,0);
       }
-      if (num_byte == 0 || (num_byte <0 && errno != EAGAIN))
+      if (num_byte <0 && errno != EAGAIN)
+        return;      
+      if (quit_on_eof_ && num_byte == 0)
         return;
     }
     
@@ -104,12 +106,18 @@ int main(int argc, char* argv[])
 {
   int ret = 0;
   int socket_fd = 0;
+  char *socket_file;
   //~ struct termios tmio_prev;
   
   if (argc > 0)
-    socket_file_ = argv[1];
+    socket_file = argv[1];
+  else
+    socket_file = default_socket_file_;
   
-  socket_fd = establish_socket_connection(socket_file_);
+  if (argc > 1)
+    quit_on_eof_=0;
+  
+  socket_fd = establish_socket_connection(socket_file);
   if(socket_fd)
   {
     //~ ret = set_tty_raw(STDIN_FILENO,&tmio_prev);
@@ -124,7 +132,7 @@ int main(int argc, char* argv[])
   }
   else
   {
-    fprintf(stderr, "%s error, aborting..\n", socket_file_);
+    fprintf(stderr, "%s error, aborting..\n", socket_file);
     ret=2;
   }
 

@@ -10,5 +10,5 @@
 #include <sys/select.h>
 #include <sys/un.h>
 
-char const *socket_file_="/var/run/powersensordaemon/cmd.sock";
-
+char *default_socket_file_="/var/run/powersensordaemon/cmd.sock";
+int quit_on_eof_ = 1;
