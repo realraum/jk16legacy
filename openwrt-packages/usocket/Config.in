@@ -1,5 +1,0 @@
-config BR2_PACKAGE_USOCKET
-        tristate "usocket socket tool"
-        default m if CONFIG_DEVEL
-        help
-	     connect stdin/stdout to unix socket
