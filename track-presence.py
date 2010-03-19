@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import with_statement
 import os
 import os.path
 import sys
@@ -14,6 +15,7 @@ import select
 import subprocess
 import types
 import ConfigParser
+import traceback
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -39,9 +41,9 @@ class UWSConfig:
     self.config_parser.add_section('door')
     self.config_parser.set('door','cmd_socket',"/var/run/tuer/door_cmd.socket")
     self.config_parser.add_section('sensors')
-    self.config_parser.set('sensors','remote_cmd',"ssh -o PasswordAuthentication=no %RHOST% %RSHELL% %RSOCKET%")
-    self.config_parser.set('sensors','remote_host',"slug.realraum.at")
-    self.config_parser.set('sensors','remote_socket',"/var/run/power_sensor.socket")
+    self.config_parser.set('sensors','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no %RHOST% %RSHELL% %RSOCKET%")
+    self.config_parser.set('sensors','remote_host',"root@slug.realraum.at")
+    self.config_parser.set('sensors','remote_socket',"/var/run/powersensordaemon/cmd.sock")
     self.config_parser.set('sensors','remote_shell',"usocket")
     self.config_parser.add_section('tracker')
     self.config_parser.set('tracker','sec_wait_movement_after_door_closed',2.5)
@@ -63,11 +65,12 @@ class UWSConfig:
         self.checkConfigUpdates()
     
   def guardReading(self):
-    with self.lock:
-      while self.currently_writing:
-        self.finished_writing.wait()
-      self.currently_reading+=1
-    
+    self.lock.acquire()
+    while self.currently_writing:
+      self.finished_writing.wait()
+    self.currently_reading+=1
+    self.lock.release()
+
   def unguardReading(self):
     with self.lock:
       self.currently_reading-=1
@@ -143,28 +146,31 @@ class UWSConfig:
 
 def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
   #RE_TEMP = re.compile(r'temp\d: (\d+\.\d+)')
-  RE_PHOTO = re.compile(r'photo\d: (\d+\.\d+)')
-  RE_MOVEMENT = re.compile(r'movement|button\d?')
+  RE_PHOTO = re.compile(r'photo\d: .*(\d+)')
+  RE_MOVEMENT = re.compile(r'movement|button\d?|PanicButton')
   RE_ERROR = re.compile(r'Error: (.+)')
   while True:
     uwscfg.checkConfigUpdates()
     try:
       cmd = uwscfg.sensors_remote_cmd.replace("%RHOST%",uwscfg.sensors_remote_host).replace("%RSHELL%",uwscfg.sensors_remote_shell).replace("%RSOCKET%",uwscfg.sensors_remote_socket).split(" ")
-      sshp = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, shell=False)
-      time.sleep(1.5)
+      logging.debug("trackSensorStatusThread: Executing: "+" ".join(cmd))
+      sshp = subprocess.Popen(cmd, bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+      logging.debug("trackSensorStatusThread: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
       if not sshp.poll() is None:
-        raise Exception("trackSensorStatusThread: subprocess %d finished, returncode: %d" % (sshp.pid,sshp.returncode))
-      (stdoutdata, stderrdata) = sshp.communicate(input="listen movement\n")
-      (stdoutdata, stderrdata) = sshp.communicate(input="listen button\n")
-      (stdoutdata, stderrdata) = sshp.communicate(input="listen photo\n")
+        raise Exception("trackSensorStatusThread: subprocess %d not started ?, returncode: %d" % (sshp.pid,sshp.returncode))
+      #sshp.stdin.write("listen movement\nlisten button\nlisten sensor\n")
+      logging.debug("trackSensorStatusThread: send: listen all")
+      sshp.stdin.write("listen all\n")
+      sshp.stdin.write("listen movement\n")
+      sshp.stdin.write("listen button\n")
+      sshp.stdin.write("listen sensor\n")
       while True:
-        line = sshp.stdout.readline()
-        logging.debug("Got Line: " + line)
-        if line == "":
-          raise Exception("EOF on Subprocess, daemon seems to have quit")
         if not sshp.poll() is None:
           raise Exception("trackSensorStatusThread: subprocess %d finished, returncode: %d" % (sshp.pid,sshp.returncode))
-          
+        line = sshp.stdout.readline()
+        logging.debug("trackSensorStatusThread:Got Line: " + line)
+        if len(line) < 1:
+          raise Exception("EOF on Subprocess, daemon seems to have quit, returncode: %d",sshp.returncode)
         connection_listener.distributeData(line)
         m = RE_MOVEMENT.match(line)
         if not m is None:
@@ -179,6 +185,7 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
           logging.error("trackSensorStatusThread: got: "+line) 
     except Exception, ex:
       logging.error("trackSensorStatusThread: "+str(ex)) 
+      traceback.print_exc(file=sys.stdout)
       if sshp.poll() is None:
         if sys.hexversion >= 0x020600F0:
           sshp.terminate()
@@ -211,23 +218,32 @@ def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
       conn = os.fdopen(sockhandle.fileno())
       sockhandle.send("listen\n")
       sockhandle.send("status\n")
+      last_who=None
       while True:
         line = conn.readline()
-        logging.debug("Got Line: " + line)
+        logging.debug("trackDoorStatusThread: Got Line: " + line)
         
-        if line == "":
+        if len(line) < 1:
           raise Exception("EOF on Socket, daemon seems to have quit")
         
         connection_listener.distributeData(line)
+        
         m = RE_STATUS.match(line)
         if not m is None:
-          (status,who) = m.group(1,2)
+          status = m.group(1)
           if status == "opened":
-            status_tracker.doorOpen(who)
+            status_tracker.doorOpen(last_who)
           if status == "closed":
-            status_tracker.doorClosed(who)
+            status_tracker.doorClosed(last_who)
+          last_who = None
+          continue
+        m = RE_REQUEST.match(line)
+        if not m is None:  
+          last_who = m.group(2)
+          continue
     except Exception, ex:
-      logging.error("main: "+str(ex)) 
+      logging.error("main: "+str(ex))
+      traceback.print_exc(file=sys.stdout) 
       try:
         sockhandle.close()
       except:
