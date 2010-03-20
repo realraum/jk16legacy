@@ -46,7 +46,7 @@ class UWSConfig:
     self.config_parser.set('sensors','remote_socket',"/var/run/powersensordaemon/cmd.sock")
     self.config_parser.set('sensors','remote_shell',"usocket")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','sec_wait_movement_after_door_closed',2.5)
+    self.config_parser.set('tracker','sec_wait_movement_after_door_closed',"2.5")
     self.config_parser.set('tracker','sec_general_movement_timeout',3600)
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
     self.config_parser.set('tracker','photo_flashlight',950)

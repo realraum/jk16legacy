@@ -197,7 +197,7 @@ else:
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 #RE_STATUS = re.compile(r'Status: (\w+), idle')
 RE_PRESENCE = re.compile(r'Presence: (yes|no)')
-RE_BUTTON = re.compile(r'button\d?')
+RE_BUTTON = re.compile(r'PanicButton|button\d?')
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
