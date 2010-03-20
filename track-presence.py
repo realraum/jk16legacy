@@ -41,7 +41,7 @@ class UWSConfig:
     self.config_parser.add_section('door')
     self.config_parser.set('door','cmd_socket',"/var/run/tuer/door_cmd.socket")
     self.config_parser.add_section('sensors')
-    self.config_parser.set('sensors','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no %RHOST% %RSHELL% %RSOCKET%")
+    self.config_parser.set('sensors','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL% %RSOCKET%")
     self.config_parser.set('sensors','remote_host',"root@slug.realraum.at")
     self.config_parser.set('sensors','remote_socket',"/var/run/powersensordaemon/cmd.sock")
     self.config_parser.set('sensors','remote_shell',"usocket")
@@ -158,9 +158,9 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
       if not sshp.poll() is None:
         raise Exception("trackSensorStatusThread: subprocess %d not started ?, returncode: %d" % (sshp.pid,sshp.returncode))
       #sshp.stdin.write("listen movement\nlisten button\nlisten sensor\n")
-      logging.debug("trackSensorStatusThread: send: listen all")
       time.sleep(5) #if we send listen bevor usocket is running, we will never get output
       #sshp.stdin.write("listen all\n")
+      logging.debug("trackSensorStatusThread: send: listen movement, etc")
       sshp.stdin.write("listen movement\n")
       sshp.stdin.write("listen button\n")
       sshp.stdin.write("listen sensor\n")
@@ -264,6 +264,7 @@ class StatusTracker: #(threading.Thread):
     self.uwscfg=uwscfg
     self.status_change_handler = None
     #State locked by self.lock
+    self.door_open_previously=None
     self.door_open=False
     self.door_manual_switch_used=False
     self.last_door_operation_unixts=0
@@ -281,19 +282,29 @@ class StatusTracker: #(threading.Thread):
     self.uwscfg.checkConfigUpdates()
     self.lock.acquire()
     self.door_open=True
-    self.door_manual_switch_used=(who is None or len(who) == 0)
-    self.last_door_operation_unixts=time.time()
+    if not self.door_open_previously is None:
+      self.door_manual_switch_used=(who is None or len(who) == 0)
+      self.last_door_operation_unixts=time.time()
+    if self.door_open != self.door_open_previously:
+      self.lock.release()
+      self.checkPresenceStateChangeAndNotify()
+      self.lock.acquire()
+      self.door_open_previously = self.door_open
     self.lock.release()
-    self.checkPresenceStateChangeAndNotify()
-
+    
   def doorClosed(self,who):
     self.uwscfg.checkConfigUpdates()
     self.lock.acquire()
     self.door_open=False
-    self.door_manual_switch_used=(who is None or len(who) == 0)
-    self.last_door_operation_unixts=time.time()
+    if not self.door_open_previously is None:
+      self.door_manual_switch_used=(who is None or len(who) == 0)
+      self.last_door_operation_unixts=time.time()
+    if self.door_open != self.door_open_previously:
+      self.lock.release()
+      self.checkPresenceStateChangeAndNotify()
+      self.lock.acquire()
+      self.door_open_previously = self.door_open
     self.lock.release()
-    self.checkPresenceStateChangeAndNotify()
 
   def movementDetected(self):
     self.uwscfg.checkConfigUpdates()

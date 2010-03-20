@@ -283,6 +283,7 @@ while True:
     #sockhandle.send("listen\n")
     #sockhandle.send("status\n")
     last_request = (None, None)
+    not_initial_presence = False
     while True:
       line = conn.readline()
       logging.debug("Got Line: " + line)
@@ -298,7 +299,11 @@ while True:
         continue      
       m = RE_PRESENCE.match(line)
       if not m is None:
-        formatAndDistributePresence(m.group(1))
+        if not_initial_presence:
+          formatAndDistributePresence(m.group(1))
+        else:
+          not_initial_presence=True
+          distributeXmppMsg("Initial Presence received: %s" % m.group(1) ,debug=True)
         continue
       m = RE_STATUS.match(line)
       if not m is None:
