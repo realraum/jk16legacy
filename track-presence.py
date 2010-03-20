@@ -50,7 +50,6 @@ class UWSConfig:
     self.config_parser.set('tracker','sec_general_movement_timeout',3600)
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
     self.config_parser.set('tracker','photo_flashlight',950)
-    self.config_parser.set('tracker','photo_daylight',500)
     self.config_parser.set('tracker','photo_artif_light',150)
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
@@ -65,11 +64,10 @@ class UWSConfig:
         self.checkConfigUpdates()
     
   def guardReading(self):
-    self.lock.acquire()
-    while self.currently_writing:
-      self.finished_writing.wait()
-    self.currently_reading+=1
-    self.lock.release()
+    with self.lock:
+      while self.currently_writing:
+        self.finished_writing.wait()
+      self.currently_reading+=1
 
   def unguardReading(self):
     with self.lock:
@@ -151,6 +149,7 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
   RE_ERROR = re.compile(r'Error: (.+)')
   while True:
     uwscfg.checkConfigUpdates()
+    sshp = None
     try:
       cmd = uwscfg.sensors_remote_cmd.replace("%RHOST%",uwscfg.sensors_remote_host).replace("%RSHELL%",uwscfg.sensors_remote_shell).replace("%RSOCKET%",uwscfg.sensors_remote_socket).split(" ")
       logging.debug("trackSensorStatusThread: Executing: "+" ".join(cmd))
@@ -160,17 +159,20 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
         raise Exception("trackSensorStatusThread: subprocess %d not started ?, returncode: %d" % (sshp.pid,sshp.returncode))
       #sshp.stdin.write("listen movement\nlisten button\nlisten sensor\n")
       logging.debug("trackSensorStatusThread: send: listen all")
-      sshp.stdin.write("listen all\n")
+      time.sleep(5) #if we send listen bevor usocket is running, we will never get output
+      #sshp.stdin.write("listen all\n")
       sshp.stdin.write("listen movement\n")
       sshp.stdin.write("listen button\n")
       sshp.stdin.write("listen sensor\n")
+      #sshp.stdin.write("sample temp0\n")
+      sshp.stdin.flush()
       while True:
         if not sshp.poll() is None:
           raise Exception("trackSensorStatusThread: subprocess %d finished, returncode: %d" % (sshp.pid,sshp.returncode))
         line = sshp.stdout.readline()
-        logging.debug("trackSensorStatusThread:Got Line: " + line)
         if len(line) < 1:
           raise Exception("EOF on Subprocess, daemon seems to have quit, returncode: %d",sshp.returncode)
+        logging.debug("trackSensorStatusThread: Got Line: " + line)
         connection_listener.distributeData(line)
         m = RE_MOVEMENT.match(line)
         if not m is None:
@@ -186,7 +188,7 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
     except Exception, ex:
       logging.error("trackSensorStatusThread: "+str(ex)) 
       traceback.print_exc(file=sys.stdout)
-      if sshp.poll() is None:
+      if not sshp is None and sshp.poll() is None:
         if sys.hexversion >= 0x020600F0:
           sshp.terminate()
         else:
@@ -208,6 +210,8 @@ def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
   RE_ERROR = re.compile(r'Error: (.+)')
   while True:
     uwscfg.checkConfigUpdates()
+    conn=None
+    sockhandle=None      
     try:
       if not os.path.exists(uwscfg.door_cmd_socket):
         logging.debug("Socketfile '%s' not found, waiting 5 secs" % uwscfg.door_cmd_socket)
@@ -245,7 +249,8 @@ def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
       logging.error("main: "+str(ex))
       traceback.print_exc(file=sys.stdout) 
       try:
-        sockhandle.close()
+        if not sockhandle is None:
+          sockhandle.close()
       except:
         pass
       conn=None
@@ -307,11 +312,9 @@ class StatusTracker: #(threading.Thread):
     if somebody_present is None:
       somebody_present=self.somebodyPresent()
     
-    if self.last_light_value > self.uwscfg.tracker_photo_flashlight:
+    if self.last_light_value > int(self.uwscfg.tracker_photo_flashlight):
       return "Light: flashlight"
-    elif self.last_light_value > self.uwscfg.tracker_photo_daylight:
-      return "Light: daylight"
-    elif self.last_light_value > self.uwscfg.tracker_photo_artif_light:
+    elif self.last_light_value > int(self.uwscfg.tracker_photo_artif_light):
       if not somebody_present and self.last_light_unixts > self.last_door_operation_unixts:
         return "Light: forgotten"
       else:
@@ -326,14 +329,14 @@ class StatusTracker: #(threading.Thread):
     with self.lock:
       if (self.door_open):
         return True
-      elif (time.time() - self.last_door_operation_unixts <= self.uwscfg.tracker_sec_wait_movement):
+      elif (time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_movement_after_door_closed)):
         #start timer, checkPresenceStateChangeAndNotify after tracker_sec_wait_movement
         if not self.timer is None:
           self.timer.cancel()
-        self.timer=threading.Timer(self.uwscfg.tracker_sec_wait_movement, self.checkPresenceStateChangeAndNotify)
+        self.timer=threading.Timer(float(self.uwscfg.tracker_sec_wait_movement_after_door_closed), self.checkPresenceStateChangeAndNotify)
         self.timer.start()
         return True
-      elif (self.last_movement_unixts > self.last_door_operation_unixts and (self.door_manual_switch_used or ( time.time() - self.last_movement_unixts < self.uwscfg.tracker_sec_general_movement_timeout))):
+      elif (self.last_movement_unixts > self.last_door_operation_unixts and (self.door_manual_switch_used or ( time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout)))):
         return True
       else:
         return False
