@@ -1,6 +1,10 @@
 #!/bin/sh
+sleep 2
 echo -e "listen sensor\n" | usocket /var/run/powersensordaemon/cmd.sock -n | ./sample_sensor.lua &>/dev/null &
-echo -e "listen movement\n" | usocket /var/run/powersensordaemon/cmd.sock -n > /tmp/movement.tmp &
+PID1=$!
+echo -e "listen movement\n" | usocket /var/run/powersensordaemon/cmd.sock -n >> /tmp/movement.tmp &
+PID2=$!
+trap "kill $PID1 $PID2" 0
 while sleep 30; do
   L=$(wc -l /tmp/movement.tmp | cut -d' ' -f1)
   echo -n > /tmp/movement.tmp
