@@ -1,0 +1,21 @@
+--- ../spcav4l.c.orig	2010-03-21 22:49:39.884260157 +0100
++++ ./plugins/input_gspcav1/spcav4l.c	2010-03-22 01:08:39.746758410 +0100
+@@ -45,7 +45,7 @@
+ 	{BRIDGE_SPCA561,"SPCA561"},
+ 	{BRIDGE_SPCA536,"SPCA536"},
+ 	{BRIDGE_SONIX,"SN9C102"},
+-	{BRIDGE_ZC3XX,"ZC301-2"},
++	{BRIDGE_ZC3XX,"zc3xx"},
+ 	{BRIDGE_CX11646,"CX11646"},
+ 	{BRIDGE_TV8532,"TV8532"},
+ 	{BRIDGE_ETOMS,"ET61XX51"},
+@@ -892,7 +892,8 @@
+       break;
+     case VIDEO_PALETTE_YUV420P:
+       {
+-	depth = (8 * 3) >> 1;
++	//depth = (8 * 3) >> 1;
++      depth = 8;
+       }
+       break;
+     case VIDEO_PALETTE_RGB565:
