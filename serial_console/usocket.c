@@ -42,6 +42,7 @@ void  connect_terminal(int fd)
   fd_set fds_r;
   char buffer[1024];
   int num_byte=0;
+  char stdin_valid_fd=1;
   FD_ZERO(&fds_r);
 
   FD_SET(STDIN_FILENO,&fds_r);
@@ -58,20 +59,26 @@ void  connect_terminal(int fd)
       if (num_byte == 0 || (num_byte <0 && errno != EAGAIN))
         return;
     }    
-    if (FD_ISSET(STDIN_FILENO,&fds_r))
+    if (stdin_valid_fd && FD_ISSET(STDIN_FILENO,&fds_r))
     {
       while((num_byte = read(STDIN_FILENO,buffer, 1024)) > 0)
       {
         send(fd,buffer,num_byte,0);
       }
       if (num_byte <0 && errno != EAGAIN)
-        return;      
-      if (quit_on_eof_ && num_byte == 0)
         return;
+      if (num_byte == 0)
+      {
+        if (quit_on_eof_)
+          return;
+        else
+          stdin_valid_fd=0;
+      }
     }
     
-    FD_SET(STDIN_FILENO,&fds_r);
     FD_SET(fd,&fds_r);
+    if (stdin_valid_fd)
+      FD_SET(STDIN_FILENO,&fds_r);
   }
 }
 
@@ -113,6 +120,8 @@ int main(int argc, char* argv[])
   else
     socket_file = default_socket_file_;
   
+  //give a second argument, to not quit on EOF on stdin.
+  //useful if you just want to pipe some commands to usocket with echo and then listen to stdout
   if (argc > 2)
     quit_on_eof_=0;
   
