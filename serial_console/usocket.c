@@ -72,7 +72,10 @@ void  connect_terminal(int fd)
         if (quit_on_eof_)
           return;
         else
+        {
           stdin_valid_fd=0;
+          FD_CLR(STDIN_FILENO,&fds_r);
+        }
       }
     }
     
