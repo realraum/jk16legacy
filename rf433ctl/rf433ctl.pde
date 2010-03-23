@@ -277,13 +277,13 @@ void calculate_led_level(unsigned int pwm_pin)
 
 void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor)
 {
-  flash_led_time_ += 314*times;
-  unsigned int new_flash_led_brightness=256/brightness_divisor;
-  unsigned int new_flash_led_delay = flash_led_delay_ / delay_divisor;
+  unsigned int new_flash_led_brightness = 256 / brightness_divisor;
+  unsigned int new_flash_led_delay = 8 / delay_divisor;
   if (flash_led_time_ == 0 || new_flash_led_brightness > flash_led_brightness_)
     flash_led_brightness_=new_flash_led_brightness;
   if (flash_led_time_ == 0 || new_flash_led_delay < flash_led_delay_)
     flash_led_delay_=new_flash_led_delay;
+  flash_led_time_ += 314*times;
 }
 
 //********************************************************************//
@@ -336,7 +336,7 @@ void loop()
   {
     if (ir_count >= IR_TRESHOLD)
     {
-      flash_led(1,2,1);
+      flash_led(1,8,1);
       Serial.println("movement");
     }
     ir_time=IR_SAMPLE_DURATION;
