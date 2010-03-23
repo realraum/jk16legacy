@@ -263,7 +263,7 @@ bool wait_millis(unsigned long ms)
 }
 
 unsigned int flash_led_time_=0;
-unsigned int flash_led_brightness_=256;
+unsigned int flash_led_brightness_=255;
 unsigned int flash_led_delay_=8;
 void calculate_led_level(unsigned int pwm_pin)
 {
@@ -273,13 +273,20 @@ void calculate_led_level(unsigned int pwm_pin)
     return;
   flash_led_time_--;
   int c = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
-  analogWrite(BLUELED_PWM_PIN,c);
-  analogWrite(BLUELED2_PWM_PIN,c);
+  //int d = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
+  analogWrite(BLUELED2_PWM_PIN,255-c);
+  if (flash_led_brightness_ == 255)
+  {
+    if (flash_led_time_)
+      analogWrite(BLUELED_PWM_PIN,255-c);
+    else
+      analogWrite(BLUELED_PWM_PIN,c);
+  }
 }
 
 void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor)
 {
-  unsigned int new_flash_led_brightness = 256 / brightness_divisor;
+  unsigned int new_flash_led_brightness = 255 / brightness_divisor;
   unsigned int new_flash_led_delay = 8 / delay_divisor;
   if (flash_led_time_ == 0 || new_flash_led_brightness > flash_led_brightness_)
     flash_led_brightness_=new_flash_led_brightness;
@@ -299,6 +306,7 @@ void setup()
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
   digitalWrite(PANIC_BUTTON_PIN, HIGH);  // turn on pullup resistors 
   analogWrite(BLUELED_PWM_PIN,0);
+  analogWrite(BLUELED2_PWM_PIN,255); //pwm sink(-) instead of pwm + (better for mosfets)
 
   Serial.begin(9600);
   
