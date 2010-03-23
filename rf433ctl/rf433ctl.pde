@@ -11,6 +11,7 @@
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
 #define BLUELED_PWM_PIN 6
+#define BLUELED2_PWM_PIN 10
 #define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 15000
@@ -272,7 +273,8 @@ void calculate_led_level(unsigned int pwm_pin)
     return;
   flash_led_time_--;
   int c = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
-  analogWrite(pwm_pin,c);
+  analogWrite(BLUELED_PWM_PIN,c);
+  analogWrite(BLUELED2_PWM_PIN,c);
 }
 
 void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor)
