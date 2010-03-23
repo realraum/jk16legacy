@@ -13,8 +13,8 @@
 #define BLUELED_PWM_PIN 6
 #define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
-#define IR_SAMPLE_DURATION 20000
-#define IR_TRESHOLD 13000
+#define IR_SAMPLE_DURATION 15000
+#define IR_TRESHOLD 10000
 //duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Reports, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
 #define PB_TRESHOLD 1000
 #define PHOTO_SAMPLE_INTERVAL 4000
@@ -262,20 +262,28 @@ bool wait_millis(unsigned long ms)
 }
 
 unsigned int flash_led_time_=0;
+unsigned int flash_led_brightness_=256;
+unsigned int flash_led_delay_=8;
 void calculate_led_level(unsigned int pwm_pin)
 {
   if (flash_led_time_ == 0)
     return;
-  if (wait_millis(10))
+  if (wait_millis(flash_led_delay_))
     return;
   flash_led_time_--;
-  int c = abs(sin(float(flash_led_time_) / 100.0)) * 256;
+  int c = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
   analogWrite(pwm_pin,c);
 }
 
-void flash_led(int times)
+void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor)
 {
   flash_led_time_ += 314*times;
+  unsigned int new_flash_led_brightness=256/brightness_divisor;
+  unsigned int new_flash_led_delay = flash_led_delay_ / delay_divisor;
+  if (flash_led_time_ == 0 || new_flash_led_brightness > flash_led_brightness_)
+    flash_led_brightness_=new_flash_led_brightness;
+  if (flash_led_time_ == 0 || new_flash_led_delay < flash_led_delay_)
+    flash_led_delay_=new_flash_led_delay;
 }
 
 //********************************************************************//
@@ -328,7 +336,7 @@ void loop()
   {
     if (ir_count >= IR_TRESHOLD)
     {
-      flash_led(1);
+      flash_led(1,2,1);
       Serial.println("movement");
     }
     ir_time=IR_SAMPLE_DURATION;
@@ -341,7 +349,7 @@ void loop()
     {   
       pb_postth_state=1;
       Serial.println("PanicButton");
-      flash_led(4);
+      flash_led(7,1,2);
     }
     else if (!pb_state)
       pb_postth_state=0;
