@@ -31,6 +31,7 @@ class UWSConfig:
     self.config_parser.set('slug','cgiuri','http://slug.realraum.at/cgi-bin/switch.cgi?id=%ID%&power=%ONOFF%')
     self.config_parser.set('slug','ids_present','logo werkzeug')
     self.config_parser.set('slug','ids_panic','idee schreibtisch labor werkzeug')
+    self.config_parser.set('slug','ids_nonpresent_off','idee schreibtisch labor werkzeug stereo logo')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"True")
     self.config_parser.add_section('tracker')
@@ -106,9 +107,13 @@ def switchPower(powerid,turn_on=False):
     onoff="off"
   touchURL(uwscfg.slug_cgiuri.replace("%ID%",powerid).replace("%ONOFF%",onoff))
   
-def eventPresent(somebody_present=False):
+def eventPresent():
   for id in uwscfg.slug_ids_present.split(" "):
-    switchPower(id,somebody_present)
+    switchPower(id,True)
+
+def eventNobodyHere():
+  for id in uwscfg.slug_ids_nonpresent_off.split(" "):
+    switchPower(id,False)
 
 def eventPanic():
   lst1 = uwscfg.slug_ids_panic.split(" ")
@@ -175,7 +180,10 @@ while True:
       m = RE_PRESENCE.match(line)
       if not m is None:
         status = m.group(1)
-        eventPresent(status == "yes")
+        if status == "yes":
+          eventPresent()
+        else:
+          eventNobodyHere()
         continue
       m = RE_BUTTON.match(line)
       if not m is None:
