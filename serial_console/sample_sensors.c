@@ -60,7 +60,7 @@ void  sample_sensors(int fd)
         buffer_offset+=num_byte;
       }
       
-      if (num_byte == 0 || (num_byte <0 && errno != EAGAIN))
+      if (num_byte < 1)
         return;
       
       char linebreak_found=0;
@@ -135,7 +135,6 @@ int establish_socket_connection(const char* path)
 
 int main(int argc, char* argv[])
 {
-  int ret = 0;
   int socket_fd = 0;
   char *socket_file;
   if (argc > 1)
@@ -143,19 +142,23 @@ int main(int argc, char* argv[])
   else
     socket_file = default_socket_file_;
   
-  socket_fd = establish_socket_connection(socket_file);
-  if(socket_fd)
+  while (1)
   {
-    sample_sensors(socket_fd);
-  }
-  else
-  {
-    fprintf(stderr, "%s error, aborting..\n", socket_file);
-    ret=2;
-  }
+    socket_fd = establish_socket_connection(socket_file);
+    if(socket_fd)
+    {
+      sample_sensors(socket_fd);
+    }
+    else
+    {
+      fprintf(stderr, "%s error, retrying..\n", socket_file);
+    }
 
-  if(socket_fd > 0)
-    shutdown(socket_fd,SHUT_RDWR);
-  return(ret);
+    if(socket_fd > 0)
+      shutdown(socket_fd,SHUT_RDWR);
+    
+    sleep(2);
+  }
+  return 0;
 }
 

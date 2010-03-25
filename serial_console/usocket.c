@@ -21,7 +21,7 @@ void  connect_terminal(int fd)
         //~ printf("%d:%s\n",num_byte,buffer);
         write(STDOUT_FILENO,buffer,num_byte);
       }
-      if (num_byte == 0 || (num_byte <0 && errno != EAGAIN))
+      if (num_byte < 1)
         return;
     }    
     if (stdin_valid_fd && FD_ISSET(STDIN_FILENO,&fds_r))
