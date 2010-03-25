@@ -14,6 +14,7 @@ import socket
 import subprocess
 import types
 import ConfigParser
+import datetime
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -29,9 +30,11 @@ class UWSConfig:
     self.config_parser=ConfigParser.ConfigParser()
     self.config_parser.add_section('slug')
     self.config_parser.set('slug','cgiuri','http://slug.realraum.at/cgi-bin/switch.cgi?id=%ID%&power=%ONOFF%')
-    self.config_parser.set('slug','ids_present','logo werkzeug')
+    self.config_parser.set('slug','ids_present_day','logo werkzeug')
+    self.config_parser.set('slug','ids_present_night','logo werkzeug schreibtisch idee labor')
     self.config_parser.set('slug','ids_panic','idee schreibtisch labor werkzeug')
     self.config_parser.set('slug','ids_nonpresent_off','idee schreibtisch labor werkzeug stereo logo')
+    #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"True")
     self.config_parser.add_section('tracker')
@@ -108,11 +111,17 @@ def switchPower(powerid,turn_on=False):
   touchURL(uwscfg.slug_cgiuri.replace("%ID%",powerid).replace("%ONOFF%",onoff))
   
 def eventPresent():
-  for id in uwscfg.slug_ids_present.split(" "):
+  hour = datetime.datetime.now().hour
+  if hour > 6 and hour < 18:
+    present_ids=uwscfg.slug_ids_present_day
+  else:
+    present_ids=uwscfg.slug_ids_present_night
+  for id in present_ids.split(" "):
     switchPower(id,True)
 
 def eventNobodyHere():
   for id in uwscfg.slug_ids_nonpresent_off.split(" "):
+    switchPower(id,False)
     switchPower(id,False)
 
 def eventPanic():
@@ -120,7 +129,7 @@ def eventPanic():
   lst2 = lst1
   lst2.append(lst2.pop(0))
   #guarantee list has even number of elements by multiplying it with a factor of 2
-  lst=zip(lst1,lst2) * 4
+  lst=zip(lst1,lst2) * 8
   lst2=None
   switchPower(lst[0][0],True)
   for (id1,id2) in lst: 
@@ -130,6 +139,7 @@ def eventPanic():
   time.sleep(0.6)
   for id in lst1:
     switchPower(id,False)
+  eventPresent()
 
 def exitHandler(signum, frame):
   logging.info("Power Switch Daemon stopping")
