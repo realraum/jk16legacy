@@ -15,6 +15,7 @@ import subprocess
 import types
 import ConfigParser
 import datetime
+import traceback
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -109,12 +110,18 @@ def switchPower(powerid,turn_on=False):
   else:
     onoff="off"
   touchURL(uwscfg.slug_cgiuri.replace("%ID%",powerid).replace("%ONOFF%",onoff))
-  
-######### EVENTS ###############  
-  
-def eventPresent():
+
+def haveDaylight():
+  dawn_per_month = {1:8, 2:7, 3:6, 4:6, 5:5, 6:5, 7:5, 8:6, 9:7, 10:8, 11:8, 12:8}
+  dusk_per_month = {1:16, 2:17, 3:18, 4:20, 5:21, 6:21, 7:21, 8:20, 9:19, 10:18, 11:16, 12:16}
   hour = datetime.datetime.now().hour
-  if hour > 6 and hour < 18:
+  month = datetime.datetime.now().month
+  return (hour >= dawn_per_month[month] and hour < dusk_per_month[month])
+
+######### EVENTS ###############  
+
+def eventPresent():
+  if haveDaylight():
     present_ids=uwscfg.slug_ids_present_day
   else:
     present_ids=uwscfg.slug_ids_present_night
@@ -209,7 +216,8 @@ while True:
         continue
           
   except Exception, ex:
-    logging.error("main: "+str(ex)) 
+    logging.error("main: "+str(ex))
+    traceback.print_exc(file=sys.stdout)
     try:
       sockhandle.close()
     except:
