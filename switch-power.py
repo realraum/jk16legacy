@@ -36,7 +36,7 @@ class UWSConfig:
     self.config_parser.set('slug','ids_nonpresent_off','idee schreibtisch labor werkzeug stereo logo')
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
-    self.config_parser.set('debug','enabled',"True")
+    self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
     self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")    
     self.config_mtime=0
@@ -110,21 +110,27 @@ def switchPower(powerid,turn_on=False):
     onoff="off"
   touchURL(uwscfg.slug_cgiuri.replace("%ID%",powerid).replace("%ONOFF%",onoff))
   
+######### EVENTS ###############  
+  
 def eventPresent():
   hour = datetime.datetime.now().hour
   if hour > 6 and hour < 18:
     present_ids=uwscfg.slug_ids_present_day
   else:
     present_ids=uwscfg.slug_ids_present_night
+  logging.info("event: someone present, switching on: "+present_ids)
   for id in present_ids.split(" "):
     switchPower(id,True)
 
 def eventNobodyHere():
-  for id in uwscfg.slug_ids_nonpresent_off.split(" "):
+  present_ids=uwscfg.slug_ids_nonpresent_off
+  logging.info("event: noone here, switching off: "+present_ids)
+  for id in present_ids.split(" "):
     switchPower(id,False)
     switchPower(id,False)
 
 def eventPanic():
+  logging.info("event: Panic:, switching around: "+uwscfg.slug_ids_panic)
   lst1 = uwscfg.slug_ids_panic.split(" ")
   lst2 = lst1
   lst2.append(lst2.pop(0))
@@ -140,6 +146,8 @@ def eventPanic():
   for id in lst1:
     switchPower(id,False)
   eventPresent()
+
+########################
 
 def exitHandler(signum, frame):
   logging.info("Power Switch Daemon stopping")
@@ -166,7 +174,7 @@ else:
   uwscfg = UWSConfig()
 
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-RE_PRESENCE = re.compile(r'Presence: (yes|no)')
+RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
 while True:
   try:

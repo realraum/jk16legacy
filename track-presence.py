@@ -46,11 +46,11 @@ class UWSConfig:
     self.config_parser.set('sensors','remote_socket',"/var/run/powersensordaemon/cmd.sock")
     self.config_parser.set('sensors','remote_shell',"usocket")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','sec_wait_movement_after_door_closed',"15.0")
-    self.config_parser.set('tracker','sec_general_movement_timeout',3600)
+    self.config_parser.set('tracker','sec_necessary_to_move_through_door',"10.0")
+    self.config_parser.set('tracker','sec_general_movement_timeout',"3600")
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
-    self.config_parser.set('tracker','photo_flashlight',950)
-    self.config_parser.set('tracker','photo_artif_light',150)
+    self.config_parser.set('tracker','photo_flashlight',"950")
+    self.config_parser.set('tracker','photo_artif_light',"150")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -141,13 +141,15 @@ class UWSConfig:
 
 
 ######## Status Listener Threads ############
+threads_running=True
 
 def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
+  global sshp, threads_running
   #RE_TEMP = re.compile(r'temp\d: (\d+\.\d+)')
-  RE_PHOTO = re.compile(r'photo\d: .*(\d+)')
+  RE_PHOTO = re.compile(r'photo\d: [^0-9]*?(\d+)')
   RE_MOVEMENT = re.compile(r'movement|button\d?|PanicButton')
   RE_ERROR = re.compile(r'Error: (.+)')
-  while True:
+  while threads_running:
     uwscfg.checkConfigUpdates()
     sshp = None
     try:
@@ -166,7 +168,7 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
       sshp.stdin.write("listen sensor\n")
       #sshp.stdin.write("sample temp0\n")
       sshp.stdin.flush()
-      while True:
+      while threads_running:
         if not sshp.poll() is None:
           raise Exception("trackSensorStatusThread: subprocess %d finished, returncode: %d" % (sshp.pid,sshp.returncode))
         line = sshp.stdout.readline()
@@ -180,7 +182,7 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
           continue
         m = RE_PHOTO.match(line)
         if not m is None:
-          status_tracker.currentLightLevel(m.group(1))
+          status_tracker.currentLightLevel(int(m.group(1)))
           continue
         m = RE_ERROR.match(line)
         if not m is None:
@@ -201,29 +203,36 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
           else:
             subprocess.call(["kill","-9",str(sshp.pid)])
       time.sleep(5)  
-  
 
+door_sockhandle=None
+door_socklock=threading.Lock()
 def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
+  global door_sockhandle, door_socklock, threads_running
   #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
   RE_STATUS = re.compile(r'Status: (\w+), idle')
-  RE_REQUEST = re.compile(r'Request: (\w+) (?:Card )?(.+)')
+  RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
   RE_ERROR = re.compile(r'Error: (.+)')
-  while True:
+  while threads_running:
     uwscfg.checkConfigUpdates()
-    conn=None
-    sockhandle=None      
+    with door_socklock:
+      conn=None
+      door_sockhandle=None
     try:
       if not os.path.exists(uwscfg.door_cmd_socket):
         logging.debug("Socketfile '%s' not found, waiting 5 secs" % uwscfg.door_cmd_socket)
         time.sleep(5)
         continue
-      sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-      sockhandle.connect(uwscfg.door_cmd_socket)
-      conn = os.fdopen(sockhandle.fileno())
-      sockhandle.send("listen\n")
-      sockhandle.send("status\n")
-      last_who=None
-      while True:
+      with door_socklock:
+        door_sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        door_sockhandle.connect(uwscfg.door_cmd_socket)
+        conn = os.fdopen(door_sockhandle.fileno())
+        door_sockhandle.send("listen\n")
+        door_sockhandle.send("status\n")
+
+      last_who = None
+      last_how = None
+      while threads_running:
+        #no lock here, we're just blocking and reading
         line = conn.readline()
         logging.debug("trackDoorStatusThread: Got Line: " + line)
         
@@ -236,26 +245,36 @@ def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
         if not m is None:
           status = m.group(1)
           if status == "opened":
-            status_tracker.doorOpen(last_who)
+            status_tracker.doorOpen(last_who, last_how)
           if status == "closed":
-            status_tracker.doorClosed(last_who)
+            status_tracker.doorClosed(last_who, last_how)
           last_who = None
+          last_how = None
           continue
         m = RE_REQUEST.match(line)
         if not m is None:  
-          last_who = m.group(2)
+          last_who = m.group(3)
+          last_how = m.group(2)
           continue
     except Exception, ex:
       logging.error("main: "+str(ex))
       traceback.print_exc(file=sys.stdout) 
       try:
-        if not sockhandle is None:
-          sockhandle.close()
+        with door_socklock:
+          if not door_sockhandle is None:
+            door_sockhandle.close()
       except:
         pass
-      conn=None
-      sockhandle=None      
+      with door_socklock:
+        conn=None
+        door_sockhandle=None      
       time.sleep(5)
+
+def updateDoorStatus():
+  global door_sockhandle, door_socklock
+  with door_socklock:
+    if not door_sockhandle is None:
+      door_sockhandle.send("status\n")
 
 ############ Status Tracker Class ############
 
@@ -267,6 +286,8 @@ class StatusTracker: #(threading.Thread):
     self.door_open_previously=None
     self.door_open=False
     self.door_manual_switch_used=False
+    self.door_physically_present=True
+    self.door_who=None
     self.last_door_operation_unixts=0
     self.last_movement_unixts=0
     self.last_light_value=0
@@ -274,32 +295,38 @@ class StatusTracker: #(threading.Thread):
     self.lock=threading.Lock()
     #Notify State locked by self.presence_notify_lock
     self.last_somebody_present_result=False
+    self.last_warning=None
+    self.count_same_warning=0
     self.presence_notify_lock=threading.Lock()
     #timer
     self.timer=None
     
-  def doorOpen(self,who):
+  def doorOpen(self,who,how):
     self.uwscfg.checkConfigUpdates()
     self.lock.acquire()
     self.door_open=True
-    if not self.door_open_previously is None:
-      self.door_manual_switch_used=(who is None or len(who) == 0)
-      self.last_door_operation_unixts=time.time()
     if self.door_open != self.door_open_previously:
+      self.door_who=who
+      self.door_manual_switch_used=(who is None or len(who) == 0)
+      self.door_physically_present=(self.door_manual_switch_used or how == "Card")      
+      if not self.door_open_previously is None:
+        self.last_door_operation_unixts=time.time()
       self.lock.release()
       self.checkPresenceStateChangeAndNotify()
       self.lock.acquire()
       self.door_open_previously = self.door_open
     self.lock.release()
     
-  def doorClosed(self,who):
+  def doorClosed(self,who,how):
     self.uwscfg.checkConfigUpdates()
     self.lock.acquire()
     self.door_open=False
-    if not self.door_open_previously is None:
-      self.door_manual_switch_used=(who is None or len(who) == 0)
-      self.last_door_operation_unixts=time.time()
     if self.door_open != self.door_open_previously:
+      self.door_who=who
+      self.door_manual_switch_used=(who is None or len(who) == 0)
+      self.door_physically_present=(self.door_manual_switch_used or how == "Card")      
+      if not self.door_open_previously is None:
+        self.last_door_operation_unixts=time.time()
       self.lock.release()
       self.checkPresenceStateChangeAndNotify()
       self.lock.acquire()
@@ -333,32 +360,66 @@ class StatusTracker: #(threading.Thread):
     else:
       return "Light: off"
 
+
+  def checkAgainIn(self, sec):
+    #~ if not self.timer is None:
+      #~ logging.debug("checkAgainIn: canceled previous running Timer")
+      #~ self.timer.cancel()
+    logging.debug("checkAgainIn: starting Timer with timeout %fs" % sec)
+    self.timer=threading.Timer(sec, self.checkPresenceStateChangeAndNotify)
+    self.timer.start()
   
   #TODO: check brightness level from cam or an arduino sensor
   def somebodyPresent(self):
-    global uwscfg
     with self.lock:
-      if (self.door_open):
-        return True
-      elif (time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_movement_after_door_closed)):
+      if self.door_open:
+        if self.door_physically_present:
+          return True
+        elif self.last_movement_unixts > self.last_door_operation_unixts:
+          return True
+        else:
+          return False
+      elif time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_necessary_to_move_through_door):
         #start timer, checkPresenceStateChangeAndNotify after tracker_sec_wait_movement
-        if not self.timer is None:
-          self.timer.cancel()
-        self.timer=threading.Timer(float(self.uwscfg.tracker_sec_wait_movement_after_door_closed), self.checkPresenceStateChangeAndNotify)
-        self.timer.start()
-        return True
-      elif (self.last_movement_unixts > self.last_door_operation_unixts and (self.door_manual_switch_used or ( time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout)))):
+        self.checkAgainIn(float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
+        return self.last_somebody_present_result
+      elif self.last_movement_unixts > self.last_door_operation_unixts and (self.door_manual_switch_used or ( time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout))):
         return True
       else:
         return False
  
+  def getPossibleWarning(self):
+    with self.lock:
+      somebody_present=self.last_somebody_present_result
+      if self.door_open and not somebody_present and time.time() - self.last_door_operation_unixts >= 2* float(self.uwscfg.tracker_sec_necessary_to_move_through_door):
+        return "Door opened recently but nobody present"
+      elif self.door_open and not somebody_present:
+        self.checkAgainIn(2*float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
+        return None
+      elif not somebody_present and self.last_light_unixts > self.last_door_operation_unixts and self.last_light_value > int(self.uwscfg.tracker_photo_artif_light):
+        return "Nobody here but light is still on"
+      else:
+        return None
+ 
   def checkPresenceStateChangeAndNotify(self):
     with self.presence_notify_lock:
       somebody_present = self.somebodyPresent()
+      logging.debug("checkPresenceStateChangeAndNotify: somebody_present=%s, door_open=%s, who=%s, light=%s" % (somebody_present,self.door_open,self.door_who, str(self.last_light_value)))
       if somebody_present != self.last_somebody_present_result:
         self.last_somebody_present_result = somebody_present
         if not self.status_change_handler is None:
-          self.status_change_handler(somebody_present)
+          self.status_change_handler(somebody_present, door_open=self.door_open, who=self.door_who)
+      warning = self.getPossibleWarning()
+      if warning == self.last_warning:
+        self.count_same_warning+=1
+      else:
+        self.last_warning=warning
+        self.count_same_warning=0
+      if not warning is None and self.count_same_warning < 3:
+        logging.debug("checkPresenceStateChangeAndNotify: warning: " + str(warning))
+        if not self.status_change_handler is None:
+          self.status_change_handler(somebody_present=None, door_open=self.door_open, who=self.door_who, warning=warning)
+        
  
 ############ Connection Listener ############
 class ConnectionListener:
@@ -373,14 +434,37 @@ class ConnectionListener:
     self.client_sockets=[]
     self.lock=threading.Lock()
   
-  def statusString(self,somebody_present):
-    if somebody_present:
-      return "Presence: yes" + "\n"
-    else:
-      return "Presence: no" + "\n"
+  def shutdown(self):
+    self.running=False
+    try:
+      self.server_socket.close()
+    except:
+      pass
+    with self.lock:
+      for sock_to_close in self.client_sockets:
+        try:
+          sock_to_close.close()
+        except:
+          pass
   
-  def updateStatus(self,somebody_present):
-    self.distributeData(self.statusString(somebody_present))
+  def statusString(self,somebody_present, door_open=None, who=None):
+    details=""
+    if not who is None:
+      if door_open:
+        details=", opened, "
+      else:
+        details=", closed, "
+      details += who
+    if somebody_present:
+      return "Presence: yes" + details + "\n"
+    else:
+      return "Presence: no" + details + "\n"
+  
+  def updateStatus(self,somebody_present=None,door_open=None,who=None,warning=None):
+    if not somebody_present is None:
+      self.distributeData(self.statusString(somebody_present, door_open, who))
+    if not warning is None:
+      self.distributeData("Warning: " + warning + "\n")
     
   def distributeData(self,data):
     with self.lock:
@@ -403,6 +487,7 @@ class ConnectionListener:
           newsocketconn.send(self.statusString(self.status_tracker.somebodyPresent()))
           with self.lock:
             self.client_sockets.append(newsocketconn)
+          updateDoorStatus()
         else:
           #drop all recieved data and watch for closed sockets
           if not socket_to_read.recv(256):
@@ -417,7 +502,22 @@ class ConnectionListener:
 ############ Main Routine ############
 
 def exitHandler(signum, frame):
+  global threads_running, connection_listener, sshp, door_sockhandle
   logging.info("Track Presence stopping")
+  threads_running=False
+  connection_listener.shutdown()
+  try:
+    if sys.hexversion >= 0x020600F0:
+      sshp.terminate()
+    else:
+      subprocess.call(["kill",str(sshp.pid)])
+  except:
+    pass
+  try:
+    door_sockhandle.close()
+  except:
+    pass
+  time.sleep(0.1)
   sys.exit(0)
   
 #signals proapbly don't work because of readline

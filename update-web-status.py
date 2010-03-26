@@ -195,8 +195,7 @@ else:
   uwscfg = UWSConfig()
 
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-#RE_STATUS = re.compile(r'Status: (\w+), idle')
-RE_PRESENCE = re.compile(r'Presence: (yes|no)')
+RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
 while True:
   try:
@@ -209,6 +208,8 @@ while True:
     conn = os.fdopen(sockhandle.fileno())
     #sockhandle.send("listen\n")
     #sockhandle.send("status\n")
+    last_status=None
+    unixts_panic_button=None
     while True:
       line = conn.readline()
       logging.debug("Got Line: " + line)
@@ -221,16 +222,28 @@ while True:
       m = RE_PRESENCE.match(line)
       if not m is None:
         status = m.group(1)
-        if status == "yes":
+        last_status=(status == "yes")
+        unixts_panic_button=None
+        if last_status:
           displayOpen()
         else:
           displayClosed()
         continue
+        
       m = RE_BUTTON.match(line)
       if not m is None:
         displayPanic()
+        unixts_panic_button=time.time()
         continue
-          
+        
+      if not last_status is None and not unixts_panic_button is None and time.time() - unixts_panic_button > 3600:
+        unixts_panic_button=None
+        if last_status:
+          displayOpen()
+        else:
+          displayClosed()
+        continue
+        
   except Exception, ex:
     logging.error("main: "+str(ex)) 
     try:
