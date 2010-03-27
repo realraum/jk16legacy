@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import with_statement
 import os
 import os.path
 import sys
@@ -14,6 +15,13 @@ import subprocess
 import types
 import ConfigParser
 import traceback
+import threading
+try:
+  import MySQLdb
+  import_mysql_ok=True
+except:
+  import_mysql_ok=False
+  pass
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -26,8 +34,22 @@ logger.addHandler(lh_stderr)
 
 class UWSConfig:
   def __init__(self,configfile=None):
+    #Synchronisation
+    self.lock=threading.Lock()
+    self.finished_reading=threading.Condition(self.lock)
+    self.finished_writing=threading.Condition(self.lock)
+    self.currently_reading=0
+    self.currently_writing=False
+    #MySQL
+    self.dbconn=None
+    #Config Data    
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
+    self.config_parser.add_section('mysql')
+    self.config_parser.set('mysql','host','')
+    self.config_parser.set('mysql','user','')
+    self.config_parser.set('mysql','pwd','')
+    self.config_parser.set('mysql','db','')
     self.config_parser.add_section('xmpp')
     self.config_parser.set('xmpp','recipients_debug','xro@jabber.tittelbach.at')
     self.config_parser.set('xmpp','recipients_normal','xro@jabber.tittelbach.at otti@wirdorange.org')
@@ -38,8 +60,14 @@ class UWSConfig:
     self.config_parser.set('msg','notpresent',"Nobody seems to be here, guess everybody left${door_action_msg}")
     self.config_parser.set('msg','door_action_msg',", door ${door_status} ${by_whom}")
     self.config_parser.set('msg','status_error_msg',"ERROR Last Operation took too long !!!")
+    self.config_parser.add_section('cam')
+#    self.config_parser.set('cam','freeze_url',"http://www.realraum.at/cgi/freeze_realraum_picture.pl?freeze=98VB9s")        
+#    self.config_parser.set('cam','picture_url',"http://www.realraum.at/cgi/freeze_realraum_picture.pl") 
+    self.config_parser.set('cam','provide_pic',"True")
+    self.config_parser.set('cam','freeze_url',"https://www.tittelbach.at/realraum_pic.php?freeze=98VB9s")
+    self.config_parser.set('cam','picture_url',"https://www.tittelbach.at/realraum_pic.php")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")        
+    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -49,8 +77,31 @@ class UWSConfig:
         cf_handle.close()
       except IOError:
         self.writeConfigFile()
+        self.initMysqlConn()
       else:
         self.checkConfigUpdates()
+    
+  def guardReading(self):
+    with self.lock:
+      while self.currently_writing:
+        self.finished_writing.wait()
+      self.currently_reading+=1
+
+  def unguardReading(self):
+    with self.lock:
+      self.currently_reading-=1
+      self.finished_reading.notifyAll()
+      
+  def guardWriting(self):
+    with self.lock:
+      self.currently_writing=True
+      while self.currently_reading > 0:
+        self.finished_reading.wait()
+    
+  def unguardWriting(self):
+    with self.lock:
+      self.currently_writing=False
+      self.finished_writing.notifyAll()
     
   def checkConfigUpdates(self):
     global logger
@@ -63,20 +114,26 @@ class UWSConfig:
       return
     if self.config_mtime < mtime:
       logging.debug("Reading Configfile")
+      self.guardWriting()
       try:
         self.config_parser.read(self.configfile)
         self.config_mtime=os.path.getmtime(self.configfile)
       except (ConfigParser.ParsingError, IOError), pe_ex:
         logging.error("Error parsing Configfile: "+str(pe_ex))
+      self.unguardWriting()
+      self.guardReading()
       if self.config_parser.get('debug','enabled') == "True":
         logger.setLevel(logging.DEBUG)
       else:
         logger.setLevel(logging.INFO)
+      self.initMysqlConn()
+      self.unguardReading()
 
   def writeConfigFile(self):
     if self.configfile is None:
       return
-    logging.debug("Writing Configfile "+self.configfile)      
+    logging.debug("Writing Configfile "+self.configfile)
+    self.guardReading()
     try:
       cf_handle = open(self.configfile,"w")
       self.config_parser.write(cf_handle)
@@ -85,15 +142,65 @@ class UWSConfig:
     except IOError, io_ex:
       logging.error("Error writing Configfile: "+str(io_ex))
       self.configfile=None
+    self.unguardReading()
 
   def __getattr__(self, name):
     underscore_pos=name.find('_')
     if underscore_pos < 0:
       raise AttributeError
+    rv=None
+    self.guardReading()
     try:
-      return self.config_parser.get(name[0:underscore_pos], name[underscore_pos+1:])
+      rv = self.config_parser.get(name[0:underscore_pos], name[underscore_pos+1:])
     except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+      self.unguardReading()
       raise AttributeError
+    self.unguardReading()
+    if rv[0:5] == "SQL: ":
+      return self.returnSqlStatementResult(rv[6:])
+    else:
+      return rv
+    
+  def initMysqlConn(self):
+    global import_mysql_ok
+    if not import_mysql_ok:
+      return
+    host=self.config_parser.get("mysql", "host")
+    user=self.config_parser.get("mysql", "user")
+    pwd=self.config_parser.get("mysql", "pwd")
+    db=self.config_parser.get("mysql", "db")
+    if host != "" and user != "" and pwd != "" and db != "" and self.dbconn is None:
+      try:
+        dbconn = MySQLdb.connect (host = host,  user = user,  passwd = pwd,  db = db)
+        self.dbconn=dbconn
+      except MySQLdb.Error, e:
+        logging.error("Error connecting to MySql Database: %d: %s" % (e.args[0], e.args[1]))
+  
+  def returnSqlStatementResult(self, statement):
+    if self.dbconn is None:
+      return ""
+    cursor = self.dbconn.cursor()
+    try:
+      cursor.execute(statement)
+      results = cursor.fetchall()
+      res_str = " ".join(map(lambda row: row[0], results))
+      logging.debug("UWSCfg: mysql resulst: "+res_str)
+      cursor.close()
+      return res_str
+    except:
+      logging.error("UWSCfg: Mysql Stmt failed: " + statement)
+      traceback.print_exc(file=sys.stdout)
+      return ""
+
+def touchURL(url):
+  try:
+    f = urllib.urlopen(url)
+    rq_response = f.read()
+    logging.debug("touchURL: Response "+rq_response)
+    f.close()
+    return rq_response
+  except Exception, e:
+    logging.error("touchURL: "+str(e))
 
 def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
   logging.debug("popenTimeout1: starting: " + cmd)
@@ -193,10 +300,13 @@ def substituteMessageVariables(msg, door_tuple):
   return msg
 
 def formatAndDistributePresence(presence, door_tuple=(None,None)):
+  picurl=""
+  if uwscfg.cam_provide_pic:
+    picurl="\n"+uwscfg.cam_picture_url
   if presence == "yes":
-    distributeXmppMsg(substituteMessageVariables(uwscfg.msg_present, door_tuple))
+    distributeXmppMsg(substituteMessageVariables(uwscfg.msg_present, door_tuple)+picurl)
   else:
-    distributeXmppMsg(substituteMessageVariables(uwscfg.msg_notpresent, door_tuple))
+    distributeXmppMsg(substituteMessageVariables(uwscfg.msg_notpresent, door_tuple)+picurl)
 
 def formatAndDistributeWarning(msg, door_tuple=(None,None)):
   distributeXmppMsg("Warning: "+msg , high_priority=True)
@@ -297,8 +407,11 @@ while True:
         continue
       
       m = RE_REQUEST.match(line)
-      if not m is None:  
+      if not m is None:
         last_request = m.group(1,3,2)
+        if uwscfg.cam_provide_pic and (last_request[2] is None or not last_request[1] is None):
+          if not touchURL(uwscfg.cam_freeze_url) == "ok":
+            logging.error("main: error freezing picture")
         continue
       
       m = RE_ERROR.match(line)

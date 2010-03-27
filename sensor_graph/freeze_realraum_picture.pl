@@ -43,7 +43,7 @@ sub save_remote_image
     close($fh);
     
     print STDOUT header("text/html");
-    print STDOUT "<html><body>done</body></html>\n";
+    print STDOUT "ok";
     return 1;
   }
   return 0;
