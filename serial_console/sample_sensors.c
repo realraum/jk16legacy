@@ -5,8 +5,7 @@ unsigned int collect_data(char *buffer, unsigned int size)
   char *cmd;
   if (size >= 8 && strncmp("movement", buffer, 8) == 0)
     return 1;
-  
-  if (size > 16 && strncmp("temp0:", buffer, 5) == 0)
+  else if (size > 15 && strncmp("temp0: Temp C:", buffer, 14) == 0)
   {
     if (asprintf(&cmd, "rrdtool update %s -t temp N:%s", rrd_temp_, buffer + 15))
     {
@@ -15,10 +14,27 @@ unsigned int collect_data(char *buffer, unsigned int size)
       free(cmd);
     }
   }
-  
-  if (size > 16 && strncmp("photo0:", buffer, 6) == 0)
+  else if (size > 7 && strncmp("temp0:", buffer, 6) == 0)
+  {
+    if (asprintf(&cmd, "rrdtool update %s -t temp N:%s", rrd_temp_, buffer + 7))
+    {
+      /*printf("%s\n",cmd);*/
+      system(cmd);
+      free(cmd);
+    }
+  }  
+  else if (size > 15 && strncmp("photo0: Photo:", buffer, 14) == 0)
   {
     if (asprintf(&cmd, "rrdtool update %s -t light N:%s", rrd_light_, buffer + 15))
+    {
+      /*printf("%s\n",cmd);*/
+      system(cmd);
+      free(cmd);
+    }
+  }
+  else if (size > 8 && strncmp("photo0:", buffer, 7) == 0)
+  {
+    if (asprintf(&cmd, "rrdtool update %s -t light N:%s", rrd_light_, buffer + 7))
     {
       /*printf("%s\n",cmd);*/
       system(cmd);

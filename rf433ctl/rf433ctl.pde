@@ -205,7 +205,7 @@ void printTemperature(DeviceAddress deviceAddress)
 {
   dallas_sensors.requestTemperatures();
   float tempC = dallas_sensors.getTempC(deviceAddress);
-  Serial.print("Temp C: ");
+  //Serial.print("Temp C: ");
   Serial.println(tempC TEMPC_OFFSET_ARDUINO_GENEREATED_HEAT);
   //Serial.print(" Temp F: ");
   //Serial.println(DallasTemperature::toFahrenheit(tempC)); // Converts tempC to Fahrenheit
@@ -236,7 +236,7 @@ void updateLightLevel(unsigned int pin)
 
 void printLightLevel()
 {
-  Serial.print("Photo: ");
+  //Serial.print("Photo: ");
   Serial.println(light_level_mean_);
 }
 
