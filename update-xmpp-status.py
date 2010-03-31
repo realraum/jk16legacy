@@ -301,7 +301,7 @@ def substituteMessageVariables(msg, door_tuple):
 
 def formatAndDistributePresence(presence, door_tuple=(None,None)):
   picurl=""
-  if uwscfg.cam_provide_pic:
+  if uwscfg.cam_provide_pic == "True":
     picurl="\n"+uwscfg.cam_picture_url
   if presence == "yes":
     distributeXmppMsg(substituteMessageVariables(uwscfg.msg_present, door_tuple)+picurl)
@@ -409,7 +409,7 @@ while True:
       m = RE_REQUEST.match(line)
       if not m is None:
         last_request = m.group(1,3,2)
-        if uwscfg.cam_provide_pic and (last_request[2] is None or not last_request[1] is None):
+        if uwscfg.cam_provide_pic == "True" and (last_request[2] is None or not last_request[1] is None):
           if not touchURL(uwscfg.cam_freeze_url) == "ok":
             logging.error("main: error freezing picture")
         continue
