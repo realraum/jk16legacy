@@ -369,7 +369,6 @@ class StatusTracker: #(threading.Thread):
     self.timer=threading.Timer(sec, self.checkPresenceStateChangeAndNotify)
     self.timer.start()
   
-  #TODO: check brightness level from cam or an arduino sensor
   def somebodyPresent(self):
     with self.lock:
       if self.door_open:
@@ -396,8 +395,8 @@ class StatusTracker: #(threading.Thread):
       elif self.door_open and not somebody_present:
         self.checkAgainIn(2*float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
         return None
-      elif not somebody_present and self.last_light_unixts > self.last_door_operation_unixts and self.last_light_value > int(self.uwscfg.tracker_photo_artif_light):
-        return "Nobody here but light is still on"
+#      elif not somebody_present and self.last_light_unixts > self.last_door_operation_unixts and self.last_light_value > int(self.uwscfg.tracker_photo_artif_light):
+#return "Nobody here but light is still on"
       else:
         return None
  

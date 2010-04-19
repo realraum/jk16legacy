@@ -29,12 +29,16 @@ class UWSConfig:
   def __init__(self,configfile=None):
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
+    self.config_parser.add_section('powerswitching')
+    self.config_parser.set('powerswitching','min_secs_periodical_event','59')
+    self.config_parser.set('powerswitching','max_secs_since_movement','600')
     self.config_parser.add_section('slug')
     self.config_parser.set('slug','cgiuri','http://slug.realraum.at/cgi-bin/switch.cgi?id=%ID%&power=%ONOFF%')
-    self.config_parser.set('slug','ids_present_day','logo werkzeug')
-    self.config_parser.set('slug','ids_present_night','logo werkzeug schreibtisch idee labor')
+    self.config_parser.set('slug','ids_logo','logo')
+    self.config_parser.set('slug','ids_present_day','werkzeug')
+    self.config_parser.set('slug','ids_present_night','werkzeug schreibtisch idee labor')
     self.config_parser.set('slug','ids_panic','idee schreibtisch labor werkzeug')
-    self.config_parser.set('slug','ids_nonpresent_off','idee schreibtisch labor werkzeug stereo logo')
+    self.config_parser.set('slug','ids_nonpresent_off','idee schreibtisch labor werkzeug stereo decke1 decke2')
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
@@ -118,9 +122,51 @@ def haveDaylight():
   month = datetime.datetime.now().month
   return (hour >= dawn_per_month[month] and hour < dusk_per_month[month])
 
+def isWolfHour():
+  hour = datetime.datetime.now().hour
+  return (hour >= 2 and hour < 6)
+
 ######### EVENTS ###############  
+unixts_last_movement=0
+status_presense=None
+
+def eventDaylightStart():
+  for id in uwscfg.slug_ids_logo.split(" "):
+    switchPower(id,False)
+
+def eventDaylightStop():
+  if not isWolfHour():
+    for id in uwscfg.slug_ids_logo.split(" "):
+      switchPower(id,True)
+
+def eventWolfHourStart():
+  for id in uwscfg.slug_ids_logo.split(" "):
+    switchPower(id,False)
+
+def eventWolfHourStop():
+  if haveDaylight():
+    for id in uwscfg.slug_ids_logo.split(" "):
+      switchPower(id,True)
+
+def eventMovement():
+  global unixts_last_movement
+  unixts_last_movement=time.time()
+
+def eventPeriodical():
+  pass
+
+#  global unixts_last_movement
+#  if status_presense is True and unixts_last_movement + int(uwscfg.powerswitching_max_secs_since_movement) >= time.time():
+#    presumed_state=not (haveDaylight() or isWolfHour())
+#    logging.debug("event: periodical event")
+#    for id in uwscfg.slug_ids_logo.split(" "):
+#      switchPower(id,not presumed_state)
+#      time.sleep(1);
+#      switchPower(id,presumed_state)
 
 def eventPresent():
+  global status_presense
+  status_presense=True
   if haveDaylight():
     present_ids=uwscfg.slug_ids_present_day
   else:
@@ -130,6 +176,8 @@ def eventPresent():
     switchPower(id,True)
 
 def eventNobodyHere():
+  global status_presense
+  status_presense=False
   present_ids=uwscfg.slug_ids_nonpresent_off
   logging.info("event: noone here, switching off: "+present_ids)
   for id in present_ids.split(" "):
@@ -183,6 +231,10 @@ else:
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
+RE_MOVEMENT = re.compile(r'movement')
+daylight=None
+wolfhour=None
+unixts_last_periodical=0
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
@@ -194,6 +246,25 @@ while True:
     conn = os.fdopen(sockhandle.fileno())
     #sockhandle.send("listen\n")
     while True:
+
+      if haveDaylight() != daylight:
+        daylight = haveDaylight()
+        if daylight:
+          eventDaylightStart()
+        else:
+          eventDaylightStop()
+
+      if isWolfHour() != wolfhour:
+        wolfhour = isWolfHour()
+        if wolfhour:
+          eventWolfHourStart()
+        else:
+          eventWolfHourStop()
+     
+      if unixts_last_periodical + int(uwscfg.powerswitching_min_secs_periodical_event) <= time.time():
+        unixts_last_periodical = time.time()
+        eventPeriodical()
+
       line = conn.readline()
       logging.debug("Got Line: " + line)
       
@@ -213,6 +284,10 @@ while True:
       m = RE_BUTTON.match(line)
       if not m is None:
         eventPanic()
+        continue
+      m = RE_MOVEMENT.match(line)
+      if not m is None:
+        eventMovement()
         continue
           
   except Exception, ex:
