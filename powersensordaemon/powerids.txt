@@ -4,3 +4,5 @@ labor         c
 schreibtisch  d
 logo          e
 idee          f
+deckehinten   g
+deckevorne    h
