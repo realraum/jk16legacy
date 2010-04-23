@@ -228,10 +228,10 @@ void updateLightLevel(unsigned int pin)
     return;
   
   unsigned int diff = abs(value - light_level_mean_);
-  if (light_level_mean_ < 6 || diff > 250)
+  if (diff > 100)
     light_level_mean_ = value;
   else
-      light_level_mean_=(unsigned int) ( ((float) light_level_mean_) * 0.98 + ((float)value)*0.02 );
+      light_level_mean_=(unsigned int) ( ((float) light_level_mean_) * 0.90 + ((float)value)*0.10 );
 }
 
 void printLightLevel()
