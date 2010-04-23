@@ -141,9 +141,9 @@ void init_word(const word_t w)
   bit_cnt = 0;
 
   if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-    digitalWrite(RF_DATA_OUT_PIN, HIGH);
+    digitalWrite(RF_DATA_OUT_PIN, LOW); //neue 12V MosFET Verstärkung invertiert Logik !
   else
-    digitalWrite(RF_DATA_OUT_PIN, LOW);
+    digitalWrite(RF_DATA_OUT_PIN, HIGH);
 
   start_timer();
 }
@@ -157,9 +157,9 @@ ISR(TIMER1_COMPA_vect)
   chunk_cnt++;
   if(bit_defs[current_word[bit_cnt]][chunk_cnt].offset != 0) {
     if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-      digitalWrite(RF_DATA_OUT_PIN, HIGH);
+      digitalWrite(RF_DATA_OUT_PIN, LOW); //neue 12V MosFET Verstärkung invertiert Logik !
     else
-      digitalWrite(RF_DATA_OUT_PIN, LOW);
+      digitalWrite(RF_DATA_OUT_PIN, HIGH);
     return;
   }
   
@@ -168,13 +168,13 @@ ISR(TIMER1_COMPA_vect)
     alpha_cnt = 0;
     chunk_cnt = 0;
     if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-      digitalWrite(RF_DATA_OUT_PIN, HIGH);
+      digitalWrite(RF_DATA_OUT_PIN, LOW); //neue 12V MosFET Verstärkung invertiert Logik !
     else
-      digitalWrite(RF_DATA_OUT_PIN, LOW);
+      digitalWrite(RF_DATA_OUT_PIN, HIGH);
     return;
   }
   stop_timer();
-  digitalWrite(RF_DATA_OUT_PIN, LOW);
+  digitalWrite(RF_DATA_OUT_PIN, HIGH);
 
   word_cnt++;
   if(word_cnt < FRAME_LEN)
@@ -300,7 +300,7 @@ void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int
 void setup()
 {
   pinMode(RF_DATA_OUT_PIN, OUTPUT);
-  digitalWrite(RF_DATA_OUT_PIN, LOW);
+  digitalWrite(RF_DATA_OUT_PIN, HIGH);
   pinMode(IR_MOVEMENT_PIN, INPUT);      // set pin to input
   digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pullup resistors  
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
