@@ -38,7 +38,7 @@ class UWSConfig:
     self.config_parser.set('slug','ids_present_day','werkzeug')
     self.config_parser.set('slug','ids_present_night','werkzeug schreibtisch idee labor')
     self.config_parser.set('slug','ids_panic','idee schreibtisch labor werkzeug')
-    self.config_parser.set('slug','ids_nonpresent_off','idee schreibtisch labor werkzeug stereo decke1 decke2')
+    self.config_parser.set('slug','ids_nonpresent_off','lichter stereo deckehinten')
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
