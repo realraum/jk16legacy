@@ -61,7 +61,7 @@ unsigned int collect_data(char *buffer, unsigned int size)
 {
   if (size >= 8 && strncmp("movement", buffer, 8) == 0)
     return 1;
-  else if (check_handle_line(buffer, size, "temp0: ", rrd_temp_, txt_temp_))
+  else if (check_handle_line_float(buffer, size, "temp0: ", rrd_temp_, txt_temp_))
     return 0;
   else if (check_handle_line(buffer, size, "photo0: ", rrd_light_, txt_light_))
     return 0;
