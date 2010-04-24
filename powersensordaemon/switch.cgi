@@ -16,14 +16,16 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
 done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALIDIDS="werkzeug stereo labor schreibtisch logo idee deckehinten deckevorne"
+VALIDIDS="werkzeug stereo labor schreibtisch logo idee deckehinten deckevorne decke lichter all"
+
+
 
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
   for CHECKID in $VALIDIDS; do
     if [ "$CHECKID" == "$ID" ]; then
       echo "power $POWER $ID" | usocket $UNIXSOCK
     fi
-   done
+  done
 fi
 
 DESC_werkzeug="Werkzeug LEDs"
@@ -34,6 +36,9 @@ DESC_logo="Logo"
 DESC_idee="Idee"
 DESC_deckehinten="Decke Hinten"
 DESC_deckevorne="Decke Vorne"
+DESC_decke="Deckenlichter"
+DESC_lichter="Alle Lichter"
+DESC_all="Alles"
 
 echo "Content-type: text/html"
 echo ""
@@ -48,7 +53,7 @@ for DISPID in $VALIDIDS; do
   [ -z "$NAME" ] && NAME=$DISPID
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
-  echo "<div style=\"float:left; margin:2px; max-width:220px; font-size:11pt; border:1px solid black;\"><div style='width:9em; display:inline-block;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
   echo " <input type='submit' name='power' value='on' />"
   echo " <input type='submit' name='power' value='off' />"
   echo "</span></div>"
