@@ -48,7 +48,7 @@ void  sample_sensors(int fd)
 {
   if (fd < 3)
     return;
-  struct timespec timeout;
+  struct timeval timeout;
   fd_set fds_r;
   unsigned int const buffer_size=1024;
   unsigned int buffer_offset=0;
@@ -64,9 +64,9 @@ void  sample_sensors(int fd)
   FD_ZERO(&fds_r);
   FD_SET(fd,&fds_r);
   timeout.tv_sec=1;
-  timeout.tv_nsec=0;
+  timeout.tv_usec=0;
   last_sample_time=time(0);
-  while (select(fd+1,&fds_r,0,0,0) > 0)
+  while (select(fd+1,&fds_r,0,0,timeout) > -1)
   {
     curr_time=time(0);
     if (FD_ISSET(fd,&fds_r))
@@ -122,7 +122,7 @@ void  sample_sensors(int fd)
     
     FD_SET(fd,&fds_r);
     timeout.tv_sec=1;
-    timeout.tv_nsec=0;
+    timeout.tv_usec=0;
   }
 }
 
