@@ -10,8 +10,8 @@
    --color="ARROW#761407" --color="GRID#d0d0af"
    --title="Room Illumination" --lazy
    --start=now-36h --end=now --width=490
-   --slope-mode
+   --slope-mode --alt-autoscale-max
    DEF:cel=/home/sensorlight.rrd:light:LAST VDEF:lv=cel,LAST
-   LINE2:cel#04d532:"0 dark to 1023 bright," GPRINT:lv:"Current Value\: %1.0lf">
+   LINE2:cel#04d532:"0 complete darkness via 450 dark to 1023 quite bright," GPRINT:lv:"Current Value\: %1.0lf">
 </BODY>
 </HTML>
