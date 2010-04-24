@@ -3,9 +3,15 @@
 <BODY>
 <RRD::GOODFOR 30>
 <RRD::GRAPH ../light0.png
-   --lazy --imginfo '<IMG SRC="/%s" WIDTH="%lu" HEIGHT="%lu" >'
-   --title="Room Illumination"
-   DEF:cel=/home/sensorlight.rrd:light:LAST
-   LINE2:cel#00a000:"0 dark to 1023 bright">
+   --imginfo '<IMG SRC="/%s" WIDTH="%lu" HEIGHT="%lu" >'
+   --color="BACK#d0d0af" --color="CANVAS#ffffff" 
+   --color="SHADEA#dfdfdf" --color="SHADEB#525252" 
+   --color="AXIS#761407" --color="FONT#272727" --color="MGRID#b65447"
+   --color="ARROW#761407" --color="GRID#d0d0af"
+   --title="Room Illumination" --lazy
+   --start=now-36h --end=now --width=490
+   --slope-mode
+   DEF:cel=/home/sensorlight.rrd:light:LAST VDEF:lv=cel,LAST
+   LINE2:cel#04d532:"0 dark to 1023 bright," GPRINT:lv:"Current Value\: %1.0lf">
 </BODY>
 </HTML>
