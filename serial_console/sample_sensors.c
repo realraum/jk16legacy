@@ -1,47 +1,71 @@
 #include "sample_sensors.h"
 
-unsigned int collect_data(char *buffer, unsigned int size)
+int check_handle_line(char *buffer, unsigned int buflen, char *cmpstr, char *rrd_file, char *txt_file)
 {
   char *cmd;
+  unsigned int cmpstrlen = strlen(cmpstr);
+  unsigned int value = atoi(buffer + cmpstrlen);
+  if (buflen > cmpstrlen && strncmp(cmpstr,buffer,cmpstrlen) == 0)
+  {
+    if (asprintf(&cmd, "rrdtool update %s N:%d", rrd_file, value))
+    {
+      //printf("%s\n",cmd);
+      system(cmd);
+      free(cmd);
+    }
+    int fd = open(txt_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd) 
+    {
+      if (asprintf(&cmd, "%d", value))
+      {
+        
+        write(fd,cmd, strnlen(cmd,12)); //elim. newline
+        free(cmd);
+      }
+      close(fd);
+    }
+    return 1;
+  }
+  return 0;
+}
+
+int check_handle_line_float(char *buffer, unsigned int buflen, char *cmpstr, char *rrd_file, char *txt_file)
+{
+  char *cmd;
+  unsigned int cmpstrlen = strlen(cmpstr);
+  float value = atof(buffer + cmpstrlen);
+  if (buflen > cmpstrlen && strncmp(cmpstr,buffer,cmpstrlen) == 0)
+  {
+    if (asprintf(&cmd, "rrdtool update %s N:%f", rrd_file, value))
+    {
+      system(cmd);
+      free(cmd);
+    }
+    int fd = open(txt_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (fd) 
+    {
+      if (asprintf(&cmd, "%f", value))
+      {
+        
+        write(fd,cmd, strnlen(cmd,12)); //elim. newline
+        free(cmd);
+      }
+      close(fd);
+    }
+    return 1;
+  }
+  return 0;
+}
+
+unsigned int collect_data(char *buffer, unsigned int size)
+{
   if (size >= 8 && strncmp("movement", buffer, 8) == 0)
     return 1;
-  else if (size > 15 && strncmp("temp0: Temp C:", buffer, 14) == 0)
-  {
-    if (asprintf(&cmd, "rrdtool update %s -t temp N:%s", rrd_temp_, buffer + 15))
-    {
-      /*printf("%s\n",cmd);*/
-      system(cmd);
-      free(cmd);
-    }
-  }
-  else if (size > 7 && strncmp("temp0:", buffer, 6) == 0)
-  {
-    if (asprintf(&cmd, "rrdtool update %s -t temp N:%s", rrd_temp_, buffer + 7))
-    {
-      /*printf("%s\n",cmd);*/
-      system(cmd);
-      free(cmd);
-    }
-  }  
-  else if (size > 15 && strncmp("photo0: Photo:", buffer, 14) == 0)
-  {
-    if (asprintf(&cmd, "rrdtool update %s -t light N:%s", rrd_light_, buffer + 15))
-    {
-      /*printf("%s\n",cmd);*/
-      system(cmd);
-      free(cmd);
-    }
-  }
-  else if (size > 8 && strncmp("photo0:", buffer, 7) == 0)
-  {
-    if (asprintf(&cmd, "rrdtool update %s -t light N:%s", rrd_light_, buffer + 8))
-    {
-      /*printf("%s\n",cmd);*/
-      system(cmd);
-      free(cmd);
-   }
-  }
-  return 0;  
+  else if (check_handle_line(buffer, size, "temp0: ", rrd_temp_, txt_temp_))
+    return 0;
+  else if (check_handle_line(buffer, size, "photo0: ", rrd_light_, txt_light_))
+    return 0;
+  return 0;
 }
 
 void  sample_sensors(int fd)
@@ -66,7 +90,7 @@ void  sample_sensors(int fd)
   timeout.tv_sec=1;
   timeout.tv_usec=0;
   last_sample_time=time(0);
-  while (select(fd+1,&fds_r,0,0,timeout) > -1)
+  while (select(fd+1,&fds_r,0,0,&timeout) > -1)
   {
     curr_time=time(0);
     if (FD_ISSET(fd,&fds_r))

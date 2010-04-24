@@ -16,5 +16,7 @@
 char *default_socket_file_="/var/run/powersensordaemon/cmd.sock";
 char *rrd_temp_ = "/home/sensortemp.rrd";
 char *rrd_light_ = "/home/sensorlight.rrd";
+char *txt_temp_ = "/home/sensortemp.txt";
+char *txt_light_ = "/home/sensorlight.txt";
 char *rrd_movement_ = "/home/sensormovement.rrd";
 const int sample_interval_s_ = 30;
