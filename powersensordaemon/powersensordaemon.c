@@ -100,24 +100,26 @@ int send_command(int tty_fd, cmd_t* cmd)
   if(!cmd)
     return -1;
   
-  char c;
+  if(!cmd->param)
+    return 0;
+
+  unsigned int j,cmd_param_len = strnlen(cmd->param,60);
+ 
+  char c[cmd_param_len];
   switch(cmd->cmd) {
   case POWER_ON: {
-    if(!cmd->param)
-      return 0;
-    c = toupper(cmd->param[0]);
+    for (j=0; j< cmd_param_len; j++)
+      c[j] = toupper(cmd->param[j]);
     break;
   }
   case POWER_OFF: {
-    if(!cmd->param)
-      return 0;
-    c = tolower(cmd->param[0]);
+    for (j=0; j< cmd_param_len; j++)
+      c[j] = tolower(cmd->param[j]);
     break;
   }
   case SAMPLE: {
-    if(!cmd->param)
-      return 0;
-    c = cmd->param[0];
+    for (j=0; j< cmd_param_len; j++)
+      c[j] = cmd->param[j];
     break;
   }
   default: return 0;
@@ -125,7 +127,7 @@ int send_command(int tty_fd, cmd_t* cmd)
   
   int ret;
   do {
-    ret = write(tty_fd, &c, 1);
+    ret = write(tty_fd, c, cmd_param_len);
   } while(!ret || (ret == -1 && errno == EINTR));
 
   if(ret > 0) {
