@@ -6,3 +6,6 @@ logo          e
 idee          f
 deckehinten   g
 deckevorne    h
+all           abcdefgh
+decke         gh
+lichter       acdfgh
