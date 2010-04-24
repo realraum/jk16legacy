@@ -179,8 +179,8 @@ ISR(TIMER1_COMPA_vect)
   word_cnt++;
   if(word_cnt < FRAME_LEN)
     init_word(current_word);
-
-  frame_finished = 1;
+  else
+    frame_finished = 2;
 }
 
 //***********//
@@ -188,15 +188,25 @@ ISR(TIMER1_COMPA_vect)
 
 void send_frame(const word_t w)
 {
+  if (frame_finished == 0)
+    for(;;)
+      if (frame_finished)
+      {
+        delay(10);
+        break;
+      }
   word_cnt = 0;
   frame_finished = 0;
-  init_word(w);
+  init_word(w);      
+}
 
-  for(;;)
-    if(frame_finished)
-      break;
-
-  Serial.println("Ok");
+void check_frame_done()
+{
+  if (frame_finished==2)
+  {
+    Serial.println("Ok");
+    frame_finished=1;
+  }
 }
 
 //********************************************************************//
@@ -372,6 +382,7 @@ void loop()
   
   updateLightLevel(PHOTO_ANALOGPIN);
   calculate_led_level(BLUELED_PWM_PIN);
+  check_frame_done();
   
   if(Serial.available()) {
     char command = Serial.read();
