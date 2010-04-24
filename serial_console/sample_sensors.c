@@ -34,12 +34,12 @@ unsigned int collect_data(char *buffer, unsigned int size)
   }
   else if (size > 8 && strncmp("photo0:", buffer, 7) == 0)
   {
-    if (asprintf(&cmd, "rrdtool update %s -t light N:%s", rrd_light_, buffer + 7))
+    if (asprintf(&cmd, "rrdtool update %s -t light N:%s", rrd_light_, buffer + 8))
     {
       /*printf("%s\n",cmd);*/
       system(cmd);
       free(cmd);
-    }
+   }
   }
   return 0;  
 }
