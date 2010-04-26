@@ -182,25 +182,25 @@ def eventNobodyHere():
   logging.info("event: noone here, switching off: "+present_ids)
   for id in present_ids.split(" "):
     switchPower(id,False)
+  for id in present_ids.split(" "):
+    time.sleep(0.3)
     switchPower(id,False)
 
 def eventPanic():
   logging.info("event: Panic:, switching around: "+uwscfg.slug_ids_panic)
   lst1 = uwscfg.slug_ids_panic.split(" ")
-  lst2 = lst1
-  lst2.append(lst2.pop(0))
-  #guarantee list has even number of elements by multiplying it with a factor of 2
-  lst=zip(lst1,lst2) * 8
-  lst2=None
-  switchPower(lst[0][0],True)
-  for (id1,id2) in lst: 
-    switchPower(id2,True)
-    time.sleep(0.3)
-    switchPower(id1,False)
-  time.sleep(0.6)
-  for id in lst1:
+  lst2 = map(lambda e:[e,True], lst1)
+  for delay in map(lambda e: (40-e)/133.0,range(0,20)):
+    e = random.choice(lst2)
+    e[1]=not e[1]
+    switchPower(e[0],e[1]) 
+    time.sleep(delay)
+  random.shuffle(lst1)
+  for rep in lst1:
     switchPower(id,False)
+  time.sleep(1.2)
   eventPresent()
+    
 
 ########################
 
