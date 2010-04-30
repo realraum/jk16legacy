@@ -28,8 +28,9 @@ Current Light Value: <RRD::INCLUDE /home/sensorlight.txt>
    --title="Room Temperature"
    --start=now-36h --end=now --width=490
    --slope-mode
-   DEF:cel=/home/sensortemp.rrd:temp:LAST VDEF:lv=cel,LAST
-   LINE2:cel#e21407:"°C (±0.5)," GPRINT:lv:"Current Temperature\: %1.2lf °C">
+   DEF:cel=/home/sensortemp.rrd:temp:LAST 
+   CDEF:corrcel=cel,6,- VDEF:lv=corrcel,LAST
+   LINE2:corrcel#e21407:"°C (±0.5)," GPRINT:lv:"Current Temperature\: %1.2lf °C">
 </P>
 Current Temperature: <RRD::INCLUDE /home/sensortemp.txt> Â°C
 <P>

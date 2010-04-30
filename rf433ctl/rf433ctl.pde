@@ -23,7 +23,7 @@
 OneWire  onewire(ONE_WIRE_PIN);
 DallasTemperature dallas_sensors(&onewire);
 DeviceAddress onShieldTemp = { 0x10, 0xE7, 0x77, 0xD3, 0x01, 0x08, 0x00, 0x3F };
-#define TEMPC_OFFSET_ARDUINO_GENEREATED_HEAT -4.0
+#define TEMPC_OFFSET_ARDUINO_GENEREATED_HEAT 
 
 typedef struct {
   byte offset;
@@ -192,7 +192,7 @@ void send_frame(const word_t w)
     for(;;)
       if (frame_finished)
       {
-        delay(10);
+        delay(150);
         break;
       }
   word_cnt = 0;

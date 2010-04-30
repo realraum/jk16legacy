@@ -11,7 +11,8 @@
    --title="Room Temperature" --lazy
    --start=now-36h --end=now --width=490
    --slope-mode
-   DEF:cel=/home/sensortemp.rrd:temp:LAST VDEF:lv=cel,LAST
-   LINE2:cel#e21407:"°C (±0.5)," GPRINT:lv:"Current Temperature\: %1.2lf °C">
+   DEF:cel=/home/sensortemp.rrd:temp:LAST 
+   CDEF:corrcel=cel,6,- VDEF:lv=corrcel,LAST
+   LINE2:corrcel#e21407:"°C (±0.5)," GPRINT:lv:"Current Temperature\: %1.2lf °C">
 </BODY>
 </HTML>
