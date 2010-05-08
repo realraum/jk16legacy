@@ -15,6 +15,7 @@ import subprocess
 import types
 import ConfigParser
 import datetime
+import random
 import traceback
 
 logger = logging.getLogger()
@@ -196,7 +197,7 @@ def eventPanic():
     switchPower(e[0],e[1]) 
     time.sleep(delay)
   random.shuffle(lst1)
-  for rep in lst1:
+  for id in lst1:
     switchPower(id,False)
   time.sleep(1.2)
   eventPresent()
