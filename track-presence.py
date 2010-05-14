@@ -46,7 +46,9 @@ class UWSConfig:
     self.config_parser.set('sensors','remote_socket',"/var/run/powersensordaemon/cmd.sock")
     self.config_parser.set('sensors','remote_shell',"usocket")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','sec_necessary_to_move_through_door',"10.0")
+    self.config_parser.set('tracker','sec_necessary_to_move_through_door',"5.0")
+    self.config_parser.set('tracker','sec_wait_after_manual_close',"12.0")
+    self.config_parser.set('tracker','sec_movement_before_manual_switch',"0.8")
     self.config_parser.set('tracker','sec_general_movement_timeout',"3600")
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
     self.config_parser.set('tracker','photo_flashlight',"1020")
@@ -378,11 +380,14 @@ class StatusTracker: #(threading.Thread):
           return True
         else:
           return False
-      elif time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_necessary_to_move_through_door):
+      elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_manual_close):
+        #start timer, checkPresenceStateChangeAndNotify after tracker_sec_wait_movement
+        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_manual_close))
+      elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_necessary_to_move_through_door):
         #start timer, checkPresenceStateChangeAndNotify after tracker_sec_wait_movement
         self.checkAgainIn(float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
         return self.last_somebody_present_result
-      elif self.last_movement_unixts > self.last_door_operation_unixts - 0.3 and self.door_manual_switch_used:
+      elif self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch) and self.door_manual_switch_used:
         return True
       elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
         return True
