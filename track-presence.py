@@ -302,6 +302,7 @@ class StatusTracker: #(threading.Thread):
     self.presence_notify_lock=threading.Lock()
     #timer
     self.timer=None
+    self.timer_timeout=0
     
   def doorOpen(self,who,how):
     self.uwscfg.checkConfigUpdates()
@@ -364,12 +365,13 @@ class StatusTracker: #(threading.Thread):
 
 
   def checkAgainIn(self, sec):
-    #~ if not self.timer is None:
-      #~ logging.debug("checkAgainIn: canceled previous running Timer")
-      #~ self.timer.cancel()
-    logging.debug("checkAgainIn: starting Timer with timeout %fs" % sec)
-    self.timer=threading.Timer(sec, self.checkPresenceStateChangeAndNotify)
-    self.timer.start()
+    if self.timer_timeout < time.time():
+      logging.debug("checkAgainIn: starting Timer with timeout %fs" % sec)
+      self.timer=threading.Timer(sec, self.checkPresenceStateChangeAndNotify)
+      self.timer.start()
+      self.timer_timeout = time.time() + sec
+    else:
+      logging.debug("checkAgainIn: not starting timer, already one scheduled in %fs" % (time.time() - self.timer_timeout))
   
   def somebodyPresent(self):
     with self.lock:
@@ -381,10 +383,9 @@ class StatusTracker: #(threading.Thread):
         else:
           return False
       elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_manual_close):
-        #start timer, checkPresenceStateChangeAndNotify after tracker_sec_wait_movement
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_manual_close))
+        return self.last_somebody_present_result
       elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_necessary_to_move_through_door):
-        #start timer, checkPresenceStateChangeAndNotify after tracker_sec_wait_movement
         self.checkAgainIn(float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
         return self.last_somebody_present_result
       elif self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch) and self.door_manual_switch_used:

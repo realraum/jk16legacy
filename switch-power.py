@@ -36,10 +36,12 @@ class UWSConfig:
     self.config_parser.add_section('slug')
     self.config_parser.set('slug','cgiuri','http://slug.realraum.at/cgi-bin/switch.cgi?id=%ID%&power=%ONOFF%')
     self.config_parser.set('slug','ids_logo','logo')
-    self.config_parser.set('slug','ids_present_day','werkzeug')
+    self.config_parser.set('slug','ids_present_day_bright_room','werkzeug')
+    self.config_parser.set('slug','ids_present_day_dark_room','decke werkzeug')
     self.config_parser.set('slug','ids_present_night','werkzeug schreibtisch idee labor')
-    self.config_parser.set('slug','ids_panic','idee schreibtisch labor werkzeug')
-    self.config_parser.set('slug','ids_nonpresent_off','lichter stereo deckehinten')
+    self.config_parser.set('slug','ids_panic','idee schreibtisch labor werkzeug deckevorne deckehinten')
+    self.config_parser.set('slug','ids_nonpresent_off','lichter stereo')
+    self.config_parser.set('slug','light_threshold_brightness','400')
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
@@ -118,7 +120,7 @@ def switchPower(powerid,turn_on=False):
 
 def haveDaylight():
   dawn_per_month = {1:8, 2:7, 3:6, 4:6, 5:5, 6:5, 7:5, 8:6, 9:7, 10:8, 11:8, 12:8}
-  dusk_per_month = {1:16, 2:17, 3:18, 4:20, 5:21, 6:21, 7:21, 8:20, 9:19, 10:18, 11:16, 12:16}
+  dusk_per_month = {1:16, 2:17, 3:18, 4:20, 5:20, 6:21, 7:21, 8:20, 9:19, 10:18, 11:16, 12:16}
   hour = datetime.datetime.now().hour
   month = datetime.datetime.now().month
   return (hour >= dawn_per_month[month] and hour < dusk_per_month[month])
@@ -130,6 +132,13 @@ def isWolfHour():
 ######### EVENTS ###############  
 unixts_last_movement=0
 status_presense=None
+room_is_bright=None
+
+def eventRoomGotBright():
+  room_is_bright=True
+
+def eventRoomGotDark():
+  room_is_bright=False
 
 def eventDaylightStart():
   for id in uwscfg.slug_ids_logo.split(" "):
@@ -169,7 +178,10 @@ def eventPresent():
   global status_presense
   status_presense=True
   if haveDaylight():
-    present_ids=uwscfg.slug_ids_present_day
+    if room_is_bright:
+      present_ids=uwscfg.slug_ids_present_day_bright_room
+    else:
+      present_ids=uwscfg.slug_ids_present_day_dark_room
   else:
     present_ids=uwscfg.slug_ids_present_night
   logging.info("event: someone present, switching on: "+present_ids)
@@ -233,6 +245,7 @@ else:
 RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
 RE_MOVEMENT = re.compile(r'movement')
+RE_PHOTO = re.compile(r'photo\d: [^0-9]*?(\d+)')
 daylight=None
 wolfhour=None
 unixts_last_periodical=0
@@ -289,6 +302,13 @@ while True:
       m = RE_MOVEMENT.match(line)
       if not m is None:
         eventMovement()
+        continue
+      m = RE_PHOTO.match(line)
+      if not m is None:
+        if m.group(1) >= int(uwscfg.slug_light_threshold_brightness):
+          eventRoomGotBright()
+        else:
+          eventRoomGotDark()
         continue
           
   except Exception, ex:
