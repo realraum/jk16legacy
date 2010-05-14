@@ -382,7 +382,9 @@ class StatusTracker: #(threading.Thread):
         #start timer, checkPresenceStateChangeAndNotify after tracker_sec_wait_movement
         self.checkAgainIn(float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
         return self.last_somebody_present_result
-      elif self.last_movement_unixts > self.last_door_operation_unixts and (self.door_manual_switch_used or ( time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout))):
+      elif self.last_movement_unixts > self.last_door_operation_unixts - 0.3 and self.door_manual_switch_used:
+        return True
+      elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
         return True
       else:
         return False
