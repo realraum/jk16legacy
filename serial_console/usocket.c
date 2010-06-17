@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
     quit_on_eof_=0;
   
   socket_fd = establish_socket_connection(socket_file);
-  if(socket_fd)
+  if(socket_fd > 0)
   {
     fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
     connect_terminal(socket_fd);
