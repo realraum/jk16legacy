@@ -92,7 +92,8 @@ int signal_init()
      (sigaction(SIGTERM, &act, NULL) < 0) ||
      (sigaction(SIGHUP, &act, NULL) < 0) ||
      (sigaction(SIGUSR1, &act, NULL) < 0) ||
-     (sigaction(SIGUSR2, &act, NULL) < 0)) {
+     (sigaction(SIGUSR2, &act, NULL) < 0) ||
+     (signal(SIGPIPE, SIG_IGN) == SIG_ERR)) {
 
     log_printf(ERROR, "signal handling init failed (sigaction error: %s)", strerror(errno));
     close(sig_pipe_fds[0]);
@@ -153,6 +154,7 @@ void signal_stop()
   sigaction(SIGHUP, &act, NULL);
   sigaction(SIGUSR1, &act, NULL);
   sigaction(SIGUSR2, &act, NULL);
+  signal(SIGPIPE, SIG_DFL);
 
   close(sig_pipe_fds[0]);
   close(sig_pipe_fds[1]);
