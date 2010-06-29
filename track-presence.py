@@ -46,13 +46,14 @@ class UWSConfig:
     self.config_parser.set('sensors','remote_socket',"/var/run/powersensordaemon/cmd.sock")
     self.config_parser.set('sensors','remote_shell',"usocket")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','sec_necessary_to_move_through_door',"5.0")
-    self.config_parser.set('tracker','sec_wait_after_manual_close',"12.0")
-    self.config_parser.set('tracker','sec_movement_before_manual_switch',"0.8")
+    self.config_parser.set('tracker','sec_wait_after_close_using_cardphone',"4.2")
+    self.config_parser.set('tracker','sec_wait_for_movement_before_warning',"30")
+    self.config_parser.set('tracker','sec_wait_after_close_using_manualswitch',"25.0")
+    self.config_parser.set('tracker','sec_movement_before_manual_switch',"-1.0")  #neg duration means: movement has to occur _after_ door was closed manually
     self.config_parser.set('tracker','sec_general_movement_timeout',"3600")
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
     self.config_parser.set('tracker','photo_flashlight',"1020")
-    self.config_parser.set('tracker','photo_artif_light',"960")
+    self.config_parser.set('tracker','photo_artif_light',"970")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_mtime=0
@@ -382,11 +383,11 @@ class StatusTracker: #(threading.Thread):
           return True
         else:
           return False
-      elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_manual_close):
-        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_manual_close))
+      elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch):
+        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch))
         return self.last_somebody_present_result
-      elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_necessary_to_move_through_door):
-        self.checkAgainIn(float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
+      elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone):
+        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone))
         return self.last_somebody_present_result
       elif self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch) and self.door_manual_switch_used:
         return True
@@ -398,10 +399,10 @@ class StatusTracker: #(threading.Thread):
   def getPossibleWarning(self):
     with self.lock:
       somebody_present=self.last_somebody_present_result
-      if self.door_open and not somebody_present and time.time() - self.last_door_operation_unixts >= 2* float(self.uwscfg.tracker_sec_necessary_to_move_through_door):
+      if self.door_open and not somebody_present and time.time() - self.last_door_operation_unixts >= float(self.uwscfg.tracker_sec_wait_for_movement_before_warning):
         return "Door opened recently but nobody present"
       elif self.door_open and not somebody_present:
-        self.checkAgainIn(2*float(self.uwscfg.tracker_sec_necessary_to_move_through_door))
+        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_for_movement_before_warning))
         return None
 #      elif not somebody_present and self.last_light_unixts > self.last_door_operation_unixts and self.last_light_value > int(self.uwscfg.tracker_photo_artif_light):
 #return "Nobody here but light is still on"
