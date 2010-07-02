@@ -135,25 +135,33 @@ status_presense=None
 room_is_bright=None
 
 def eventRoomGotBright():
+  global room_is_bright
+  logging.debug("eventRoomGotBright()")
   room_is_bright=True
 
 def eventRoomGotDark():
+  global room_is_bright
+  logging.debug("eventRoomGotDark()")
   room_is_bright=False
 
 def eventDaylightStart():
+  logging.debug("eventDaylightStart()")
   for id in uwscfg.slug_ids_logo.split(" "):
     switchPower(id,False)
 
 def eventDaylightStop():
+  logging.debug("eventDaylightStop()")
   if not isWolfHour():
     for id in uwscfg.slug_ids_logo.split(" "):
       switchPower(id,True)
 
 def eventWolfHourStart():
+  logging.debug("eventWolfHourStart()")
   for id in uwscfg.slug_ids_logo.split(" "):
     switchPower(id,False)
 
 def eventWolfHourStop():
+  logging.debug("eventWolfHourStop()")
   if haveDaylight():
     for id in uwscfg.slug_ids_logo.split(" "):
       switchPower(id,True)
@@ -175,13 +183,14 @@ def eventPeriodical():
 #      switchPower(id,presumed_state)
 
 def eventPresent():
-  global status_presense
+  global status_presense,room_is_bright
+  logging.debug("eventPresent()");
   status_presense=True
   if haveDaylight():
-    if room_is_bright:
-      present_ids=uwscfg.slug_ids_present_day_bright_room
-    else:
+    if room_is_bright is False:
       present_ids=uwscfg.slug_ids_present_day_dark_room
+    else:
+      present_ids=uwscfg.slug_ids_present_day_bright_room
   else:
     present_ids=uwscfg.slug_ids_present_night
   logging.info("event: someone present, switching on: "+present_ids)
@@ -190,6 +199,7 @@ def eventPresent():
 
 def eventNobodyHere():
   global status_presense
+  logging.debug("eventNobodyHere()");
   status_presense=False
   present_ids=uwscfg.slug_ids_nonpresent_off
   logging.info("event: noone here, switching off: "+present_ids)
@@ -200,7 +210,7 @@ def eventNobodyHere():
     switchPower(id,False)
 
 def eventPanic():
-  logging.info("event: Panic:, switching around: "+uwscfg.slug_ids_panic)
+  logging.info("eventPanic(): switching around: "+uwscfg.slug_ids_panic)
   lst1 = uwscfg.slug_ids_panic.split(" ")
   lst2 = map(lambda e:[e,True], lst1)
   for delay in map(lambda e: (40-e)/133.0,range(0,20)):
