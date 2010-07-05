@@ -178,7 +178,8 @@ def trackSensorStatusThread(uwscfg,status_tracker,connection_listener):
         if len(line) < 1:
           raise Exception("EOF on Subprocess, daemon seems to have quit, returncode: %d",sshp.returncode)
         logging.debug("trackSensorStatusThread: Got Line: " + line)
-        connection_listener.distributeData(line)
+        if not line.startswith("Warning: Permanently added"):
+          connection_listener.distributeData(line)
         m = RE_MOVEMENT.match(line)
         if not m is None:
           status_tracker.movementDetected()
