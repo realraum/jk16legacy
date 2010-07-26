@@ -9,3 +9,10 @@ deckevorne    h
 all           abcdefgh
 decke         gh
 lichter       acdfgh
+ymhpower      1
+ymhcd         2
+ymhwdtv       3
+ymhtuner      4
+ymhvolup      5
+ymhvoldown    6
+ymhvolmute    7
