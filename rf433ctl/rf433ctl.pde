@@ -347,7 +347,9 @@ void setup()
   digitalWrite(PANIC_BUTTON_PIN, HIGH);  // turn on pullup resistors 
   analogWrite(BLUELED_PWM_PIN,0);
   analogWrite(BLUELED2_PWM_PIN,255); //pwm sink(-) instead of pwm + (better for mosfets)
-
+  pinMode(IRREMOTE_SEND_PIN, OUTPUT);
+  digitalWrite(IRREMOTE_SEND_PIN, HIGH);
+  
   Serial.begin(9600);
   
   onewire.reset();

@@ -198,7 +198,7 @@ void IRsend::enableIROut(int khz) {
   TIMSK2 &= ~_BV(TOIE2); //Timer2 Overflow Interrupt
   
   pinMode(3, OUTPUT);
-  digitalWrite(3, LOW); // When not sending PWM, we want it low
+  digitalWrite(3, HIGH); // When not sending PWM, we want it low
   
   // COM2A = 00: disconnect OC2A
   // COM2B = 00: disconnect OC2B; to send signal set to 10: OC2B non-inverted
@@ -209,7 +209,7 @@ void IRsend::enableIROut(int khz) {
 
   // The top value for the timer.  The modulation frequency will be SYSCLOCK / 2 / OCR2A.
   OCR2A = SYSCLOCK / 2 / khz / 1000;
-  OCR2B = OCR2A / 3; // 33% duty cycle
+  OCR2B = OCR2A / 4; // 33% duty cycle
 }
 
 IRrecv::IRrecv(int recvpin)
