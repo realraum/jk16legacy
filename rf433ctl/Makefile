@@ -18,7 +18,7 @@ SRC =  $(ARDUINO)/pins_arduino.c $(ARDUINO)/wiring.c \
 $(ARDUINO)/wiring_analog.c $(ARDUINO)/wiring_digital.c \
 $(ARDUINO)/wiring_pulse.c $(ARDUINO)/wiring_serial.c \
 $(ARDUINO)/wiring_shift.c $(ARDUINO)/WInterrupts.c
-CXXSRC = OneWire/OneWire.cpp DallasTemperature/DallasTemperature.cpp  $(ARDUINO)/HardwareSerial.cpp $(ARDUINO)/Print.cpp $(ARDUINO)/WMath.cpp
+CXXSRC = OneWire/OneWire.cpp DallasTemperature/DallasTemperature.cpp  $(ARDUINO)/HardwareSerial.cpp $(ARDUINO)/Print.cpp $(ARDUINO)/WMath.cpp IRremote/IRremote.cpp
 FORMAT = ihex
 
 
@@ -37,8 +37,8 @@ CDEFS = -DF_CPU=$(F_CPU)
 CXXDEFS = -DF_CPU=$(F_CPU)
 
 # Place -I options here
-CINCS =  -I ./OneWire -I ./DallasTemperature -I$(ARDUINO)
-CXXINCS = -I ./OneWire -I ./DallasTemperature -I$(ARDUINO)
+CINCS =  -I ./OneWire -I ./DallasTemperature -I ./IRremote -I$(ARDUINO)
+CXXINCS = -I ./OneWire -I ./DallasTemperature -I ./IRremote -I$(ARDUINO)
 
 # Compiler flag to set the C Standard level.
 # c89   - "ANSI" C

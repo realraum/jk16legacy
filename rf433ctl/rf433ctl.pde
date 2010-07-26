@@ -3,6 +3,7 @@
 #include <inttypes.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <IRremote.h>
 
 //********************************************************************//
 
@@ -19,11 +20,40 @@
 //duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Reports, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
 #define PB_TRESHOLD 1000
 #define PHOTO_SAMPLE_INTERVAL 4000
+#define IRREMOTE_SEND_PIN 3   //hardcoded in library
+//WARNING IRremote Lib uses TCCR2
 
 OneWire  onewire(ONE_WIRE_PIN);
 DallasTemperature dallas_sensors(&onewire);
 DeviceAddress onShieldTemp = { 0x10, 0xE7, 0x77, 0xD3, 0x01, 0x08, 0x00, 0x3F };
+IRsend irsend; 
 #define TEMPC_OFFSET_ARDUINO_GENEREATED_HEAT 
+
+//********************************************************************//
+// IR Codes, 32 bit, NEC
+const int YAMAHA_CODE_BITS=32;
+const unsigned long int YAMAHA_POWER = 0x000000005EA1F807;
+const unsigned long int YAMAHA_CD = 0x000000005EA1A857;
+const unsigned long int YAMAHA_TUNER = 0x000000005EA16897;
+const unsigned long int YAMAHA_SAT = 0x000000005EA19867;
+const unsigned long int YAMAHA_DVD = 0x000000005EA118E7;
+const unsigned long int YAMAHA_DVD_SPDIF = 0x000000005EA1E817;
+const unsigned long int YAMAHA_VCR_1 = 0x000000005EA1F00F;
+const unsigned long int YAMAHA_TUNER_PLUS = 0x000000005EA108F7;
+const unsigned long int YAMAHA_TUNER_ABCDE = 0x000000005EA148B7;
+const unsigned long int YAMAHA_FRONT_LEVEL_P = 0x000000005EA101FE;
+const unsigned long int YAMAHA_FRONT_LEVEL_M = 0x000000005EA1817E;
+const unsigned long int YAMAHA_CENTRE_LEVEL_P = 0x000000005EA141BE;
+const unsigned long int YAMAHA_CENTRE_LEVEL_M = 0x000000005EA1C13E;
+const unsigned long int YAMAHA_REAR_LEVEL_P = 0x000000005EA17A85;
+const unsigned long int YAMAHA_REAR_LEVEL_M = 0x000000005EA1FA05;
+const unsigned long int YAMAHA_DELAY_TIME_P = 0x000000005EA14AB5;
+const unsigned long int YAMAHA_DELAY_TIME_M = 0x000000005EA1CA35;
+const unsigned long int YAMAHA_MUTE = 0x000000005EA138C7;
+const unsigned long int YAMAHA_VOLUME_UP = 0x000000005EA158A7;
+const unsigned long int YAMAHA_VOLUME_DOWN = 0x000000005EA1D827;
+
+//********************************************************************//
 
 typedef struct {
   byte offset;
@@ -431,6 +461,41 @@ void loop()
     {
       sensorEchoCommand(command);
       printLightLevel();
+    }
+    else if (command == '1')
+    {
+      irsend.sendNEC(YAMAHA_POWER,YAMAHA_CODE_BITS);
+      Serial.println("Ok");
+    }
+    else if (command == '2')
+    {
+      irsend.sendNEC(YAMAHA_CD,YAMAHA_CODE_BITS);
+      Serial.println("Ok");
+    }
+    else if (command == '3')
+    {
+      irsend.sendNEC(YAMAHA_DVD_SPDIF,YAMAHA_CODE_BITS);
+      Serial.println("Ok");
+    }
+    else if (command == '4')
+    {
+      irsend.sendNEC(YAMAHA_TUNER,YAMAHA_CODE_BITS);
+      Serial.println("Ok");
+    }    
+    else if (command == '5')
+    {
+      irsend.sendNEC(YAMAHA_VOLUME_UP,YAMAHA_CODE_BITS);
+      Serial.println("Ok");
+    }
+    else if (command == '6')
+    {
+      irsend.sendNEC(YAMAHA_VOLUME_DOWN,YAMAHA_CODE_BITS);
+      Serial.println("Ok");
+    }
+    else if (command == '7')
+    {
+      irsend.sendNEC(YAMAHA_MUTE,YAMAHA_CODE_BITS);
+      Serial.println("Ok");
     }
     else
       Serial.println("Error: unknown command");
