@@ -1,12 +1,12 @@
 werkzeug      a
-stereo        b
+stereo        1
 labor         c
 dart          d
 logo          e
 idee          f
 deckehinten   g
 deckevorne    h
-all           abcdefgh
+all           a1cdefgh
 decke         gh
 lichter       acdfgh
 ymhpower      1

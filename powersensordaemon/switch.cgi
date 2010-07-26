@@ -16,14 +16,21 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
 done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALIDIDS="werkzeug stereo labor schreibtisch logo idee deckehinten deckevorne decke lichter all"
-
+VALIDIDS="decke lichter all werkzeug stereo labor dart logo idee deckehinten deckevorne ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner"
 
 
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
   for CHECKID in $VALIDIDS; do
     if [ "$CHECKID" == "$ID" ]; then
       echo "power $POWER $ID" | usocket $UNIXSOCK
+      echo "Content-type: text/html"
+      echo ""
+      echo "<html>"
+      echo "<head>"
+      echo "<title>Realraum rf433ctl</title>"
+      echo '<script type="text/javascript">window.location="http://slug.realraum.at/cgi-bin/switch.cgi";</script>'
+      echo "</head></html>"
+      exit 0
     fi
   done
 fi
@@ -31,7 +38,7 @@ fi
 DESC_werkzeug="Werkzeug LEDs"
 DESC_stereo="Stereo Anlage"
 DESC_labor="Labor Licht"
-DESC_schreibtisch="Schreibtisch Licht"
+DESC_dart="Dart Scheibe"
 DESC_logo="Logo"
 DESC_idee="Idee"
 DESC_deckehinten="Decke Hinten"
@@ -39,6 +46,11 @@ DESC_deckevorne="Decke Vorne"
 DESC_decke="Deckenlichter"
 DESC_lichter="Alle Lichter"
 DESC_all="Alles"
+DESC_yhmvolup="VolumeUp"
+DESC_yhmvoldown="VolumeDown"
+DESC_ymhcd="Input CD"
+DESC_ymhwdtv="Input WDlxTV"
+DESC_ymhtuner="Input Tuner"
 
 echo "Content-type: text/html"
 echo ""
