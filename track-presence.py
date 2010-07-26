@@ -313,7 +313,7 @@ class StatusTracker: #(threading.Thread):
     if self.door_open != self.door_open_previously:
       self.door_who=who
       self.door_manual_switch_used=(who is None or len(who) == 0)
-      self.door_physically_present=(self.door_manual_switch_used or how == "Card")      
+      self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
       if not self.door_open_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
@@ -321,7 +321,7 @@ class StatusTracker: #(threading.Thread):
       self.lock.acquire()
       self.door_open_previously = self.door_open
     self.lock.release()
-    logging.debug("doorOpen: open: %s, who: %s, how:%s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_manual_switch_used));
+    logging.debug("doorOpen: open: %s, who: %s, how: %s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_manual_switch_used));
     
   def doorClosed(self,who,how):
     self.uwscfg.checkConfigUpdates()
@@ -330,7 +330,7 @@ class StatusTracker: #(threading.Thread):
     if self.door_open != self.door_open_previously:
       self.door_who=who
       self.door_manual_switch_used=(who is None or len(who) == 0)
-      self.door_physically_present=(self.door_manual_switch_used or how == "Card")      
+      self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
       if not self.door_open_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
