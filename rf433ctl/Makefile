@@ -114,7 +114,8 @@ lss: applet/$(TARGET).lss
 sym: applet/$(TARGET).sym
 
 # Program the device.  
-upload: applet/$(TARGET).hex
+upload: applet/$(TARGET).hex reset_tty
+	./reset_tty
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)
 
 
@@ -206,5 +207,8 @@ depend:
 	echo '# DO NOT DELETE THIS LINE -- make depend depends on it.' \
 		>> $(MAKEFILE); \
 	$(CC) -M -mmcu=$(MCU) $(CDEFS) $(CINCS) $(SRC) $(ASRC) >> $(MAKEFILE)
+
+reset_tty: reset_tty.c
+	$(CC) -o reset_tty reset_tty.c
 
 .PHONY:	all build elf hex eep lss sym program coff extcoff clean depend applet_files sizebefore sizeafter
