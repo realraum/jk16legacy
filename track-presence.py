@@ -338,6 +338,8 @@ class StatusTracker: #(threading.Thread):
       self.lock.acquire()
       self.door_open_previously = self.door_open
     self.lock.release()
+    loggin.debug("doorClosed: open: %s, who: %s, how:%s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_manual_switch_used));
+    
 
   def movementDetected(self):
     self.uwscfg.checkConfigUpdates()
