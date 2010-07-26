@@ -14,11 +14,12 @@ import socket
 import subprocess
 import types
 import ConfigParser
+import traceback
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 lh_syslog = logging.handlers.SysLogHandler(address="/dev/log",facility=logging.handlers.SysLogHandler.LOG_LOCAL2)
-lh_syslog.setFormatter(logging.Formatter('update-web-status.py: %(levelname)s %(message)s'))
+lh_syslog.setFormatter(logging.Formatter('play-sound-status.py: %(levelname)s %(message)s'))
 logger.addHandler(lh_syslog)
 lh_stderr = logging.StreamHandler()
 logger.addHandler(lh_stderr)
@@ -28,9 +29,10 @@ class UWSConfig:
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
     self.config_parser.add_section('playsound')
-    self.config_parser.set('playsound','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RCMD%")
+    self.config_parser.set('playsound','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
     self.config_parser.set('playsound','remote_host',"root@slug.realraum.at")
-    self.config_parser.set('playsound','remote_cmd',"/home/playmp3.sh /home/half-life-door.mp3")
+    self.config_parser.set('playsound','remote_shell',"/home/playmp3.sh /home/half-life-door.mp3")
+    self.config_parser.set('playsound','delay',"3.0")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
@@ -90,12 +92,12 @@ class UWSConfig:
 
 
 
-def playRemoteSound(uwscfg):
-  global sshp
+def playRemoteSound():
+  global sshp,uwscfg
   uwscfg.checkConfigUpdates()
   sshp = None
   try:
-    cmd = uwscfg.sensors_remote_cmd.replace("%RHOST%",uwscfg.playsound_remote_host).replace("%RCMD%",uwscfg.playsound_remote_cmd).split(" ")
+    cmd = uwscfg.playsound_remote_cmd.replace("%RHOST%",uwscfg.playsound_remote_host).replace("%RSHELL%",uwscfg.playsound_remote_shell).split(" ")
     logging.debug("playRemoteSound: Executing: "+" ".join(cmd))
     sshp = subprocess.Popen(cmd, bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
     logging.debug("playRemoteSound: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
@@ -230,6 +232,7 @@ while True:
         last_status=(status == "yes")
         unixts_panic_button=None
         if last_status:
+          time.sleep(float(uwscfg.playsound_delay))
           playRemoteSound()
         continue
         
