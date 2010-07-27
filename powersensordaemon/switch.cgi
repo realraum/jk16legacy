@@ -20,10 +20,10 @@ VALID_ONOFF_IDS="decke lichter all werkzeug labor dart logo idee deckehinten dec
 VALID_SEND_IDS="stereo ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner"
 
 
-if [ "$POWER" == "on" -o "$POWER" == "off" -o "$POWER" == "send"]; then
+[ "$POWER" == "send" ] && POWER=on
+if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
   for CHECKID in $VALID_ONOFF_IDS $VALID_SEND_IDS; do 
     if [ "$CHECKID" == "$ID" ]; then
-      [ "$POWER" == "send" ] && POWER=on
       echo "power $POWER $ID" | usocket $UNIXSOCK
       echo "Content-type: text/html"
       echo ""
