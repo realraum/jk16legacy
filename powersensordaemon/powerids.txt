@@ -13,6 +13,6 @@ ymhpower      1
 ymhcd         2
 ymhwdtv       3
 ymhtuner      4
-ymhvolup      5
-ymhvoldown    6
+ymhvolup      555
+ymhvoldown    666
 ymhvolmute    7
