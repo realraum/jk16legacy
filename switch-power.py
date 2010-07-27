@@ -36,11 +36,11 @@ class UWSConfig:
     self.config_parser.add_section('slug')
     self.config_parser.set('slug','cgiuri','http://slug.realraum.at/cgi-bin/switch.cgi?id=%ID%&power=%ONOFF%')
     self.config_parser.set('slug','ids_logo','logo')
-    self.config_parser.set('slug','ids_present_day_bright_room','werkzeug')
-    self.config_parser.set('slug','ids_present_day_dark_room','decke werkzeug')
-    self.config_parser.set('slug','ids_present_night','werkzeug schreibtisch idee labor')
-    self.config_parser.set('slug','ids_panic','idee schreibtisch labor werkzeug deckevorne deckehinten')
-    self.config_parser.set('slug','ids_nonpresent_off','lichter stereo')
+    self.config_parser.set('slug','ids_present_day_bright_room','sterep werkzeug ymhcd')
+    self.config_parser.set('slug','ids_present_day_dark_room','stereo decke werkzeug ymhcd')
+    self.config_parser.set('slug','ids_present_night','stereo werkzeug schreibtisch idee labor ymhcd')
+    self.config_parser.set('slug','ids_panic','idee ymhmute schreibtisch labor werkzeug deckevorne deckehinten')
+    self.config_parser.set('slug','ids_nonpresent_off','lichter stereo lichter')
     self.config_parser.set('slug','light_threshold_brightness','400')
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
@@ -204,9 +204,7 @@ def eventNobodyHere():
   present_ids=uwscfg.slug_ids_nonpresent_off
   logging.info("event: noone here, switching off: "+present_ids)
   for id in present_ids.split(" "):
-    switchPower(id,False)
-  for id in present_ids.split(" "):
-    time.sleep(0.3)
+    time.sleep(0.2)
     switchPower(id,False)
 
 def eventPanic():
