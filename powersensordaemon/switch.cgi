@@ -16,8 +16,8 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
 done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALID_ONOFF_IDS="decke lichter all werkzeug labor dart logo idee deckehinten deckevorne"
-VALID_SEND_IDS="stereo ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner"
+VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo idee deckehinten deckevorne"
+VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunabcde ymhtape ymhvcr ymhextdec"
 
 
 [ "$POWER" == "send" ] && POWER=on
@@ -39,6 +39,7 @@ fi
 
 DESC_werkzeug="Werkzeug LEDs"
 DESC_stereo="Reciever On/Off"
+DESC_ambientlights="Ambient Lichter"
 DESC_labor="Labor Licht"
 DESC_dart="Dart Scheibe"
 DESC_logo="Logo"
@@ -48,12 +49,27 @@ DESC_deckevorne="Decke Vorne"
 DESC_decke="Deckenlichter"
 DESC_lichter="Alle Lichter"
 DESC_all="Alles"
+DESC_ymhpoweron="Reciever On"
+DESC_ymhpoweroff="Reciever Off"
 DESC_ymhvolup="VolumeUp"
 DESC_ymhvoldown="VolumeDown"
 DESC_ymhcd="Input CD"
 DESC_ymhwdtv="Input WDlxTV"
 DESC_ymhtuner="Input Tuner"
-
+DESC_ymhvolmute="Mute"
+DESC_ymhmenu="Menu"
+DESC_ymhplus="+"
+DESC_ymhminus="-"
+DESC_ymhtest="Test"
+DESC_ymhtimelevel="Time/Levels"
+DESC_ymheffect="DSP Effect Toggle"
+DESC_ymhprgup="DSP Up"
+DESC_ymhprgdown="DSP Down"
+DESC_ymhtunplus="Tuner +"
+DESC_ymhtunabcde="Tuner ABCDE"
+DESC_ymhtape="Tape"
+DESC_ymhvcr="VCR"
+DESC_ymhextdec="ExtDec Toggle"
 echo "Content-type: text/html"
 echo ""
 echo "<html>"

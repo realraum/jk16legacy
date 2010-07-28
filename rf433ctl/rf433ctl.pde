@@ -32,7 +32,7 @@ IRsend irsend;
 //********************************************************************//
 // IR Codes, 32 bit, NEC
 const int YAMAHA_CODE_BITS = 32;
-const char YAMAHA_CODE_BASE = 0x000000005EA10000;
+const unsigned long int YAMAHA_CODE_BASE = 0x0000000005EA10000;
 
 const char YAMAHA_POWER_TOGGLE =0xF8; //Power On/Off
 const char YAMAHA_POWER_OFF =0x78; //Power Off !!!
@@ -44,7 +44,7 @@ const char YAMAHA_TAPE =0x18; //Input Toggle Tape/CD
 const char YAMAHA_DVD_SPDIF =0xE8; //Input Toggle DVD Auto / DVD Analog
 const char YAMAHA_SAT_SPDIFF =0x2A; //Input Toggle Sat-DTV Auto / Sat-DTV Analog
 const char YAMAHA_AUX =0xAA;  //Input AUX (mode)
-const char YAMAHA_VCR_1 =0xF0; //Input VCR
+const char YAMAHA_VCR =0xF0; //Input VCR
 const char YAMAHA_EXT51DEC =0xE1; //Input Ext. Decoder On/Off
 
 const char YAMAHA_TUNER_PLUS =0x08; //Tuner Next Station 1-7  (of A1 - E7)
@@ -63,7 +63,7 @@ const char YAMAHA_VOLUME_DOWN =0xD8;
 const char YAMAHA_PLUS =0x4A;  //unteres Steuerkreuz: Taste Rechts (Plus)
 const char YAMAHA_MINUS =0xCA; //unteres Steuerkreuz: Taste Links (Minus)
 const char YAMAHA_MENU =0x39; // Menu: Settings
-const char YAMAHA_TEST =0xA1 // Test Sounds
+const char YAMAHA_TEST =0xA1; // Test Sounds
 const char YAMAHA_TIME_LEVEL =0x19; //Settings for Delay, Subwfs, Right Surround, Left Surround, Center
 const char YAMAHA_TIME_LEVEL2 =0x61; //(also) Settings for Delay, Subwfs, Right Surround, Left Surround, Center
 const char YAMAHA_TIME_LEVEL3 =0x99; //(also) Settings for Delay, Subwfs, Right Surround, Left Surround, Center
@@ -80,7 +80,7 @@ const char YAMAHA_EFFECT6 =0x51; //Effect Toggle 70mm General / 70mm Adventure
 const char YAMAHA_P5 =0xFB; //P5 PRT (1 Main Bypass)? (1587674115)
 
 
-void send_std_nec_ir_signal(char codebyte)
+void send_yamaha_ir_signal(char codebyte)
 {
   unsigned long int code = codebyte & 0xFF;
   code <<= 8;
@@ -501,41 +501,48 @@ void loop()
       sensorEchoCommand(command);
       printLightLevel();
     }
+    else if (command == '0')
+      send_yamaha_ir_signal(YAMAHA_POWER_OFF);    
     else if (command == '1')
-    {
-      irsend.sendNEC(YAMAHA_POWER,YAMAHA_CODE_BITS);
-      Serial.println("Ok");
-    }
+      send_yamaha_ir_signal(YAMAHA_POWER_TOGGLE);
     else if (command == '2')
-    {
-      irsend.sendNEC(YAMAHA_CD,YAMAHA_CODE_BITS);
-      Serial.println("Ok");
-    }
+      send_yamaha_ir_signal(YAMAHA_VOLUME_UP);
     else if (command == '3')
-    {
-      irsend.sendNEC(YAMAHA_DVD_SPDIF,YAMAHA_CODE_BITS);
-      Serial.println("Ok");
-    }
+      send_yamaha_ir_signal(YAMAHA_VOLUME_DOWN);
     else if (command == '4')
-    {
-      irsend.sendNEC(YAMAHA_TUNER,YAMAHA_CODE_BITS);
-      Serial.println("Ok");
-    }    
+      send_yamaha_ir_signal(YAMAHA_MUTE);
     else if (command == '5')
-    {
-      irsend.sendNEC(YAMAHA_VOLUME_UP,YAMAHA_CODE_BITS);
-      Serial.println("Ok");
-    }
+      send_yamaha_ir_signal(YAMAHA_CD);
     else if (command == '6')
-    {
-      irsend.sendNEC(YAMAHA_VOLUME_DOWN,YAMAHA_CODE_BITS);
-      Serial.println("Ok");
-    }
+      send_yamaha_ir_signal(YAMAHA_TUNER);
     else if (command == '7')
-    {
-      irsend.sendNEC(YAMAHA_MUTE,YAMAHA_CODE_BITS);
-      Serial.println("Ok");
-    }
+      send_yamaha_ir_signal(YAMAHA_DVD_SPDIF);
+    else if (command == '8')
+      send_yamaha_ir_signal(YAMAHA_MENU);
+    else if (command == '+')
+      send_yamaha_ir_signal(YAMAHA_PLUS);    
+    else if (command == '-')
+      send_yamaha_ir_signal(YAMAHA_MINUS);    
+    else if (command == '§')
+      send_yamaha_ir_signal(YAMAHA_TEST);    
+    else if (command == '$')
+      send_yamaha_ir_signal(YAMAHA_TIME_LEVEL);    
+    else if (command == '%')
+      send_yamaha_ir_signal(YAMAHA_EFFECT_TOGGLE);    
+    else if (command == '&')
+      send_yamaha_ir_signal(YAMAHA_PRG_DOWN);    
+    else if (command == '/')
+      send_yamaha_ir_signal(YAMAHA_PRG_UP);    
+    else if (command == '(')
+      send_yamaha_ir_signal(YAMAHA_TUNER_PLUS);    
+    else if (command == ')')
+      send_yamaha_ir_signal(YAMAHA_TUNER_ABCDE);    
+    else if (command == '9')
+      send_yamaha_ir_signal(YAMAHA_TAPE);    
+    else if (command == '?')
+      send_yamaha_ir_signal(YAMAHA_VCR);    
+    else if (command == '=')
+      send_yamaha_ir_signal(YAMAHA_EXT51DEC);    
     else
       Serial.println("Error: unknown command");
   }
