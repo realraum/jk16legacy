@@ -53,8 +53,8 @@ class UWSConfig:
     self.config_parser.set('monkeyscream','delay',"3.0")
     self.config_parser.set('monkeyscream','type',"remotecmd")
     self.config_parser.add_section('mapping')
-    self.config_parser.set('mapping','DEFAULT',"halflife2")
-    self.config_parser.set('mapping','PANIC',"monkeyscream")
+    self.config_parser.set('mapping','default',"halflife2")
+    self.config_parser.set('mapping','panic',"monkeyscream")
     self.config_parser.set('mapping','xro',"tardis")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
@@ -157,15 +157,18 @@ def playThemeOf(user):
   type=None
   config=uwscfg.getValue("mapping_"+str(user))
   if config is None:
-    config=uwscfg.getValue("mapping_DEFAULT")
+    config=uwscfg.getValue("mapping_default")
   type=uwscfg.getValue(config+"_type")
   if type is None:
     type="remotecmd"
   delay=uwscfg.getValue(config+"_delay")
+  logging.debug("playThemeOf, user=%s, config=%s, type=%s, delay=%s" % (user,config,type,delay))
   if not delay is None:
     time.sleep(float(delay))
-  if type is "remotecmd":
+  if type == "remotecmd":
     playRemoteSound(config)
+  else:
+    logging.debug("playThemeOf: Error, unknown type")
 
 def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
   logging.debug("popenTimeout1: starting: " + cmd)
@@ -250,7 +253,6 @@ else:
 RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
 RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
-last_who=None
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
@@ -279,19 +281,13 @@ while True:
         last_status=(status == "yes")
         unixts_panic_button=None
         if last_status:
-          playThemeOf(user=last_who)
+          playThemeOf(user=m.group(3))
         continue
         
       m = RE_BUTTON.match(line)
       if not m is None:
-          playThemeOf(user="PANIC")
-        continue
-
-        m = RE_REQUEST.match(line)
-        if not m is None:  
-          last_who = m.group(3)
-          #last_how = m.group(2)
-          continue
+        playThemeOf(user="panic")
+      continue
                 
   except Exception, ex:
     logging.error("main: "+str(ex)) 
