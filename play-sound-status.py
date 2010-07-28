@@ -28,11 +28,34 @@ class UWSConfig:
   def __init__(self,configfile=None):
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
-    self.config_parser.add_section('playsound')
-    self.config_parser.set('playsound','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
-    self.config_parser.set('playsound','remote_host',"root@slug.realraum.at")
-    self.config_parser.set('playsound','remote_shell',"/home/playmp3.sh /home/half-life-door.mp3")
-    self.config_parser.set('playsound','delay',"3.0")
+    self.config_parser.add_section('halflife2')
+    self.config_parser.set('halflife2','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
+    self.config_parser.set('halflife2','remote_host',"root@slug.realraum.at")
+    self.config_parser.set('halflife2','remote_shell',"/home/playmp3.sh /home/half-life-door.mp3")
+    self.config_parser.set('halflife2','delay',"3.0")
+    self.config_parser.set('halflife2','type',"remotecmd")
+    self.config_parser.add_section('tardis')
+    self.config_parser.set('tardis','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
+    self.config_parser.set('tardis','remote_host',"root@slug.realraum.at")
+    self.config_parser.set('tardis','remote_shell',"/home/playmp3.sh /home/tardis.mp3")
+    self.config_parser.set('tardis','delay',"3.0")
+    self.config_parser.set('tardis','type',"remotecmd")
+    self.config_parser.add_section('sg1aliengreeting')
+    self.config_parser.set('sg1aliengreeting','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
+    self.config_parser.set('sg1aliengreeting','remote_host',"root@slug.realraum.at")
+    self.config_parser.set('sg1aliengreeting','remote_shell',"/home/playmp3.sh /home/sg1aliengreeting.mp3")
+    self.config_parser.set('sg1aliengreeting','delay',"3.0")
+    self.config_parser.set('sg1aliengreeting','type',"remotecmd")
+    self.config_parser.add_section('monkeyscream')
+    self.config_parser.set('monkeyscream','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
+    self.config_parser.set('monkeyscream','remote_host',"root@slug.realraum.at")
+    self.config_parser.set('monkeyscream','remote_shell',"/home/playmp3.sh /home/monkeyscream.mp3")
+    self.config_parser.set('monkeyscream','delay',"3.0")
+    self.config_parser.set('monkeyscream','type',"remotecmd")
+    self.config_parser.add_section('mapping')
+    self.config_parser.set('mapping','DEFAULT',"halflife2")
+    self.config_parser.set('mapping','PANIC',"monkeyscream")
+    self.config_parser.set('mapping','xro',"tardis")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
@@ -81,6 +104,15 @@ class UWSConfig:
       logging.error("Error writing Configfile: "+str(io_ex))
       self.configfile=None
 
+  def getValue(self, name):
+    underscore_pos=name.find('_')
+    if underscore_pos < 0:
+      raise AttributeError
+    try:
+      return self.config_parser.get(name[0:underscore_pos], name[underscore_pos+1:])
+    except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+      return None
+
   def __getattr__(self, name):
     underscore_pos=name.find('_')
     if underscore_pos < 0:
@@ -92,12 +124,11 @@ class UWSConfig:
 
 
 
-def playRemoteSound():
+def playRemoteSound(config):
   global sshp,uwscfg
-  uwscfg.checkConfigUpdates()
   sshp = None
   try:
-    cmd = uwscfg.playsound_remote_cmd.replace("%RHOST%",uwscfg.playsound_remote_host).replace("%RSHELL%",uwscfg.playsound_remote_shell).split(" ")
+    cmd = uwscfg.getValue(config+"_remote_cmd").replace("%RHOST%",uwscfg.getValue(config+"_remote_host")).replace("%RSHELL%",uwscfg.getValue(config+"_remote_shell")).split(" ")
     logging.debug("playRemoteSound: Executing: "+" ".join(cmd))
     sshp = subprocess.Popen(cmd, bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
     logging.debug("playRemoteSound: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
@@ -120,7 +151,21 @@ def playRemoteSound():
           subprocess.call(["kill","-9",str(sshp.pid)])
     time.sleep(5)  
 
-
+def playThemeOf(user):
+  global uwscfg
+  uwscfg.checkConfigUpdates()
+  type=None
+  config=uwscfg.getValue("mapping_"+str(user))
+  if config is None:
+    config=uwscfg.getValue("mapping_DEFAULT")
+  type=uwscfg.getValue(config+"_type")
+  if type is None:
+    type="remotecmd"
+  delay=uwscfg.getValue(config+"_delay")
+  if not delay is None:
+    time.sleep(float(delay))
+  if type is "remotecmd":
+    playRemoteSound(config)
 
 def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
   logging.debug("popenTimeout1: starting: " + cmd)
@@ -204,6 +249,8 @@ else:
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
+RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
+last_who=None
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
@@ -232,14 +279,19 @@ while True:
         last_status=(status == "yes")
         unixts_panic_button=None
         if last_status:
-          time.sleep(float(uwscfg.playsound_delay))
-          playRemoteSound()
+          playThemeOf(user=last_who)
         continue
         
       m = RE_BUTTON.match(line)
       if not m is None:
-        pass  #insert panic action here
+          playThemeOf(user="PANIC")
         continue
+
+        m = RE_REQUEST.match(line)
+        if not m is None:  
+          last_who = m.group(3)
+          #last_how = m.group(2)
+          continue
                 
   except Exception, ex:
     logging.error("main: "+str(ex)) 
