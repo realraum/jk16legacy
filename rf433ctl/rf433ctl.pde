@@ -31,27 +31,64 @@ IRsend irsend;
 
 //********************************************************************//
 // IR Codes, 32 bit, NEC
-const int YAMAHA_CODE_BITS=32;
-const unsigned long int YAMAHA_POWER = 0x000000005EA1F807;
-const unsigned long int YAMAHA_CD = 0x000000005EA1A857;
-const unsigned long int YAMAHA_TUNER = 0x000000005EA16897;
-const unsigned long int YAMAHA_SAT = 0x000000005EA19867;
-const unsigned long int YAMAHA_DVD = 0x000000005EA118E7;
-const unsigned long int YAMAHA_DVD_SPDIF = 0x000000005EA1E817;
-const unsigned long int YAMAHA_VCR_1 = 0x000000005EA1F00F;
-const unsigned long int YAMAHA_TUNER_PLUS = 0x000000005EA108F7;
-const unsigned long int YAMAHA_TUNER_ABCDE = 0x000000005EA148B7;
-const unsigned long int YAMAHA_FRONT_LEVEL_P = 0x000000005EA101FE;
-const unsigned long int YAMAHA_FRONT_LEVEL_M = 0x000000005EA1817E;
-const unsigned long int YAMAHA_CENTRE_LEVEL_P = 0x000000005EA141BE;
-const unsigned long int YAMAHA_CENTRE_LEVEL_M = 0x000000005EA1C13E;
-const unsigned long int YAMAHA_REAR_LEVEL_P = 0x000000005EA17A85;
-const unsigned long int YAMAHA_REAR_LEVEL_M = 0x000000005EA1FA05;
-const unsigned long int YAMAHA_DELAY_TIME_P = 0x000000005EA14AB5;
-const unsigned long int YAMAHA_DELAY_TIME_M = 0x000000005EA1CA35;
-const unsigned long int YAMAHA_MUTE = 0x000000005EA138C7;
-const unsigned long int YAMAHA_VOLUME_UP = 0x000000005EA158A7;
-const unsigned long int YAMAHA_VOLUME_DOWN = 0x000000005EA1D827;
+const int YAMAHA_CODE_BITS = 32;
+const char YAMAHA_CODE_BASE = 0x000000005EA10000;
+
+const char YAMAHA_POWER_TOGGLE =0xF8; //Power On/Off
+const char YAMAHA_POWER_OFF =0x78; //Power Off !!!
+const char YAMAHA_SLEEP =0xEA; //Toggle Sleep 120/90/60/30min or Off
+
+const char YAMAHA_CD =0xA8; //Input CD
+const char YAMAHA_TUNER =0x68; //Input Tuner
+const char YAMAHA_TAPE =0x18; //Input Toggle Tape/CD
+const char YAMAHA_DVD_SPDIF =0xE8; //Input Toggle DVD Auto / DVD Analog
+const char YAMAHA_SAT_SPDIFF =0x2A; //Input Toggle Sat-DTV Auto / Sat-DTV Analog
+const char YAMAHA_AUX =0xAA;  //Input AUX (mode)
+const char YAMAHA_VCR_1 =0xF0; //Input VCR
+const char YAMAHA_EXT51DEC =0xE1; //Input Ext. Decoder On/Off
+
+const char YAMAHA_TUNER_PLUS =0x08; //Tuner Next Station 1-7  (of A1 - E7)
+const char YAMAHA_TUNER_ABCDE =0x48; //Tuner Next Station Row A-E (of A1 - E7)
+
+const char YAMAHA_MUTE =0x38;
+const char YAMAHA_VOLUME_UP =0x58;
+const char YAMAHA_VOLUME_DOWN =0xD8;
+
+//const char YAMAHA_FRONT_LEVEL_P =0x01;  //no function
+//const char YAMAHA_FRONT_LEVEL_M =0x81; //no function
+//const char YAMAHA_CENTRE_LEVEL_P =0x41;  //no function
+//const char YAMAHA_CENTRE_LEVEL_M =0xC1; //no function
+//const char YAMAHA_REAR_LEVEL_P =0x7A; //no function
+//const char YAMAHA_REAR_LEVEL_M =0xFA; //no function
+const char YAMAHA_PLUS =0x4A;  //unteres Steuerkreuz: Taste Rechts (Plus)
+const char YAMAHA_MINUS =0xCA; //unteres Steuerkreuz: Taste Links (Minus)
+const char YAMAHA_MENU =0x39; // Menu: Settings
+const char YAMAHA_TEST =0xA1 // Test Sounds
+const char YAMAHA_TIME_LEVEL =0x19; //Settings for Delay, Subwfs, Right Surround, Left Surround, Center
+const char YAMAHA_TIME_LEVEL2 =0x61; //(also) Settings for Delay, Subwfs, Right Surround, Left Surround, Center
+const char YAMAHA_TIME_LEVEL3 =0x99; //(also) Settings for Delay, Subwfs, Right Surround, Left Surround, Center
+
+const char YAMAHA_EFFECT_TOGGLE =0x6A; //Effect Toggle On/Off
+const char YAMAHA_PRG_DOWN =0x9A; //Effect/DSP Programm Toggle in down direction
+const char YAMAHA_PRG_UP =0x1A; //Effect/DSP Programm Toggle in up direction
+const char YAMAHA_EFFECT1 =0x31; //Effect TV Sports
+const char YAMAHA_EFFECT2 =0x71; //Effect Rock Concert
+const char YAMAHA_EFFECT3 =0xB1;  //Effect Disco
+const char YAMAHA_EFFECT4 =0xD1;  //Mono Movie
+const char YAMAHA_EFFECT5 =0x91; //Effect Toggle 70mm Sci-Fi / 70mm Spectacle
+const char YAMAHA_EFFECT6 =0x51; //Effect Toggle 70mm General / 70mm Adventure
+const char YAMAHA_P5 =0xFB; //P5 PRT (1 Main Bypass)? (1587674115)
+
+
+void send_std_nec_ir_signal(char codebyte)
+{
+  unsigned long int code = codebyte & 0xFF;
+  code <<= 8;
+  code |= (0xff ^ codebyte) & 0xFF;
+  code |= YAMAHA_CODE_BASE;
+  irsend.sendNEC(code,YAMAHA_CODE_BITS);
+  Serial.println("Ok");  
+}
 
 //********************************************************************//
 
