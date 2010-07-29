@@ -17,7 +17,7 @@ done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
 VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo idee deckehinten deckevorne"
-VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunabcde ymhtape ymhvcr ymhextdec"
+VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunabcde ymhtape ymhvcr ymhextdec"
 
 
 [ "$POWER" == "send" ] && POWER=on
@@ -51,6 +51,7 @@ DESC_lichter="Alle Lichter"
 DESC_all="Alles"
 DESC_ymhpoweron="Reciever On"
 DESC_ymhpoweroff="Reciever Off"
+DESC_ymhpower="Reciever On/Off"
 DESC_ymhvolup="VolumeUp"
 DESC_ymhvoldown="VolumeDown"
 DESC_ymhcd="Input CD"
@@ -78,6 +79,7 @@ echo "<title>Realraum rf433ctl</title>"
 echo "</head>"
 echo "<body>"
 #echo "<h1>Realraum rf433ctl</h1>"
+echo "<div style=\"float:left; border:1px solid black;\">"
 for DISPID in $VALID_ONOFF_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
@@ -89,6 +91,8 @@ for DISPID in $VALID_ONOFF_IDS; do
   echo "</span></div>"
   echo "</form>"
 done
+echo "</div>"
+echo "<div style=\"float:left; border:1px solid black;\">"
 for DISPID in $VALID_SEND_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
@@ -99,5 +103,6 @@ for DISPID in $VALID_SEND_IDS; do
   echo "</span></div>"
   echo "</form>"
 done
+echo "</div>"
 echo "</body>"
 echo "</html>"
