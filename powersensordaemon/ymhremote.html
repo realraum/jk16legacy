@@ -6,10 +6,14 @@
 function sendButton( btn )
 {
   //alert(btn);
+  document.getElementById('indicator').style.backgroundColor="red";
   var req = new XMLHttpRequest();
-  url = "http://slug.realraum.at/www/cgi-bin/switch.cgi?power=send&id="+btn;
+  url = "http://slug.realraum.at/cgi-bin/switch.cgi?power=send&id="+btn;
   req.open("GET", url ,false);
   req.send(null);
+  //response = req.responseText;
+  //document.getElementById('output').innerHTML = response; 
+  document.getElementById('indicator').style.backgroundColor="white";
 }
 
 function remoteKeyboard( e )
@@ -56,7 +60,11 @@ document.onkeydown = remoteKeyboard;
 </head>
 <body>
 
-<img src="rx-v396-remote.png" width="180" height="941" usemap="#ymhremote" />
+<table border="0" cellspacing="0" cellpadding="0">
+<tr><td id="indicator" style="background-color:white; height:2px;"></td></tr>
+<!-- img width="180" height="941" -->
+<tr><td><img src="rx-v396-remote.png" width="180" height="941" usemap="#ymhremote" id="remoteimg" border="0" /></td></tr>
+</table>
 
 <map name="ymhremote">
 <area shape ="rect" coords ="57,193,121,216" onClick="sendButton('ymhpower');"  />
@@ -94,6 +102,6 @@ document.onkeydown = remoteKeyboard;
 <area shape ="circle" coords ="36,789,17" onClick="sendButton('ymhtimelevel');" alt="ymhtimelevel" />
 <area shape ="circle" coords ="142,789,17" onClick="sendButton('ymhmenu');" alt="ymhmenu" />
 <!-- href ="./cgi-bin/switch.cgi" target ="_blank" -->
-
 </map>
+todo: unnütze teile der Fernbedienung (die Geräte Tasten über "Power" und unten das "Yamaha") wegschneiden und image map x-koordinaten anpassen
 </html>
