@@ -176,7 +176,7 @@ def runShellCommand(config,args=[]):
     ptimeout = 45
   popenTimeout2(cmd,stdinput,float(ptimeout))
 
-def executeAction(action_name, user, args=[]):
+def executeAction(action_name, args=[]):
   if action_name is None:
     logging.error("executeAction: action_name is None")
     return False
@@ -185,7 +185,7 @@ def executeAction(action_name, user, args=[]):
     logging.error("executeAction: action %s not found or has no type" % action_name)
     return False
   action_delay=uwscfg.getValue(action_name+"_delay")
-  logging.debug("executeAction, user=%s, action_name=%s, action_type=%s, action_delay=%s" % (user,action_name,action_type,action_delay))  
+  logging.debug("executeAction, action_name=%s, action_type=%s, action_delay=%s" % (action_name,action_type,action_delay))  
   if not action_delay is None:
     time.sleep(float(action_delay))
   
@@ -207,7 +207,8 @@ def playThemeOf(user):
   config=uwscfg.getValue("mapping_"+str(user))
   if config is None:
     config=uwscfg.getValue("mapping_default")
-  executeAction(config,user)
+  logging.debug("playThemeOf: action for user %s: %s" % (user,config))
+  executeAction(config)
 
 def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
   logging.debug("popenTimeout1: starting: " + cmd)
