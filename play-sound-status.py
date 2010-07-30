@@ -138,12 +138,13 @@ class UWSConfig:
 
 
 
-def runRemoteCommand(config,args=[]):
+def runRemoteCommand(remote_host,remote_shell,args=[]):
   global sshp,uwscfg
   sshp = None
   try:
-    cmd = "ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%".replace("%RHOST%",uwscfg.getValue(config+"_remote_host")).replace("%RSHELL%",uwscfg.getValue(config+"_remote_shell")).replace("%ARG%"," ".join(args)).split(" ")
-    logging.debug("runRemoteCommand: Executing: "+" ".join(cmd))
+    cmd = "ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%"
+    cmd = cmd.replace("%RHOST%",remote_host).replace("%RSHELL%",remote_shell).replace("%ARG%", " ".join(args))
+    logging.debug("runRemoteCommand: Executing: "+cmd)
     sshp = subprocess.Popen(cmd, bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
     logging.debug("runRemoteCommand: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
     if not sshp.poll() is None:
@@ -167,11 +168,9 @@ def runRemoteCommand(config,args=[]):
           subprocess.call(["kill","-9",str(sshp.pid)])
     time.sleep(5)
 
-def runShellCommand(config,args=[]):
+def runShellCommand(cmd,ptimeout,stdinput,args=[]):
   global uwscfg
-  cmd = uwscfg.getValue(config+"_cmd").replace("%ARG%"," ".join(args))
-  ptimeout = uwscfg.getValue(config+"_timeout")
-  stdinput = uwscfg.getValue(config+"_stdinput")
+  cmd = cmd.replace("%ARG%"," ".join(args))
   if ptimeout is None or float(ptimeout) > 45:
     ptimeout = 45
   popenTimeout2(cmd,stdinput,float(ptimeout))
@@ -195,9 +194,9 @@ def executeAction(action_name, args=[]):
   
   #"registered" actions
   if action_type == "remotecmd":
-    return runRemoteCommand(action_type,args)
+    return runRemoteCommand(uwscfg.getValue(action_name+"_remote_host"), uwscfg.getValue(action_name+"_remote_shell"), args)
   elif action_type == "shellcmd":
-    return runShellCommand(action_type,args)
+    return runShellCommand(cmd=uwscfg.getValue(action_name+"_cmd"), ptimeout=uwscfg.getValue(action_name+"_timeout"), stdinput=uwscfg.getValue(action_name+"_stdinput"), args=args)
   else:
     return executeAction(action_type,args)
   
