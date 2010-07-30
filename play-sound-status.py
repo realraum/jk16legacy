@@ -145,7 +145,7 @@ def runRemoteCommand(remote_host,remote_shell,args=[]):
     cmd = "ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%"
     cmd = cmd.replace("%RHOST%",remote_host).replace("%RSHELL%",remote_shell).replace("%ARG%", " ".join(args))
     logging.debug("runRemoteCommand: Executing: "+cmd)
-    sshp = subprocess.Popen(cmd, bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
+    sshp = subprocess.Popen(cmd.split(" "), bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
     logging.debug("runRemoteCommand: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
     if not sshp.poll() is None:
       logging.error("runRemoteCommand: subprocess %d not started ?, returncode: %d" % (sshp.pid,sshp.returncode))
