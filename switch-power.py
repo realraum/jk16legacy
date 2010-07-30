@@ -315,7 +315,10 @@ while True:
         continue
       m = RE_PHOTO.match(line)
       if not m is None:
-        if m.group(1) >= int(uwscfg.slug_light_threshold_brightness):
+        light_value = int(m.group(1))
+        light_threshold = int(uwscfg.slug_light_threshold_brightness)
+        #logging.debug("photo value: %d  threshold: %s" % (light_value,light_threshold))
+        if light_value >= light_threshold:
           eventRoomGotBright()
         else:
           eventRoomGotDark()
