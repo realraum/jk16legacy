@@ -310,7 +310,7 @@ while True:
       line = conn.readline()
       logging.debug("Got Line: " + line)
       
-      uwscfg.checkConfigUpdates()
+      #uwscfg.checkConfigUpdates()
       
       if line == "":
         raise Exception("EOF on Socket, daemon seems to have quit")
