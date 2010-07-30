@@ -207,7 +207,7 @@ def playThemeOf(user):
   if config is None:
     config=uwscfg.getValue("mapping_default")
   logging.debug("playThemeOf: action for user %s: %s" % (user,config))
-  executeAction(config)
+  executeAction(config,[])
 
 def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
   logging.debug("popenTimeout1: starting: " + cmd)
