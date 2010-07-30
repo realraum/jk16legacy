@@ -185,7 +185,7 @@ def executeAction(action_name, user, args=[]):
     logging.error("executeAction: action %s not found or has no type" % action_name)
     return False
   action_delay=uwscfg.getValue(action_name+"_delay")
-  logging.debug("executeAction, user=%s, action_name=%s, action_type=%s, action_delay=%s" % (user,config,action_type,action_delay))  
+  logging.debug("executeAction, user=%s, action_name=%s, action_type=%s, action_delay=%s" % (user,action_name,action_type,action_delay))  
   if not action_delay is None:
     time.sleep(float(action_delay))
   
@@ -193,17 +193,17 @@ def executeAction(action_name, user, args=[]):
   if not action_arg is None:
     args += [action_arg]
   
+  #"registered" actions
   if action_type == "remotecmd":
-    return runRemoteCommand(config,args)
+    return runRemoteCommand(action_type,args)
   elif action_type == "shellcmd":
-    return runShellCommand(config,args)
+    return runShellCommand(action_type,args)
   else:
     return executeAction(action_type,args)
   
 def playThemeOf(user):
   global uwscfg
   uwscfg.checkConfigUpdates()
-  useraction=None
   config=uwscfg.getValue("mapping_"+str(user))
   if config is None:
     config=uwscfg.getValue("mapping_default")
