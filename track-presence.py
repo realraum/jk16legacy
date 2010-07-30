@@ -393,7 +393,7 @@ class StatusTracker: #(threading.Thread):
       elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone):
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone))
         return self.last_somebody_present_result
-      elif self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch) and self.door_manual_switch_used:
+      elif self.door_manual_switch_used and self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch):
         return True
       elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
         return True

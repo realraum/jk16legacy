@@ -28,34 +28,48 @@ class UWSConfig:
   def __init__(self,configfile=None):
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
+    self.config_parser.add_section('cmdlog')
+    self.config_parser.set('cmdlog','cmd',"logger %ARG%")
+    self.config_parser.set('cmdlog','timeout',"2.0")
+    self.config_parser.set('cmdlog','delay',"0.0")
+    self.config_parser.set('cmdlog','type',"shellcmd")
+    self.config_parser.add_section('slugplaymp3')
+    self.config_parser.set('slugplaymp3','remote_host',"root@slug.realraum.at")
+    self.config_parser.set('slugplaymp3','remote_shell',"/home/playmp3.sh %ARG%")
+    self.config_parser.set('slugplaymp3','delay',"0.0")
+    self.config_parser.set('slugplaymp3','type',"remotecmd")
     self.config_parser.add_section('halflife2')
-    self.config_parser.set('halflife2','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
-    self.config_parser.set('halflife2','remote_host',"root@slug.realraum.at")
-    self.config_parser.set('halflife2','remote_shell',"/home/playmp3.sh /home/half-life-door.mp3")
-    self.config_parser.set('halflife2','delay',"3.0")
-    self.config_parser.set('halflife2','type',"remotecmd")
+    self.config_parser.set('halflife2','arg',"/home/half-life-door.mp3")
+    self.config_parser.set('halflife2','type',"slugplaymp3")
+    self.config_parser.set('halflife2','delay',"0.2")    
     self.config_parser.add_section('tardis')
-    self.config_parser.set('tardis','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
-    self.config_parser.set('tardis','remote_host',"root@slug.realraum.at")
-    self.config_parser.set('tardis','remote_shell',"/home/playmp3.sh /home/tardis.mp3")
-    self.config_parser.set('tardis','delay',"3.0")
-    self.config_parser.set('tardis','type',"remotecmd")
+    self.config_parser.set('tardis','arg',"/home/tardis.mp3")
+    self.config_parser.set('tardis','type',"slugplaymp3")
     self.config_parser.add_section('sg1aliengreeting')
-    self.config_parser.set('sg1aliengreeting','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
-    self.config_parser.set('sg1aliengreeting','remote_host',"root@slug.realraum.at")
-    self.config_parser.set('sg1aliengreeting','remote_shell',"/home/playmp3.sh /home/sg1aliengreeting.mp3")
-    self.config_parser.set('sg1aliengreeting','delay',"3.0")
-    self.config_parser.set('sg1aliengreeting','type',"remotecmd")
+    self.config_parser.set('sg1aliengreeting','arg',"/home/sg1aliengreeting.mp3")
+    self.config_parser.set('sg1aliengreeting','type',"slugplaymp3")
     self.config_parser.add_section('monkeyscream')
-    self.config_parser.set('monkeyscream','remote_cmd',"ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%")
-    self.config_parser.set('monkeyscream','remote_host',"root@slug.realraum.at")
-    self.config_parser.set('monkeyscream','remote_shell',"/home/playmp3.sh /home/monkeyscream.mp3")
-    self.config_parser.set('monkeyscream','delay',"3.0")
-    self.config_parser.set('monkeyscream','type',"remotecmd")
+    self.config_parser.set('monkeyscream','arg',"/home/monkeyscream.mp3")
+    self.config_parser.set('monkeyscream','delay',"1.5")
+    self.config_parser.set('monkeyscream','type',"slugplaymp3")
+    self.config_parser.add_section('gladosparty')
+    self.config_parser.set('gladosparty','arg',"/home/glados_party.mp3")
+    self.config_parser.set('gladosparty','type',"slugplaymp3")
+    self.config_parser.add_section('gladosbaked')
+    self.config_parser.set('gladosbaked','arg',"/home/glados_baked.mp3")
+    self.config_parser.set('gladosbaked','type',"slugplaymp3")
+    self.config_parser.add_section('gladoswelcome')
+    self.config_parser.set('gladoswelcome','arg',"/home/glados_welcome.mp3")
+    self.config_parser.set('gladoswelcome','type',"slugplaymp3")
+    self.config_parser.add_section('gladosreplaced')
+    self.config_parser.set('gladosreplaced','arg',"/home/glados_replaced_with_life_fire.mp3")
+    self.config_parser.set('gladosreplaced','type',"slugplaymp3")
     self.config_parser.add_section('mapping')
     self.config_parser.set('mapping','default',"halflife2")
     self.config_parser.set('mapping','panic',"monkeyscream")
-    self.config_parser.set('mapping','xro',"tardis")
+    self.config_parser.set('mapping','stratos',"tardis")
+    self.config_parser.set('mapping','xro',"gladosreplaced")
+    self.config_parser.set('mapping','equinox',"gladosparty")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
@@ -124,18 +138,20 @@ class UWSConfig:
 
 
 
-def playRemoteSound(config):
+def runRemoteCommand(config,args=[]):
   global sshp,uwscfg
   sshp = None
   try:
-    cmd = uwscfg.getValue(config+"_remote_cmd").replace("%RHOST%",uwscfg.getValue(config+"_remote_host")).replace("%RSHELL%",uwscfg.getValue(config+"_remote_shell")).split(" ")
-    logging.debug("playRemoteSound: Executing: "+" ".join(cmd))
+    cmd = "ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%".replace("%RHOST%",uwscfg.getValue(config+"_remote_host")).replace("%RSHELL%",uwscfg.getValue(config+"_remote_shell")).replace("%ARG%"," ".join(args)).split(" ")
+    logging.debug("runRemoteCommand: Executing: "+" ".join(cmd))
     sshp = subprocess.Popen(cmd, bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
-    logging.debug("playRemoteSound: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
+    logging.debug("runRemoteCommand: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
     if not sshp.poll() is None:
-      raise Exception("playRemoteSound: subprocess %d not started ?, returncode: %d" % (sshp.pid,sshp.returncode))
+      logging.error("runRemoteCommand: subprocess %d not started ?, returncode: %d" % (sshp.pid,sshp.returncode))
+      return False
+    return True
   except Exception, ex:
-    logging.error("playRemoteSound: "+str(ex)) 
+    logging.error("runRemoteCommand: "+str(ex)) 
     traceback.print_exc(file=sys.stdout)
     if not sshp is None and sshp.poll() is None:
       if sys.hexversion >= 0x020600F0:
@@ -144,31 +160,54 @@ def playRemoteSound(config):
         subprocess.call(["kill",str(sshp.pid)])
       time.sleep(1.5)
       if sshp.poll() is None:
-        logging.error("playRemoteSound: subprocess still alive, sending SIGKILL to pid %d" % (sshp.pid))
+        logging.error("runRemoteCommand: subprocess still alive, sending SIGKILL to pid %d" % (sshp.pid))
         if sys.hexversion >= 0x020600F0:
           sshp.kill()
         else:
           subprocess.call(["kill","-9",str(sshp.pid)])
-    time.sleep(5)  
+    time.sleep(5)
 
+def runShellCommand(config,args=[]):
+  global uwscfg
+  cmd = uwscfg.getValue(config+"_cmd").replace("%ARG%"," ".join(args))
+  ptimeout = uwscfg.getValue(config+"_timeout")
+  stdinput = uwscfg.getValue(config+"_stdinput")
+  if ptimeout is None or float(ptimeout) > 45:
+    ptimeout = 45
+  popenTimeout2(cmd,stdinput,float(ptimeout))
+
+def executeAction(action_name, user, args=[]):
+  if action_name is None:
+    logging.error("executeAction: action_name is None")
+    return False
+  action_type = uwscfg.getValue(action_name+"_type") 
+  if action_type is None:
+    logging.error("executeAction: action %s not found or has no type" % action_name)
+    return False
+  action_delay=uwscfg.getValue(action_name+"_delay")
+  logging.debug("executeAction, user=%s, action_name=%s, action_type=%s, action_delay=%s" % (user,config,action_type,action_delay))  
+  if not action_delay is None:
+    time.sleep(float(action_delay))
+  
+  action_arg = uwscfg.getValue(action_name+"_arg")
+  if not action_arg is None:
+    args += [action_arg]
+  
+  if action_type == "remotecmd":
+    return runRemoteCommand(config,args)
+  elif action_type == "shellcmd":
+    return runShellCommand(config,args)
+  else:
+    return executeAction(action_type,args)
+  
 def playThemeOf(user):
   global uwscfg
   uwscfg.checkConfigUpdates()
-  type=None
+  useraction=None
   config=uwscfg.getValue("mapping_"+str(user))
   if config is None:
     config=uwscfg.getValue("mapping_default")
-  type=uwscfg.getValue(config+"_type")
-  if type is None:
-    type="remotecmd"
-  delay=uwscfg.getValue(config+"_delay")
-  logging.debug("playThemeOf, user=%s, config=%s, type=%s, delay=%s" % (user,config,type,delay))
-  if not delay is None:
-    time.sleep(float(delay))
-  if type == "remotecmd":
-    playRemoteSound(config)
-  else:
-    logging.debug("playThemeOf: Error, unknown type")
+  executeAction(config,user)
 
 def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
   logging.debug("popenTimeout1: starting: " + cmd)
@@ -209,7 +248,8 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
     else:
       old_shandler = signal.signal(signal.SIGALRM,lambda sn,sf: os.system("kill -9 %d" % sppoo.pid))
     signal.alarm(ptimeout) #schedule alarm
-    sppoo.communicate(input=pinput)
+    if not pinput is None:
+      sppoo.communicate(input=pinput)
     sppoo.wait()
     signal.alarm(0) #disable pending alarms
     signal.signal(signal.SIGALRM, old_shandler) 
