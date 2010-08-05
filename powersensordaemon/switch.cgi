@@ -10,6 +10,10 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
       POWER='?'
     elif [ "$POWER" == "?" ]; then
       POWER=$VALUE
+    elif [ "$VALUE" == "ajax" ]; then
+      AJAX='?'
+    elif [ "$AJAX" == "?" ]; then
+      AJAX=$VALUE
     fi
     i=$i+1
   done
@@ -76,6 +80,15 @@ echo ""
 echo "<html>"
 echo "<head>"
 echo "<title>Realraum rf433ctl</title>"
+echo '<script type="text/javascript">'
+echo 'function sendButton( onoff, btn )'
+echo '{'
+echo  'var req = new XMLHttpRequest();'
+echo  'url = "http://slug.realraum.at/cgi-bin/switch.cgi?power="+onoff+"&id="+btn;'
+echo  'req.open("GET", url ,false);'
+echo  'req.send(null);'
+echo '}'
+echo '</script>'
 echo "</head>"
 echo "<body>"
 #echo "<h1>Realraum rf433ctl</h1>"
@@ -83,6 +96,8 @@ echo "<div style=\"float:left; border:1px solid black;\">"
 for DISPID in $VALID_ONOFF_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
+  if [ -z "$AJAX" ]; then
+
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
   echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
@@ -90,18 +105,37 @@ for DISPID in $VALID_ONOFF_IDS; do
   echo " <input type='submit' name='power' value='off' />"
   echo "</span></div>"
   echo "</form>"
+  
+  else
+  
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>On</button>"
+  echo " <button onClick='sendButton(\"off\",\"$DISPID\");'>Off</button>"
+  echo "</span></div>"
+  
+  fi
 done
 echo "</div>"
 echo "<div style=\"float:left; border:1px solid black;\">"
 for DISPID in $VALID_SEND_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
+  if [ -z "$AJAX" ]; then
+
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
   echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
   echo " <input type='submit' name='power' value='send' />"
   echo "</span></div>"
   echo "</form>"
+
+  else
+  
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>Send</button>"
+  echo "</span></div>"
+  
+  fi
 done
 echo "</div>"
 echo "</body>"
