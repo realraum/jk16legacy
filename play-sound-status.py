@@ -197,6 +197,8 @@ def executeAction(action_name, args=[]):
     return runRemoteCommand(uwscfg.getValue(action_name+"_remote_host"), uwscfg.getValue(action_name+"_remote_shell"), args)
   elif action_type == "shellcmd":
     return runShellCommand(cmd=uwscfg.getValue(action_name+"_cmd"), ptimeout=uwscfg.getValue(action_name+"_timeout"), stdinput=uwscfg.getValue(action_name+"_stdinput"), args=args)
+  elif action_type == "nothing":
+    return True
   else:
     return executeAction(action_type,args)
   
