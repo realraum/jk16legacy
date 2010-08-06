@@ -28,6 +28,8 @@ class UWSConfig:
   def __init__(self,configfile=None):
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
+    #make option variable names case sensitive
+    self.config_parser.optionxform = str
     self.config_parser.add_section('cmdlog')
     self.config_parser.set('cmdlog','cmd',"logger %ARG%")
     self.config_parser.set('cmdlog','timeout',"2.0")
@@ -64,12 +66,15 @@ class UWSConfig:
     self.config_parser.add_section('gladosreplaced')
     self.config_parser.set('gladosreplaced','arg',"/home/glados_replaced_with_life_fire.mp3")
     self.config_parser.set('gladosreplaced','type',"slugplaymp3")
+    self.config_parser.add_section('nothing')
+    self.config_parser.set('nothing','type',"nothing")
     self.config_parser.add_section('mapping')
     self.config_parser.set('mapping','default',"halflife2")
     self.config_parser.set('mapping','panic',"monkeyscream")
     self.config_parser.set('mapping','stratos',"tardis")
     self.config_parser.set('mapping','xro',"gladosreplaced")
     self.config_parser.set('mapping','equinox',"gladosparty")
+    self.config_parser.set('mapping','Rachel',"nothing")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
