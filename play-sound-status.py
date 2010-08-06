@@ -294,7 +294,9 @@ else:
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
-RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
+#RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
+RE_ERROR = re.compile(r'Error: (.+)')
+
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
@@ -329,6 +331,11 @@ while True:
       m = RE_BUTTON.match(line)
       if not m is None:
         playThemeOf(user="panic")
+      continue
+
+      m = RE_ERROR.match(line)
+      if not m is None:
+        playThemeOf(user="error")
       continue
                 
   except Exception, ex:
