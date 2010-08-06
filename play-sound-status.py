@@ -69,8 +69,9 @@ class UWSConfig:
     self.config_parser.add_section('nothing')
     self.config_parser.set('nothing','type',"nothing")
     self.config_parser.add_section('mapping')
-    self.config_parser.set('mapping','default',"halflife2")
-    self.config_parser.set('mapping','panic',"monkeyscream")
+    self.config_parser.set('mapping','DEFAULT',"halflife2")
+    self.config_parser.set('mapping','PANIC',"monkeyscream")
+    self.config_parser.set('mapping','ERROR',"nothing")
     self.config_parser.set('mapping','stratos',"tardis")
     self.config_parser.set('mapping','xro',"gladosreplaced")
     self.config_parser.set('mapping','equinox',"gladosparty")
@@ -207,12 +208,12 @@ def executeAction(action_name, args=[]):
   else:
     return executeAction(action_type,args)
   
-def playThemeOf(user):
+def playThemeOf(user,fallback_default):
   global uwscfg
   uwscfg.checkConfigUpdates()
   config=uwscfg.getValue("mapping_"+str(user))
   if config is None:
-    config=uwscfg.getValue("mapping_default")
+    config=uwscfg.getValue("mapping_"+str(fallback_default))
   logging.debug("playThemeOf: action for user %s: %s" % (user,config))
   executeAction(config,[])
 
@@ -330,17 +331,17 @@ while True:
         last_status=(status == "yes")
         unixts_panic_button=None
         if last_status:
-          playThemeOf(user=m.group(3))
+          playThemeOf(user=m.group(3), fallback_default="DEFAULT")
         continue
         
       m = RE_BUTTON.match(line)
       if not m is None:
-        playThemeOf(user="panic")
+        playThemeOf(user="PANIC")
       continue
 
       m = RE_ERROR.match(line)
       if not m is None:
-        playThemeOf(user="error")
+        playThemeOf(user="ERROR")
       continue
                 
   except Exception, ex:
