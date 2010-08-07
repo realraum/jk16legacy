@@ -10,6 +10,8 @@ function sendButton( btn )
   var req = new XMLHttpRequest();
   url = "http://slug.realraum.at/cgi-bin/switch.cgi?power=send&id="+btn;
   req.open("GET", url ,false);
+  //google chrome workaround
+  req.setRequestHeader("googlechromefix","");
   req.send(null);
   //response = req.responseText;
   //document.getElementById('output').innerHTML = response; 
