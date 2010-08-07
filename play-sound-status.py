@@ -179,7 +179,7 @@ def runShellCommand(cmd,ptimeout,stdinput,args=[]):
   cmd = cmd.replace("%ARG%"," ".join(args))
   if ptimeout is None or float(ptimeout) > 45:
     ptimeout = 45
-  popenTimeout2(cmd,stdinput,float(ptimeout))
+  popenTimeout2(cmd,stdinput,ptimeout=float(ptimeout))
 
 def executeAction(action_name, args=[]):
   if action_name is None:
@@ -227,7 +227,7 @@ def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0
       time.sleep(pcheckint)
       timeout_counter -= pcheckint
       if not sppoo.poll() is None:
-        logging.debug("popenTimeout2: subprocess %d finished, returncode: %d" % (sppoo.pid,sppoo.returncode))
+        logging.debug("popenTimeout1: subprocess %d finished, returncode: %d" % (sppoo.pid,sppoo.returncode))
         return (sppoo.returncode in returncode_ok)
     #timeout reached
     logging.error("popenTimeout1: subprocess took too long (>%fs), sending SIGTERM to pid %d" % (ptimeout,sppoo.pid))
