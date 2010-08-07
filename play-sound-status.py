@@ -336,13 +336,13 @@ while True:
         
       m = RE_BUTTON.match(line)
       if not m is None:
-        playThemeOf(user="PANIC")
-      continue
+        playThemeOf(user="PANIC", fallback_default="nothing")
+        continue
 
       m = RE_ERROR.match(line)
       if not m is None:
-        playThemeOf(user="ERROR")
-      continue
+        playThemeOf(user="ERROR", fallback_default="nothing")
+        continue
                 
   except Exception, ex:
     logging.error("main: "+str(ex)) 
