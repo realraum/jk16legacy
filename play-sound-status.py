@@ -15,6 +15,7 @@ import subprocess
 import types
 import ConfigParser
 import traceback
+import random
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -68,6 +69,9 @@ class UWSConfig:
     self.config_parser.set('gladosreplaced','type',"slugplaymp3")
     self.config_parser.add_section('nothing')
     self.config_parser.set('nothing','type',"nothing")
+    self.config_parser.add_section('randomset1')
+    self.config_parser.set('randomset1','type',"random")
+    self.config_parser.set('randomset1','one_of',"halflife2 gladosparty")
     self.config_parser.add_section('mapping')
     self.config_parser.set('mapping','DEFAULT',"halflife2")
     self.config_parser.set('mapping','PANIC',"monkeyscream")
@@ -128,11 +132,14 @@ class UWSConfig:
     underscore_pos=name.find('_')
     if underscore_pos < 0:
       raise AttributeError
+    return self.getSectionValue(name[0:underscore_pos], name[underscore_pos+1:])
+
+	def getSectionValue(self, section, name):
     try:
-      return self.config_parser.get(name[0:underscore_pos], name[underscore_pos+1:])
+      return self.config_parser.get(section,name)
     except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
       return None
-
+	
   def __getattr__(self, name):
     underscore_pos=name.find('_')
     if underscore_pos < 0:
@@ -143,7 +150,12 @@ class UWSConfig:
       raise AttributeError
 
 
-
+def runRandomAction(action_list,user,args=[]):
+	global uwscfg
+	if not type(action_list) == types.ListType):
+		raise ValueError("runRandomAction: action_list must be a list")
+	return executeAction(random.choice(action_list),user,args)
+	
 def runRemoteCommand(remote_host,remote_shell,user,args=[]):
   global sshp,uwscfg
   sshp = None
@@ -200,11 +212,13 @@ def executeAction(action_name, user, args=[]):
   
   #"registered" actions
   if action_type == "remotecmd":
-    return runRemoteCommand(uwscfg.getValue(action_name+"_remote_host"), uwscfg.getValue(action_name+"_remote_shell"), user=user, args=args)
+    return runRemoteCommand(uwscfg.getSectionValue(action_name,"remote_host"), uwscfg.getSectionValue(action_name,"remote_shell"), user=user, args=args)
   elif action_type == "shellcmd":
-    return runShellCommand(cmd=uwscfg.getValue(action_name+"_cmd"), ptimeout=uwscfg.getValue(action_name+"_timeout"), stdinput=uwscfg.getValue(action_name+"_stdinput"), user=user, args=args)
+    return runShellCommand(cmd=uwscfg.getSectionValue(action_name,"cmd"), ptimeout=uwscfg.getSectionValue(action_name,"timeout"), stdinput=uwscfg.getSectionValue(action_name,"stdinput"), user=user, args=args)
   elif action_type == "nothing":
     return True
+  elif action_type == "random":
+		return runRandomAction(action_list=uwscfg.getSectionValue(action_name,"one_of").split(" "),user=user,args=args)
   else:
     return executeAction(action_type,user=user,args=args)
   
