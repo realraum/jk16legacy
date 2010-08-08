@@ -134,12 +134,12 @@ class UWSConfig:
       raise AttributeError
     return self.getSectionValue(name[0:underscore_pos], name[underscore_pos+1:])
 
-	def getSectionValue(self, section, name):
+  def getSectionValue(self, section, name):
     try:
       return self.config_parser.get(section,name)
     except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
       return None
-	
+
   def __getattr__(self, name):
     underscore_pos=name.find('_')
     if underscore_pos < 0:
@@ -151,11 +151,10 @@ class UWSConfig:
 
 
 def runRandomAction(action_list,user,args=[]):
-	global uwscfg
-	if not type(action_list) == types.ListType):
-		raise ValueError("runRandomAction: action_list must be a list")
-	return executeAction(random.choice(action_list),user,args)
-	
+  if not type(action_list) == types.ListType):
+    raise ValueError("runRandomAction: action_list must be a list")
+  return executeAction(random.choice(action_list),user,args)
+
 def runRemoteCommand(remote_host,remote_shell,user,args=[]):
   global sshp,uwscfg
   sshp = None
@@ -218,7 +217,7 @@ def executeAction(action_name, user, args=[]):
   elif action_type == "nothing":
     return True
   elif action_type == "random":
-		return runRandomAction(action_list=uwscfg.getSectionValue(action_name,"one_of").split(" "),user=user,args=args)
+    return runRandomAction(action_list=uwscfg.getSectionValue(action_name,"one_of").split(" "),user=user,args=args)
   else:
     return executeAction(action_type,user=user,args=args)
   
