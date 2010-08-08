@@ -149,7 +149,7 @@ def runRemoteCommand(remote_host,remote_shell,user,args=[]):
   sshp = None
   try:
     cmd = "ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%"
-    cmd = cmd.replace("%RHOST%",remote_host).replace("%RSHELL%",remote_shell).replace("%ARG%", " ".join(args)).replace("%USER%", " ".user)
+    cmd = cmd.replace("%RHOST%",remote_host).replace("%RSHELL%",remote_shell).replace("%ARG%", " ".join(args)).replace("%USER%", user)
     logging.debug("runRemoteCommand: Executing: "+cmd)
     sshp = subprocess.Popen(cmd.split(" "), bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
     logging.debug("runRemoteCommand: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
@@ -176,7 +176,7 @@ def runRemoteCommand(remote_host,remote_shell,user,args=[]):
 
 def runShellCommand(cmd,ptimeout,stdinput,user,args=[]):
   global uwscfg
-  cmd = cmd.replace("%ARG%"," ".join(args)).replace("%USER%", " ".user)
+  cmd = cmd.replace("%ARG%"," ".join(args)).replace("%USER%", user)
   if ptimeout is None or float(ptimeout) > 45:
     ptimeout = 45
   popenTimeout2(cmd,stdinput,ptimeout=float(ptimeout))
