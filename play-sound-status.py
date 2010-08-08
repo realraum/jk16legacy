@@ -144,12 +144,12 @@ class UWSConfig:
 
 
 
-def runRemoteCommand(remote_host,remote_shell,args=[]):
+def runRemoteCommand(remote_host,remote_shell,user,args=[]):
   global sshp,uwscfg
   sshp = None
   try:
     cmd = "ssh -i /flash/tuer/id_rsa -o PasswordAuthentication=no -o StrictHostKeyChecking=no %RHOST% %RSHELL%"
-    cmd = cmd.replace("%RHOST%",remote_host).replace("%RSHELL%",remote_shell).replace("%ARG%", " ".join(args))
+    cmd = cmd.replace("%RHOST%",remote_host).replace("%RSHELL%",remote_shell).replace("%ARG%", " ".join(args)).replace("%USER%", " ".user)
     logging.debug("runRemoteCommand: Executing: "+cmd)
     sshp = subprocess.Popen(cmd.split(" "), bufsize=1024, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False)
     logging.debug("runRemoteCommand: pid %d: running=%d" % (sshp.pid,sshp.poll() is None))
@@ -174,14 +174,14 @@ def runRemoteCommand(remote_host,remote_shell,args=[]):
           subprocess.call(["kill","-9",str(sshp.pid)])
     time.sleep(5)
 
-def runShellCommand(cmd,ptimeout,stdinput,args=[]):
+def runShellCommand(cmd,ptimeout,stdinput,user,args=[]):
   global uwscfg
-  cmd = cmd.replace("%ARG%"," ".join(args))
+  cmd = cmd.replace("%ARG%"," ".join(args)).replace("%USER%", " ".user)
   if ptimeout is None or float(ptimeout) > 45:
     ptimeout = 45
   popenTimeout2(cmd,stdinput,ptimeout=float(ptimeout))
 
-def executeAction(action_name, args=[]):
+def executeAction(action_name, user, args=[]):
   if action_name is None:
     logging.error("executeAction: action_name is None")
     return False
@@ -200,22 +200,24 @@ def executeAction(action_name, args=[]):
   
   #"registered" actions
   if action_type == "remotecmd":
-    return runRemoteCommand(uwscfg.getValue(action_name+"_remote_host"), uwscfg.getValue(action_name+"_remote_shell"), args)
+    return runRemoteCommand(uwscfg.getValue(action_name+"_remote_host"), uwscfg.getValue(action_name+"_remote_shell"), user=user, args=args)
   elif action_type == "shellcmd":
-    return runShellCommand(cmd=uwscfg.getValue(action_name+"_cmd"), ptimeout=uwscfg.getValue(action_name+"_timeout"), stdinput=uwscfg.getValue(action_name+"_stdinput"), args=args)
+    return runShellCommand(cmd=uwscfg.getValue(action_name+"_cmd"), ptimeout=uwscfg.getValue(action_name+"_timeout"), stdinput=uwscfg.getValue(action_name+"_stdinput"), user=user, args=args)
   elif action_type == "nothing":
     return True
   else:
-    return executeAction(action_type,args)
+    return executeAction(action_type,user=user,args=args)
   
 def playThemeOf(user,fallback_default):
   global uwscfg
   uwscfg.checkConfigUpdates()
+  if user is None:
+    user = ""
   config=uwscfg.getValue("mapping_"+str(user))
   if config is None:
     config=uwscfg.getValue("mapping_"+str(fallback_default))
   logging.debug("playThemeOf: action for user %s: %s" % (user,config))
-  executeAction(config,[])
+  executeAction(config,user,[])
 
 def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0.25):
   logging.debug("popenTimeout1: starting: " + cmd)
