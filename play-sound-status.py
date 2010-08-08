@@ -190,7 +190,9 @@ def runShellCommand(cmd,ptimeout,stdinput,user,args=[]):
   cmd = cmd.replace("%ARG%"," ".join(args)).replace("%USER%", user)
   if ptimeout is None or float(ptimeout) > 45:
     ptimeout = 45
-  popenTimeout2(cmd,stdinput,ptimeout=float(ptimeout))
+  else:
+    ptimeout = int(float(ptimeout))
+  popenTimeout2(cmd,stdinput,ptimeout=ptimeout)
 
 def executeAction(action_name, user, args=[]):
   if action_name is None:
@@ -201,7 +203,7 @@ def executeAction(action_name, user, args=[]):
     logging.error("executeAction: action %s not found or has no type" % action_name)
     return False
   action_delay=uwscfg.getValue(action_name+"_delay")
-  logging.debug("executeAction, action_name=%s, action_type=%s, action_delay=%s" % (action_name,action_type,action_delay))  
+  logging.info("executeAction %s of type %s for user %s with delay %s" % (action_name,action_type,user,action_delay))  
   if not action_delay is None:
     time.sleep(float(action_delay))
   
@@ -289,7 +291,7 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
     return False
 
 def exitHandler(signum, frame):
-  logging.info("Update-Web-Status stopping")
+  logging.info("stopping")
   try:
     conn.close()
   except:

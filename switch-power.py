@@ -210,10 +210,10 @@ def eventNobodyHere():
 def eventPanic():
   logging.info("eventPanic(): switching around: "+uwscfg.slug_ids_panic)
   lst1 = uwscfg.slug_ids_panic.split(" ")
-  lst2 = map(lambda e:[e,True], lst1)
+  lst2 = map(lambda e:[e,False], lst1)
   for id in lst1:
-    switchPower(id,True)
-  for delay in map(lambda e: (40-e)/33.0,range(0,20)):
+    switchPower(id,False)
+  for delay in map(lambda e: (40-e)/33.0,range(10,33)):
     e = random.choice(lst2)
     e[1]=not e[1]
     switchPower(e[0],e[1]) 
