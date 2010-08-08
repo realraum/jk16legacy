@@ -151,7 +151,7 @@ class UWSConfig:
 
 
 def runRandomAction(action_list,user,args=[]):
-  if not type(action_list) == types.ListType):
+  if not type(action_list) == types.ListType:
     raise ValueError("runRandomAction: action_list must be a list")
   return executeAction(random.choice(action_list),user,args)
 
