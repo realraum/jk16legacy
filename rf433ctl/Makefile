@@ -12,6 +12,8 @@ F_CPU = 16000000
 ############################################################################
 # Below here nothing should be changed...
 
+RESET_TTY_DIR=../reset_tty/
+RESET_TTY=$(RESET_TTY_DIR)reset_tty
 ARDUINO = $(INSTALL_DIR)/hardware/cores/arduino
 AVR_TOOLS_PATH = /usr/bin
 SRC =  $(ARDUINO)/pins_arduino.c $(ARDUINO)/wiring.c \
@@ -114,8 +116,8 @@ lss: applet/$(TARGET).lss
 sym: applet/$(TARGET).sym
 
 # Program the device.  
-upload: applet/$(TARGET).hex reset_tty
-	./reset_tty
+upload: applet/$(TARGET).hex $(RESET_TTY) 
+	$(RESET_TTY) $(PORT)
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)
 
 
@@ -208,7 +210,7 @@ depend:
 		>> $(MAKEFILE); \
 	$(CC) -M -mmcu=$(MCU) $(CDEFS) $(CINCS) $(SRC) $(ASRC) >> $(MAKEFILE)
 
-reset_tty: reset_tty.c
-	$(CC) -L /usr/lib/ -L /lib -I /usr/include/ -o reset_tty reset_tty.c
+$(RESET_TTY): 
+	make -C $(RESET_TTY_DIR)
 
 .PHONY:	all build elf hex eep lss sym program coff extcoff clean depend applet_files sizebefore sizeafter
