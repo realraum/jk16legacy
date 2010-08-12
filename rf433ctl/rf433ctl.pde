@@ -16,7 +16,7 @@
 #define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 12000
-#define IR_TRESHOLD 10000
+#define IR_TRESHOLD 8000
 //duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Reports, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
 #define PB_TRESHOLD 1000
 #define PHOTO_SAMPLE_INTERVAL 4000
@@ -310,14 +310,16 @@ void printLightLevel()
 
 //********************************************************************//
 
-unsigned long wm_start_=0;
-bool wait_millis(unsigned long ms)
+unsigned long wm_start_[3]={0,0,0};
+bool wait_millis(unsigned long *start_time, unsigned long ms)
 {
-  if (wm_start_ > 0)
+  if (ms == 0)
+    return false;
+  else if (*start_time > 0)
   {
-    if (millis() < wm_start_ || millis() > wm_start_+ ms)
+    if (millis() < *start_time || millis() > (*start_time) + ms)
     {
-      wm_start_=0;
+      *start_time = 0;
       return false;
     }
     else
@@ -325,62 +327,76 @@ bool wait_millis(unsigned long ms)
   }
   else
   {
-    wm_start_=millis();
+    *start_time=millis();
     return true;
   }
 }
-
-unsigned int flash_led_time_=0;
-unsigned int flash_led_brightness_=255;
-unsigned int flash_led_delay_=8;
-unsigned int flash_led_selected_=0;
+#define NUM_LEDS 2
+char flash_led_pins_[NUM_LEDS]={BLUELED_PWM_PIN,PANICLED_PWM_PIN};
+unsigned int flash_led_time_[3]={0,0,0};
+unsigned int flash_led_brightness_[3]={255,255,255};
+unsigned int flash_led_delay_[3]={8,8,8};
+unsigned int flash_led_initial_delay_[3]={0,0,0};
 void calculate_led_level()
 {
-  if (flash_led_time_ == 0 || flash_led_selected_ == 0)
-    return;
-  if (wait_millis(flash_led_delay_))
-    return;
-  flash_led_time_--;
-  int c = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
-  //int d = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
-  if (flash_led_selected_ && (1 << BLUELED_PWM_PIN))
-    analogWrite(BLUELED_PWM_PIN, 255-c);
-  else
-    analogWrite(BLUELED_PWM_PIN,255); //off
-  if (flash_led_selected_ && (1 << PANICLED_PWM_PIN))
+  for (int ledid = 0; ledid < NUM_LEDS; ledid++)
   {
-    if (flash_led_time_)
-      analogWrite(PANICLED_PWM_PIN, c);
-    else
-      analogWrite(PANICLED_PWM_PIN, 255-c);
+    if (flash_led_time_[ledid] == 0)
+      continue;
+    if (wait_millis(wm_start_ + ledid, flash_led_initial_delay_[ledid]))
+      continue;
+    flash_led_initial_delay_[ledid]=0;
+    if (wait_millis(wm_start_ + ledid, flash_led_delay_[ledid]))
+      continue;
+    flash_led_time_[ledid]--;
+    int c = abs(sin(float(flash_led_time_[ledid]) / 100.0)) * flash_led_brightness_[ledid];
+    //int d = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
+    analogWrite(flash_led_pins_[ledid], 255-c);
   }
-  else
-    analogWrite(PANICLED_PWM_PIN,255); //off
 }
 
-void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor, unsigned int led_selector)
+// id: id of LED to flash (0,1)
+// times: # of times the LED should flash
+// brightness_divisor: 1: full brightness, 2: half brightness, ...
+// delay_divisor: 1: slow... 8: fastest
+// phase_divisor: 0.. same phase; 2.. pi/2 phase, 4.. pi phase, 6.. 3pi/2 phase
+void flash_led(unsigned int id, unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor, unsigned int phase_divisor)
 {
+  if (id >= NUM_LEDS)
+    return;
   unsigned int new_flash_led_brightness = 255;
   unsigned int new_flash_led_delay = 8;
-  flash_led_selected_=led_selector;
-  if (times == 0 || led_selector == 0)
+  if (times == 0)
   {
-    analogWrite(PANICLED_PWM_PIN,255); //off
-    analogWrite(BLUELED_PWM_PIN,255); //off
+    analogWrite(flash_led_pins_[id],255); //off
     return;
   }
   if (brightness_divisor > 1) //guard against div by zero
     new_flash_led_brightness /= brightness_divisor;
   if (delay_divisor > 1)  //guard against div by zero
     new_flash_led_delay /= delay_divisor;
-  if (flash_led_time_ == 0 || new_flash_led_brightness > flash_led_brightness_)
-    flash_led_brightness_=new_flash_led_brightness;
-  if (flash_led_time_ == 0 || new_flash_led_delay < flash_led_delay_)
-    flash_led_delay_=new_flash_led_delay;
-  flash_led_time_ += 314*times;
+  if (flash_led_time_[id] == 0 || new_flash_led_brightness > flash_led_brightness_[id])
+    flash_led_brightness_[id]=new_flash_led_brightness;
+  if (flash_led_time_[id] == 0 || new_flash_led_delay < flash_led_delay_[id])
+    flash_led_delay_[id]=new_flash_led_delay;
+  flash_led_time_[id] += 314*times;
+  flash_led_initial_delay_[id] = flash_led_delay_[id]*314*phase_divisor/8;
 }
 
 //********************************************************************//
+
+int save_tcnt2=0;
+int save_tccr2a=0;
+int save_tccr2b=0;
+void reset_timer2()
+{
+  TCNT2 = save_tcnt2;
+  TCCR2A = save_tccr2a;  // normal mode
+  TCCR2B = save_tccr2b;
+  //TCNT2 = 256 - (50*(16000000/8/1000000)) + 5;
+  //TCCR2A = 0;  // normal mode
+  //TCCR2B = 0;
+}
 
 void send_yamaha_ir_signal(char codebyte)
 {
@@ -392,14 +408,12 @@ void send_yamaha_ir_signal(char codebyte)
   //irsend changes PWM Timer Frequency among other things
   //.. doesn't go well with PWM output using the same timer
   //.. thus we just set output to 255 so whatever frequency is used, led is off for the duration
-  unsigned int flash_prev_selected = flash_led_selected_; //save prev. selected leds
-  flash_led_selected_ &= !(1 << BLUELED_PWM_PIN); //prevent calculate_led_level() from setting blueled
-  analogWrite(BLUELED_PWM_PIN,255); // switch led off
+  //analogWrite(BLUELED_PWM_PIN,255); // switch led off
 
   irsend.sendNEC(code,YAMAHA_CODE_BITS);
 
+  reset_timer2();
   analogWrite(BLUELED_PWM_PIN,255); // switch off led again to be sure
-  flash_led_selected_ = flash_prev_selected;  //restore led settings for calculate_led_level()
                                       //is actually not necessary, since we are not multitasking/using interrupts, but just to be sure in case this might change
 
   Serial.println("Ok");
@@ -429,6 +443,11 @@ void setup()
   if (!dallas_sensors.getAddress(onShieldTemp, 0)) 
     Serial.println("Error: Unable to find address for Device 0"); 
   dallas_sensors.setResolution(onShieldTemp, 9);  
+
+  //save prev timer states:
+  save_tcnt2 = TCNT2;
+  save_tccr2a = TCCR2A;  // normal mode
+  save_tccr2b = TCCR2B;
 }
 
 unsigned int ir_time=IR_SAMPLE_DURATION;
@@ -458,7 +477,7 @@ void loop()
   {
     if (ir_count >= IR_TRESHOLD)
     {
-      flash_led(1, 8, 1, (1<<BLUELED_PWM_PIN) );
+      flash_led(0, 1, 8, 1, 0 );
       Serial.println("movement");
     }
     ir_time=IR_SAMPLE_DURATION;
@@ -471,7 +490,8 @@ void loop()
     {   
       pb_postth_state=1;
       Serial.println("PanicButton");
-      flash_led(14, 1, 2, (1<<BLUELED_PWM_PIN)|(1<<PANICLED_PWM_PIN) );
+      flash_led(0, 28, 1, 4, 0 );
+      flash_led(1, 28, 1, 4, 4 );
     }
     else if (!pb_state)
       pb_postth_state=0;
@@ -535,7 +555,7 @@ void loop()
       printLightLevel();
     }
     else if (command == '^')
-      flash_led(1, 2, 1, (1 << PANICLED_PWM_PIN));
+      flash_led(1, 1, 2, 1, 0);
     else if (command == '0')
       send_yamaha_ir_signal(YAMAHA_POWER_OFF);
     else if (command == '1')
