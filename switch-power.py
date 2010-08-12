@@ -230,10 +230,10 @@ def eventPanic():
   lst2 = map(lambda e:[e,False], lst1)
   for id in lst1:
     switchPower(id,False)
-  for times in range(1,6)
+  for times in range(1,6):
     delay = random.choice([0.3,1.4,0.9,0.5,0.3,1.4,0.9,0.5,2.2])
     time.sleep(delay)
-    for e in lst1:
+    for e in lst2:
       e[1]=not e[1]
       switchPower(e[0],e[1]) 
   for id in lst1:
