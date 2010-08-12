@@ -11,7 +11,8 @@
 #define IR_MOVEMENT_PIN 9
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
-#define BLUELED_PWM_PIN 6
+#define BLUELED_PWM_PIN 5
+#define PANICLED_PWM_PIN 6
 #define BLUELED2_PWM_PIN 11
 #define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
@@ -355,9 +356,9 @@ void calculate_led_level(unsigned int pwm_pin)
   if (flash_led_brightness_ == 255)
   {
     if (flash_led_time_)
-      analogWrite(BLUELED_PWM_PIN, 255-c);
+      analogWrite(PANICLED_PWM_PIN, c);
     else
-      analogWrite(BLUELED_PWM_PIN, c);
+      analogWrite(PANICLED_PWM_PIN, 255-c);
   }
 }
 
@@ -379,10 +380,11 @@ void setup()
   pinMode(RF_DATA_OUT_PIN, OUTPUT);
   digitalWrite(RF_DATA_OUT_PIN, HIGH);
   pinMode(IR_MOVEMENT_PIN, INPUT);      // set pin to input
-  digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pullup resistors  
+  digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pulldown resistors  
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
-  digitalWrite(PANIC_BUTTON_PIN, HIGH);  // turn on pullup resistors 
-  analogWrite(BLUELED_PWM_PIN,0);
+  digitalWrite(PANIC_BUTTON_PIN, LOW);  // turn on pulldown resistors 
+  analogWrite(BLUELED_PWM_PIN,255);
+  analogWrite(PANICLED_PWM_PIN,255);
   analogWrite(BLUELED2_PWM_PIN,255); //pwm sink(-) instead of pwm + (better for mosfets)
   pinMode(IRREMOTE_SEND_PIN, OUTPUT);
   digitalWrite(IRREMOTE_SEND_PIN, HIGH);
@@ -419,7 +421,7 @@ void loop()
 
   if (pb_time < PB_TRESHOLD)
     pb_time++;
-  pb_state=(digitalRead(PANIC_BUTTON_PIN) == LOW);
+  pb_state=(digitalRead(PANIC_BUTTON_PIN) == HIGH);
   
   if (ir_time == 0)
   {
@@ -438,7 +440,7 @@ void loop()
     {   
       pb_postth_state=1;
       Serial.println("PanicButton");
-      flash_led(7,1,2);
+      flash_led(14,1,2);
     }
     else if (!pb_state)
       pb_postth_state=0;
@@ -450,7 +452,7 @@ void loop()
   }
   
   updateLightLevel(PHOTO_ANALOGPIN);
-  calculate_led_level(BLUELED_PWM_PIN);
+  calculate_led_level(PANICLED_PWM_PIN);
   check_frame_done();
   
   if(Serial.available()) {

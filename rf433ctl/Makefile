@@ -209,6 +209,6 @@ depend:
 	$(CC) -M -mmcu=$(MCU) $(CDEFS) $(CINCS) $(SRC) $(ASRC) >> $(MAKEFILE)
 
 reset_tty: reset_tty.c
-	$(CC) -o reset_tty reset_tty.c
+	$(CC) -L /usr/lib/ -L /lib -I /usr/include/ -o reset_tty reset_tty.c
 
 .PHONY:	all build elf hex eep lss sym program coff extcoff clean depend applet_files sizebefore sizeafter
