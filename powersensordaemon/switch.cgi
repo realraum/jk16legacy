@@ -21,7 +21,7 @@ done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
 VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo idee deckehinten deckevorne"
-VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunabcde ymhtape ymhvcr ymhextdec"
+VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec panicled"
 
 
 [ "$POWER" == "send" ] && POWER=on
@@ -71,10 +71,12 @@ DESC_ymheffect="DSP Effect Toggle"
 DESC_ymhprgup="DSP Up"
 DESC_ymhprgdown="DSP Down"
 DESC_ymhtunplus="Tuner +"
+DESC_ymhtunminus="Tuner -"
 DESC_ymhtunabcde="Tuner ABCDE"
 DESC_ymhtape="Tape"
 DESC_ymhvcr="VCR"
 DESC_ymhextdec="ExtDec Toggle"
+DESC_panicled="HAL9000 says hi"
 echo "Content-type: text/html"
 echo ""
 echo "<html>"

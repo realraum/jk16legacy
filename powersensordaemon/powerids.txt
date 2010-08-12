@@ -6,10 +6,11 @@ logo          e
 idee          f
 deckehinten   g
 deckevorne    h
-all           a1cdefgh
+all           acdefgh
 decke         gh
 lichter       acdfgh
 ambientlights acf
+panicled      ^
 ymhpoweroff   0
 ymhpower      1
 ymhpoweron    01
@@ -28,6 +29,7 @@ ymheffect     %
 ymhprgup      &
 ymhprgdown    /
 ymhtunplus    (
+ymhtunminus   [
 ymhtunabcde   )
 ymhtape       9
 ymhvcr        ?

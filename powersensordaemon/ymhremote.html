@@ -37,9 +37,12 @@ function remoteKeyboard( e )
 		case 83: sendButton( 'ymhsleep' ); break;		// S
 		case 36: sendButton( 'ymhmute' ); break; //pos1        
 		case 33: sendButton( 'ymhvolup' ); break;	// P = 80, PAGEUP = 33
+		case 43: sendButton( 'ymhvolup' ); break;	// +
 		case 34: sendButton( 'ymhvoldown' ); break;	// N = 78, PAGEDOWN = 34
-		case 43: sendButton( 'ymhtunplus' ); break;	// +
-		case 65: sendButton( 'ymhtunabcde' ); break;	// A 
+		case 45: sendButton( 'ymhvoldown' ); break;	// -
+		case 46: sendButton( 'ymhtunplus' ); break;	// .
+		case 44: sendButton( 'ymhtunminus' ); break;	// ,
+		case 59: sendButton( 'ymhtunabcde' ); break;	// ; 
 		case 69: sendButton( 'ymheffect' ); break;	// E
 		case 80: sendButton( 'ymhpower' ); break;	// P
 		case 48: sendButton( 'ymhtest' ); break;	// 0
@@ -92,7 +95,7 @@ document.onkeydown = remoteKeyboard;
 <area shape ="circle" coords ="36,455,17" onClick="sendButton('ymhsleep');" alt="ymhsleep" />
 <!--area shape ="circle" coords ="142,455,17" onClick="sendButton('ymhdsp');" alt="ymhdsp" /-->
 
-<!--area shape ="rect" coords ="18,278,67,301" onClick="sendButton('ymhminus');"  /-->
+<area shape ="rect" coords ="18,278,67,301" onClick="sendButton('ymhtunminus');"  />
 <area shape ="rect" coords ="111,278,160,301" onClick="sendButton('ymhtunplus');"  />
 
 <area shape ="polygon" coords ="57,524,89,496,119,521,110,524,66,533" onClick="sendButton('ymhprgup');" alt="ymhprgup" />
