@@ -48,6 +48,7 @@ const char YAMAHA_VCR =0xF0; //Input VCR
 const char YAMAHA_EXT51DEC =0xE1; //Input Ext. Decoder On/Off
 
 const char YAMAHA_TUNER_PLUS =0x08; //Tuner Next Station 1-7  (of A1 - E7)
+const char YAMAHA_TUNER_MINUS =0x88; //Tuner Prev Station 1-7  (of A1 - E7)
 const char YAMAHA_TUNER_ABCDE =0x48; //Tuner Next Station Row A-E (of A1 - E7)
 
 const char YAMAHA_MUTE =0x38;
@@ -255,8 +256,8 @@ ISR(TIMER1_COMPA_vect)
 
 void send_frame(const word_t w)
 {
-  if (frame_finished == 0)
-    for(;;)
+  if (frame_finished != 1)
+    for(;;) //wait until sending of previous frame finishes
       if (frame_finished)
       {
         delay(150);
@@ -264,7 +265,7 @@ void send_frame(const word_t w)
       }
   word_cnt = 0;
   frame_finished = 0;
-  init_word(w);      
+  init_word(w);
 }
 
 void check_frame_done()
@@ -273,6 +274,7 @@ void check_frame_done()
   {
     Serial.println("Ok");
     frame_finished=1;
+    delay(120);
   }
 }
 
@@ -539,29 +541,31 @@ void loop()
     else if (command == '8')
       send_yamaha_ir_signal(YAMAHA_MENU);
     else if (command == '+')
-      send_yamaha_ir_signal(YAMAHA_PLUS);    
+      send_yamaha_ir_signal(YAMAHA_PLUS);
     else if (command == '-')
-      send_yamaha_ir_signal(YAMAHA_MINUS);    
-    else if (command == 'ง')
-      send_yamaha_ir_signal(YAMAHA_TEST);    
+      send_yamaha_ir_signal(YAMAHA_MINUS);
+    else if (command == 0xa7) // ยง
+      send_yamaha_ir_signal(YAMAHA_TEST);
     else if (command == '$')
-      send_yamaha_ir_signal(YAMAHA_TIME_LEVEL);    
+      send_yamaha_ir_signal(YAMAHA_TIME_LEVEL);
     else if (command == '%')
-      send_yamaha_ir_signal(YAMAHA_EFFECT_TOGGLE);    
+      send_yamaha_ir_signal(YAMAHA_EFFECT_TOGGLE);
     else if (command == '&')
-      send_yamaha_ir_signal(YAMAHA_PRG_DOWN);    
+      send_yamaha_ir_signal(YAMAHA_PRG_DOWN);
     else if (command == '/')
-      send_yamaha_ir_signal(YAMAHA_PRG_UP);    
+      send_yamaha_ir_signal(YAMAHA_PRG_UP);
     else if (command == '(')
-      send_yamaha_ir_signal(YAMAHA_TUNER_PLUS);    
+      send_yamaha_ir_signal(YAMAHA_TUNER_PLUS);
+    else if (command == '[')
+      send_yamaha_ir_signal(YAMAHA_TUNER_MINUS);
     else if (command == ')')
-      send_yamaha_ir_signal(YAMAHA_TUNER_ABCDE);    
+      send_yamaha_ir_signal(YAMAHA_TUNER_ABCDE);
     else if (command == '9')
-      send_yamaha_ir_signal(YAMAHA_TAPE);    
+      send_yamaha_ir_signal(YAMAHA_TAPE);
     else if (command == '?')
-      send_yamaha_ir_signal(YAMAHA_VCR);    
+      send_yamaha_ir_signal(YAMAHA_VCR);
     else if (command == '=')
-      send_yamaha_ir_signal(YAMAHA_EXT51DEC);    
+      send_yamaha_ir_signal(YAMAHA_EXT51DEC);
     else
       Serial.println("Error: unknown command");
   }
