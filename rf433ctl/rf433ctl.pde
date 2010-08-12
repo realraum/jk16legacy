@@ -80,17 +80,6 @@ const char YAMAHA_EFFECT5 =0x91; //Effect Toggle 70mm Sci-Fi / 70mm Spectacle
 const char YAMAHA_EFFECT6 =0x51; //Effect Toggle 70mm General / 70mm Adventure
 const char YAMAHA_P5 =0xFB; //P5 PRT (1 Main Bypass)? (1587674115)
 
-
-void send_yamaha_ir_signal(char codebyte)
-{
-  unsigned long int code = codebyte & 0xFF;
-  code <<= 8;
-  code |= (0xff ^ codebyte) & 0xFF;
-  code |= YAMAHA_CODE_BASE;
-  irsend.sendNEC(code,YAMAHA_CODE_BITS);
-  Serial.println("Ok");  
-}
-
 //********************************************************************//
 
 typedef struct {
@@ -389,6 +378,31 @@ void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int
   if (flash_led_time_ == 0 || new_flash_led_delay < flash_led_delay_)
     flash_led_delay_=new_flash_led_delay;
   flash_led_time_ += 314*times;
+}
+
+//********************************************************************//
+
+void send_yamaha_ir_signal(char codebyte)
+{
+  unsigned long int code = codebyte & 0xFF;
+  code <<= 8;
+  code |= (0xff ^ codebyte) & 0xFF;
+  code |= YAMAHA_CODE_BASE;
+  
+  //irsend changes PWM Timer Frequency among other things
+  //.. doesn't go well with PWM output using the same timer
+  //.. thus we just set output to 255 so whatever frequency is used, led is off for the duration
+  unsigned int flash_prev_selected = flash_led_selected_; //save prev. selected leds
+  flash_led_selected_ &= !(1 << BLUELED_PWM_PIN); //prevent calculate_led_level() from setting blueled
+  analogWrite(BLUELED_PWM_PIN,255); // switch led off
+
+  irsend.sendNEC(code,YAMAHA_CODE_BITS);
+
+  analogWrite(BLUELED_PWM_PIN,255); // switch off led again to be sure
+  flash_led_selected_ = flash_prev_selected;  //restore led settings for calculate_led_level()
+                                      //is actually not necessary, since we are not multitasking/using interrupts, but just to be sure in case this might change
+
+  Serial.println("Ok");
 }
 
 //********************************************************************//

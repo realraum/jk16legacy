@@ -198,7 +198,7 @@ void IRsend::enableIROut(int khz) {
   TIMSK2 &= ~_BV(TOIE2); //Timer2 Overflow Interrupt
   
   pinMode(3, OUTPUT);
-  digitalWrite(3, HIGH); // When not sending PWM, we want it low
+  digitalWrite(3, HIGH); // When not sending PWM, we want it low (invertiert angeschlossen)
   
   // COM2A = 00: disconnect OC2A
   // COM2B = 00: disconnect OC2B; to send signal set to 10: OC2B non-inverted
