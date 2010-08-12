@@ -11,9 +11,8 @@
 #define IR_MOVEMENT_PIN 9
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
-#define BLUELED_PWM_PIN 5
 #define PANICLED_PWM_PIN 6
-#define BLUELED2_PWM_PIN 11
+#define BLUELED_PWM_PIN 11
 #define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 12000
@@ -343,29 +342,46 @@ bool wait_millis(unsigned long ms)
 unsigned int flash_led_time_=0;
 unsigned int flash_led_brightness_=255;
 unsigned int flash_led_delay_=8;
-void calculate_led_level(unsigned int pwm_pin)
+unsigned int flash_led_selected_=0;
+void calculate_led_level()
 {
-  if (flash_led_time_ == 0)
+  if (flash_led_time_ == 0 || flash_led_selected_ == 0)
     return;
   if (wait_millis(flash_led_delay_))
     return;
   flash_led_time_--;
   int c = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
   //int d = abs(sin(float(flash_led_time_) / 100.0)) * flash_led_brightness_;
-  analogWrite(BLUELED2_PWM_PIN, 255-c);
-  if (flash_led_brightness_ == 255)
+  if (flash_led_selected_ && (1 << BLUELED_PWM_PIN))
+    analogWrite(BLUELED_PWM_PIN, 255-c);
+  else
+    analogWrite(BLUELED_PWM_PIN,255); //off
+  if (flash_led_selected_ && (1 << PANICLED_PWM_PIN))
   {
     if (flash_led_time_)
       analogWrite(PANICLED_PWM_PIN, c);
     else
       analogWrite(PANICLED_PWM_PIN, 255-c);
   }
+  else
+    analogWrite(PANICLED_PWM_PIN,255); //off
 }
 
-void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor)
+void flash_led(unsigned int times, unsigned int brightness_divisor, unsigned int delay_divisor, unsigned int led_selector)
 {
-  unsigned int new_flash_led_brightness = 255 / brightness_divisor;
-  unsigned int new_flash_led_delay = 8 / delay_divisor;
+  unsigned int new_flash_led_brightness = 255;
+  unsigned int new_flash_led_delay = 8;
+  flash_led_selected_=led_selector;
+  if (times == 0 || led_selector == 0)
+  {
+    analogWrite(PANICLED_PWM_PIN,255); //off
+    analogWrite(BLUELED_PWM_PIN,255); //off
+    return;
+  }
+  if (brightness_divisor > 1) //guard against div by zero
+    new_flash_led_brightness /= brightness_divisor;
+  if (delay_divisor > 1)  //guard against div by zero
+    new_flash_led_delay /= delay_divisor;
   if (flash_led_time_ == 0 || new_flash_led_brightness > flash_led_brightness_)
     flash_led_brightness_=new_flash_led_brightness;
   if (flash_led_time_ == 0 || new_flash_led_delay < flash_led_delay_)
@@ -383,9 +399,8 @@ void setup()
   digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pulldown resistors  
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
   digitalWrite(PANIC_BUTTON_PIN, LOW);  // turn on pulldown resistors 
-  analogWrite(BLUELED_PWM_PIN,255);
   analogWrite(PANICLED_PWM_PIN,255);
-  analogWrite(BLUELED2_PWM_PIN,255); //pwm sink(-) instead of pwm + (better for mosfets)
+  analogWrite(BLUELED_PWM_PIN,255); //pwm sink(-) instead of pwm + (better for mosfets)
   pinMode(IRREMOTE_SEND_PIN, OUTPUT);
   digitalWrite(IRREMOTE_SEND_PIN, HIGH);
   
@@ -427,7 +442,7 @@ void loop()
   {
     if (ir_count >= IR_TRESHOLD)
     {
-      flash_led(1,8,1);
+      flash_led(1, 8, 1, (1<<BLUELED_PWM_PIN) );
       Serial.println("movement");
     }
     ir_time=IR_SAMPLE_DURATION;
@@ -440,7 +455,7 @@ void loop()
     {   
       pb_postth_state=1;
       Serial.println("PanicButton");
-      flash_led(14,1,2);
+      flash_led(14, 1, 2, (1<<BLUELED_PWM_PIN)|(1<<PANICLED_PWM_PIN) );
     }
     else if (!pb_state)
       pb_postth_state=0;
@@ -452,7 +467,7 @@ void loop()
   }
   
   updateLightLevel(PHOTO_ANALOGPIN);
-  calculate_led_level(PANICLED_PWM_PIN);
+  calculate_led_level();
   check_frame_done();
   
   if(Serial.available()) {
@@ -503,8 +518,10 @@ void loop()
       sensorEchoCommand(command);
       printLightLevel();
     }
+    else if (command == '^')
+      flash_led(1, 2, 1, (1 << PANICLED_PWM_PIN));
     else if (command == '0')
-      send_yamaha_ir_signal(YAMAHA_POWER_OFF);    
+      send_yamaha_ir_signal(YAMAHA_POWER_OFF);
     else if (command == '1')
       send_yamaha_ir_signal(YAMAHA_POWER_TOGGLE);
     else if (command == '2')
