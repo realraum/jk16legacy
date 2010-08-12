@@ -207,18 +207,35 @@ def eventNobodyHere():
     time.sleep(0.2)
     switchPower(id,False)
 
+##def eventPanic():
+##  logging.info("eventPanic(): switching around: "+uwscfg.slug_ids_panic)
+##  lst1 = uwscfg.slug_ids_panic.split(" ")
+##  lst2 = map(lambda e:[e,False], lst1)
+##  for id in lst1:
+##    switchPower(id,False)
+##  for delay in map(lambda e: (40-e)/33.0,range(10,33)):
+##    e = random.choice(lst2)
+##    e[1]=not e[1]
+##    switchPower(e[0],e[1]) 
+##    time.sleep(delay)
+##  random.shuffle(lst1)
+##  for id in lst1:
+##    switchPower(id,False)
+##  time.sleep(1.2)
+##  eventPresent()
+    
 def eventPanic():
   logging.info("eventPanic(): switching around: "+uwscfg.slug_ids_panic)
   lst1 = uwscfg.slug_ids_panic.split(" ")
   lst2 = map(lambda e:[e,False], lst1)
   for id in lst1:
     switchPower(id,False)
-  for delay in map(lambda e: (40-e)/33.0,range(10,33)):
-    e = random.choice(lst2)
-    e[1]=not e[1]
-    switchPower(e[0],e[1]) 
+  for times in range(1,6)
+    delay = random.choice([0.3,1.4,0.9,0.5,0.3,1.4,0.9,0.5,2.2])
     time.sleep(delay)
-  random.shuffle(lst1)
+    for e in lst1:
+      e[1]=not e[1]
+      switchPower(e[0],e[1]) 
   for id in lst1:
     switchPower(id,False)
   time.sleep(1.2)
