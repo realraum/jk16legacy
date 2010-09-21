@@ -120,7 +120,7 @@ def switchPower(powerid,turn_on=False):
 
 def haveDaylight():
   dawn_per_month = {1:8, 2:7, 3:6, 4:6, 5:5, 6:5, 7:5, 8:6, 9:7, 10:8, 11:8, 12:8}
-  dusk_per_month = {1:16, 2:17, 3:18, 4:20, 5:20, 6:21, 7:21, 8:20, 9:19, 10:18, 11:16, 12:16}
+  dusk_per_month = {1:15, 2:16, 3:17, 4:19, 5:20, 6:20, 7:20, 8:19, 9:17, 10:17, 11:16, 12:15}
   hour = datetime.datetime.now().hour
   month = datetime.datetime.now().month
   return (hour >= dawn_per_month[month] and hour < dusk_per_month[month])
@@ -146,23 +146,27 @@ def eventRoomGotDark():
 
 def eventDaylightStart():
   logging.debug("eventDaylightStart()")
+  logging.info("event: daylight is here, switching off: "+uwscfg.slug_ids_logo)
   for id in uwscfg.slug_ids_logo.split(" "):
     switchPower(id,False)
 
 def eventDaylightStop():
   logging.debug("eventDaylightStop()")
   if not isWolfHour():
+    logging.info("event: daylight ends, switching on: "+uwscfg.slug_ids_logo)
     for id in uwscfg.slug_ids_logo.split(" "):
       switchPower(id,True)
 
 def eventWolfHourStart():
   logging.debug("eventWolfHourStart()")
+  logging.info("event: nobody on the street time, switching off: "+uwscfg.slug_ids_logo)
   for id in uwscfg.slug_ids_logo.split(" "):
     switchPower(id,False)
 
 def eventWolfHourStop():
   logging.debug("eventWolfHourStop()")
   if haveDaylight():
+    logging.info("event: people might be on street now, switching on: "+uwscfg.slug_ids_logo)
     for id in uwscfg.slug_ids_logo.split(" "):
       switchPower(id,True)
 
