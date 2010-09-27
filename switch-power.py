@@ -210,6 +210,11 @@ def eventNobodyHere():
   for id in present_ids.split(" "):
     time.sleep(0.2)
     switchPower(id,False)
+  present_ids.reverse()
+  time.sleep(4)
+  for id in present_ids.split(" "):
+    time.sleep(0.3)
+    switchPower(id,False)
 
 ##def eventPanic():
 ##  logging.info("eventPanic(): switching around: "+uwscfg.slug_ids_panic)
