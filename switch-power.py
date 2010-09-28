@@ -131,9 +131,9 @@ def isWolfHour():
 
 ######### ALGOS ###############
 
-def switchLogo(status_presense):
+def switchLogo(status_presence):
   logo_action=None
-  if status_presense:
+  if status_presence:
     logo_action=True
   else:
     if haveDaylight():
@@ -143,14 +143,13 @@ def switchLogo(status_presense):
           logo_action=False
        else:
           logo_action=True
-  logging.info("switchLogo: presence:%s daylight:%s wolfhour:%s =>action:%s  switching:"+uwscfg.slug_ids_logo % (status_presense,haveDaylight(),isWolfHour(),logo_action))
   if not logo_action is None:
     for id in uwscfg.slug_ids_logo.split(" "):
       switchPower(id,logo_action)
 
 ######### EVENTS ###############
 unixts_last_movement=0
-status_presense=None
+status_presence=None
 room_is_bright=None
 
 def eventRoomGotBright():
@@ -164,24 +163,24 @@ def eventRoomGotDark():
   room_is_bright=False
 
 def eventDaylightStart():
-  global status_presense
+  global status_presence
   logging.debug("eventDaylightStart()")
-  switchLogo(status_presense)
+  switchLogo(status_presence)
 
 def eventDaylightStop():
-  global status_presense
+  global status_presence
   logging.debug("eventDaylightStop()")
-  switchLogo(status_presense)
+  switchLogo(status_presence)
 
 def eventWolfHourStart():
-  global status_presense
+  global status_presence
   logging.debug("eventWolfHourStart()")
-  switchLogo(status_presense)
+  switchLogo(status_presence)
 
 def eventWolfHourStop():
-  global status_presense
+  global status_presence
   logging.debug("eventWolfHourStop()")
-  switchLogo(status_presense)
+  switchLogo(status_presence)
 
 def eventMovement():
   global unixts_last_movement
@@ -191,7 +190,7 @@ def eventPeriodical():
   pass
 
 #  global unixts_last_movement
-#  if status_presense is True and unixts_last_movement + int(uwscfg.powerswitching_max_secs_since_movement) >= time.time():
+#  if status_presence is True and unixts_last_movement + int(uwscfg.powerswitching_max_secs_since_movement) >= time.time():
 #    presumed_state=not (haveDaylight() or isWolfHour())
 #    logging.debug("event: periodical event")
 #    for id in uwscfg.slug_ids_logo.split(" "):
@@ -200,9 +199,9 @@ def eventPeriodical():
 #      switchPower(id,presumed_state)
 
 def eventPresent():
-  global status_presense,room_is_bright
+  global status_presence,room_is_bright
   logging.debug("eventPresent()");
-  status_presense=True
+  status_presence=True
   if haveDaylight():
     if room_is_bright is False:
       present_ids=uwscfg.slug_ids_present_day_dark_room
@@ -213,22 +212,23 @@ def eventPresent():
   logging.info("event: someone present, switching on: "+present_ids)
   for id in present_ids.split(" "):
     switchPower(id,True)
-  switchLogo(status_presense)
+  switchLogo(status_presence)
 
 def eventNobodyHere():
-  global status_presense
+  global status_presence
   logging.debug("eventNobodyHere()");
-  status_presense=False
+  status_presence=False
   present_ids=uwscfg.slug_ids_nonpresent_off
   logging.info("event: noone here, switching off: "+present_ids)
-  for id in present_ids.split(" "):
+  present_id_list=present_ids.split(" ")
+  for id in present_id_list:
     time.sleep(0.2)
     switchPower(id,False)
-  present_ids.reverse()
+  present_id_list.reverse()
   time.sleep(0.2)
-  switchLogo(status_presense)
+  switchLogo(status_presence)
   time.sleep(4)
-  for id in present_ids.split(" "):
+  for id in present_id_list:
     time.sleep(0.3)
     switchPower(id,False)
 
