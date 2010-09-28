@@ -144,6 +144,7 @@ def switchLogo(status_presence):
        else:
           logo_action=True
   if not logo_action is None:
+    logging.info("switchLogo: logo_action:%s" % str(logo_action))
     for id in uwscfg.slug_ids_logo.split(" "):
       switchPower(id,logo_action)
 
@@ -222,14 +223,14 @@ def eventNobodyHere():
   logging.info("event: noone here, switching off: "+present_ids)
   present_id_list=present_ids.split(" ")
   for id in present_id_list:
-    time.sleep(0.2)
+    time.sleep(0.15)
     switchPower(id,False)
   present_id_list.reverse()
-  time.sleep(0.2)
+  time.sleep(0.15)
   switchLogo(status_presence)
-  time.sleep(4)
+  time.sleep(2)
   for id in present_id_list:
-    time.sleep(0.3)
+    time.sleep(0.15)
     switchPower(id,False)
 
 ##def eventPanic():
