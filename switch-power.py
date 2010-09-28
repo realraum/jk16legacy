@@ -129,7 +129,26 @@ def isWolfHour():
   hour = datetime.datetime.now().hour
   return (hour >= 2 and hour < 6)
 
-######### EVENTS ###############  
+######### ALGOS ###############
+
+def switchLogo(status_presense):
+  logo_action=None
+  if status_presense:
+    logo_action=True
+  else:
+    if haveDaylight():
+      logo_action=False
+    else:
+       if isWolfHour():
+          logo_action=False
+       else:
+          logo_action=True
+  logging.info("switchLogo: presence:%s daylight:%s wolfhour:%s =>action:%s  switching:"+uwscfg.slug_ids_logo % (status_presense,haveDaylight(),isWolfHour(),logo_action))
+  if not logo_action is None:
+    for id in uwscfg.slug_ids_logo.split(" "):
+      switchPower(id,logo_action)
+
+######### EVENTS ###############
 unixts_last_movement=0
 status_presense=None
 room_is_bright=None
@@ -145,30 +164,24 @@ def eventRoomGotDark():
   room_is_bright=False
 
 def eventDaylightStart():
+  global status_presense
   logging.debug("eventDaylightStart()")
-  logging.info("event: daylight is here, switching off: "+uwscfg.slug_ids_logo)
-  for id in uwscfg.slug_ids_logo.split(" "):
-    switchPower(id,False)
+  switchLogo(status_presense)
 
 def eventDaylightStop():
+  global status_presense
   logging.debug("eventDaylightStop()")
-  if not isWolfHour():
-    logging.info("event: daylight ends, switching on: "+uwscfg.slug_ids_logo)
-    for id in uwscfg.slug_ids_logo.split(" "):
-      switchPower(id,True)
+  switchLogo(status_presense)
 
 def eventWolfHourStart():
+  global status_presense
   logging.debug("eventWolfHourStart()")
-  logging.info("event: nobody on the street time, switching off: "+uwscfg.slug_ids_logo)
-  for id in uwscfg.slug_ids_logo.split(" "):
-    switchPower(id,False)
+  switchLogo(status_presense)
 
 def eventWolfHourStop():
+  global status_presense
   logging.debug("eventWolfHourStop()")
-  if haveDaylight():
-    logging.info("event: people might be on street now, switching on: "+uwscfg.slug_ids_logo)
-    for id in uwscfg.slug_ids_logo.split(" "):
-      switchPower(id,True)
+  switchLogo(status_presense)
 
 def eventMovement():
   global unixts_last_movement
@@ -200,6 +213,7 @@ def eventPresent():
   logging.info("event: someone present, switching on: "+present_ids)
   for id in present_ids.split(" "):
     switchPower(id,True)
+  switchLogo(status_presense)
 
 def eventNobodyHere():
   global status_presense
@@ -211,6 +225,8 @@ def eventNobodyHere():
     time.sleep(0.2)
     switchPower(id,False)
   present_ids.reverse()
+  time.sleep(0.2)
+  switchLogo(status_presense)
   time.sleep(4)
   for id in present_ids.split(" "):
     time.sleep(0.3)
