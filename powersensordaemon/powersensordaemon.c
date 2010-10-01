@@ -542,7 +542,8 @@ int main_loop(int tty_fd, int cmd_listen_fd, autosample_process_t* autosample, o
           break;
 
       }
-      lst = lst->next;
+      if(lst)
+        lst = lst->next;
     }
 
     if(cmd_q && !cmd_q->sent)
