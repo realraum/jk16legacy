@@ -82,13 +82,13 @@ int signal_init()
     }
   }
 
-  struct sigaction act, act_ign;
+  struct sigaction act, ign;
   act.sa_handler = sig_handler;
   sigfillset(&act.sa_mask);
   act.sa_flags = 0;
-  act_ign.sa_handler = SIG_IGN;
-  sigfillset(&act_ign.sa_mask);
-  act_ign.sa_flags = 0;
+  ign.sa_handler = SIG_IGN;
+  sigfillset(&ign.sa_mask);
+  ign.sa_flags = 0;
 
   if((sigaction(SIGINT, &act, NULL) < 0) ||
      (sigaction(SIGQUIT, &act, NULL) < 0) ||
@@ -96,8 +96,8 @@ int signal_init()
      (sigaction(SIGHUP, &act, NULL) < 0) ||
      (sigaction(SIGUSR1, &act, NULL) < 0) ||
      (sigaction(SIGUSR2, &act, NULL) < 0) ||
-     (sigaction(SIGCHLD, &act_ign, NULL) < 0) ||
-     (sigaction(SIGPIPE, &act_ign, NULL) < 0)) {
+     (sigaction(SIGCHLD, &ign, NULL) < 0) ||
+     (sigaction(SIGPIPE, &ign, NULL) < 0)) {
 
     log_printf(ERROR, "signal handling init failed (sigaction error: %s)", strerror(errno));
     close(sig_pipe_fds[0]);
