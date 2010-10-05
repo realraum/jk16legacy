@@ -7,6 +7,7 @@ function sendButton( btn )
 {
   //alert(btn);
   document.getElementById('indicator').style.backgroundColor="red";
+  document.getElementById('commandlabel').innerHTML=btn;
   var req = new XMLHttpRequest();
   url = "http://slug.realraum.at/cgi-bin/switch.cgi?power=send&id="+btn;
   req.open("GET", url ,false);
@@ -16,6 +17,7 @@ function sendButton( btn )
   //response = req.responseText;
   //document.getElementById('output').innerHTML = response; 
   document.getElementById('indicator').style.backgroundColor="white";
+  document.getElementById('commandlabel').innerHTML='&nbsp;';
 }
 
 function remoteKeyboard( e )
@@ -107,4 +109,5 @@ document.onkeydown = remoteKeyboard;
 <area shape ="circle" coords ="142,634,17" onClick="sendButton('ymhmenu');" alt="ymhmenu" />
 <!-- href ="./cgi-bin/switch.cgi" target ="_blank" -->
 </map>
+<p id="commandlabel" style="display:hidden;">&nbsp;</p>
 </html>
