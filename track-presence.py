@@ -370,6 +370,8 @@ class StatusTracker: #(threading.Thread):
 
 
   def checkAgainIn(self, sec):
+    if sec <= 0.0:
+        return
     if self.timer_timeout < time.time():
       logging.debug("checkAgainIn: starting Timer with timeout %fs" % sec)
       self.timer=threading.Timer(sec, self.checkPresenceStateChangeAndNotify)
