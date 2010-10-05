@@ -47,9 +47,9 @@ class UWSConfig:
     self.config_parser.set('sensors','remote_shell',"usocket")
     self.config_parser.add_section('tracker')
     self.config_parser.set('tracker','sec_wait_after_close_using_cardphone',"4.2")
-    self.config_parser.set('tracker','sec_wait_for_movement_before_warning',"30")
-    self.config_parser.set('tracker','sec_wait_after_close_using_manualswitch',"25.0")
-    self.config_parser.set('tracker','sec_movement_before_manual_switch',"-1.0")  #neg duration means: movement has to occur _after_ door was closed manually
+    self.config_parser.set('tracker','sec_wait_for_movement_before_warning',"60")
+    self.config_parser.set('tracker','sec_wait_after_close_using_manualswitch',"22.0")
+    self.config_parser.set('tracker','sec_movement_before_manual_switch',"-3.0")  #neg duration means: movement has to occur _after_ door was closed manually
     self.config_parser.set('tracker','sec_general_movement_timeout',"3600")
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
     self.config_parser.set('tracker','photo_flashlight',"1020")
