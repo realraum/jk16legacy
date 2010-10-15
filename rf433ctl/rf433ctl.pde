@@ -560,7 +560,7 @@ void loop()
       flash_led(1, 1, 1, 1, 0);
       Serial.println("Ok");
     }
-    else if (command == '°')
+    else if (command == '&')
     {
       flash_led(0, 1, 2, 1, 0);
       Serial.println("Ok");

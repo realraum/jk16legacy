@@ -10,7 +10,7 @@ all           acdefgh
 decke         gh
 lichter       acdfgh
 ambientlights acf
-blueled       °
+blueled       &
 panicled      ^
 ymhpoweroff   :
 ymhpower      .
