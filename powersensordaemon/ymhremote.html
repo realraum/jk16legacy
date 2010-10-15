@@ -52,9 +52,9 @@ function remoteKeyboard( e )
 		case 50: sendButton( 'ymhtuner' ); break;	// 2
 		case 51: sendButton( 'ymhtape' ); break;	// 3
 		case 52: sendButton( 'ymhwdtv' ); break;	// 4
-		//case 53: sendButton( 'ymhsat' ); break;	// 5
+		case 53: sendButton( 'ymhsattv' ); break;	// 5
 		case 54: sendButton( 'ymhvcr' ); break;	// 6
-		//case 55: sendButton( '' ); break;	// 7
+		case 55: sendButton( 'ymh7' ); break;	// 7
 		case 56: sendButton( 'ymhaux' ); break;	// 8
 		case 57: sendButton( 'ymhextdec' ); break;	// 9
 	}
@@ -79,9 +79,9 @@ document.onkeydown = remoteKeyboard;
 <area shape ="circle" coords ="88,98,17" onClick="sendButton('ymhtuner');" alt="ymhtuner" />
 <area shape ="circle" coords ="142,98,17" onClick="sendButton('ymhtape');" alt="ymhtape" />
 <area shape ="circle" coords ="36,145,17" onClick="sendButton('ymhwdtv');" alt="ymhwdtv" />
-<!--area shape ="circle" coords ="88,145,17" onClick="sendButton('ymhsat);" alt="ymhsat" /-->
+<area shape ="circle" coords ="88,145,17" onClick="sendButton('ymhsattv');" alt="ymhsattv" />
 <area shape ="circle" coords ="142,145,17" onClick="sendButton('ymhvcr');" alt="ymhvcr" />
-<!--area shape ="circle" coords ="36,192,17" onClick="sendButton('ymh7);" alt="ymh7" /-->
+<area shape ="circle" coords ="36,192,17" onClick="sendButton('ymh7');" alt="ymh7" />
 <area shape ="circle" coords ="88,192,17" onClick="sendButton('ymhaux');" alt="ymhaux" />
 <area shape ="circle" coords ="142,192,17" onClick="sendButton('ymhextdec');" alt="ymhextdec" />
 <area shape ="circle" coords ="36,240,17" onClick="sendButton('ymhtest');" alt="ymhtest" />
@@ -95,7 +95,7 @@ document.onkeydown = remoteKeyboard;
 <area shape ="circle" coords ="89,377,16" onClick="sendButton('ymhmute');" alt="ymhmute" />
 
 <area shape ="circle" coords ="36,455,17" onClick="sendButton('ymhsleep');" alt="ymhsleep" />
-<!--area shape ="circle" coords ="142,455,17" onClick="sendButton('ymhdsp');" alt="ymhdsp" /-->
+<area shape ="circle" coords ="142,455,17" onClick="sendButton('ymhdsp');" alt="ymhp5" />
 
 <area shape ="rect" coords ="18,278,67,301" onClick="sendButton('ymhtunminus');"  />
 <area shape ="rect" coords ="111,278,160,301" onClick="sendButton('ymhtunplus');"  />

@@ -10,6 +10,7 @@ all           acdefgh
 decke         gh
 lichter       acdfgh
 ambientlights acf
+blueled       °
 panicled      ^
 ymhpoweroff   :
 ymhpower      .
@@ -20,6 +21,7 @@ ymhtape       3
 ymhwdtv       4
 ymhsattv      5
 ymhvcr        6
+ymh7          7
 ymhaux        8
 ymhextdec     9
 ymhtest       0
@@ -36,4 +38,5 @@ ymhminus      !
 ymhtimelevel  =
 ymhprgdown    $
 ymhprgup      %
-ymhp5         &
+ymhsleep      (
+ymhp5         )

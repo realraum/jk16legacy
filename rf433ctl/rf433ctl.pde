@@ -615,7 +615,9 @@ void loop()
       send_yamaha_ir_signal(YAMAHA_PRG_DOWN);
     else if (command == '%')
       send_yamaha_ir_signal(YAMAHA_PRG_UP);
-    else if (command == '&')
+    else if (command == '(')
+      send_yamaha_ir_signal(YAMAHA_SLEEP);
+    else if (command == ')')
       send_yamaha_ir_signal(YAMAHA_P5);
     else
       Serial.println("Error: unknown command");
