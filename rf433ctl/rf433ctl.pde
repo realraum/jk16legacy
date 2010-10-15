@@ -560,50 +560,63 @@ void loop()
       flash_led(1, 1, 1, 1, 0);
       Serial.println("Ok");
     }
-    else if (command == '0')
-      send_yamaha_ir_signal(YAMAHA_POWER_OFF);
+    else if (command == '°')
+    {
+      flash_led(0, 1, 2, 1, 0);
+      Serial.println("Ok");
+    }
     else if (command == '1')
-      send_yamaha_ir_signal(YAMAHA_POWER_TOGGLE);
-    else if (command == '2')
-      send_yamaha_ir_signal(YAMAHA_VOLUME_UP);
-    else if (command == '3')
-      send_yamaha_ir_signal(YAMAHA_VOLUME_DOWN);
-    else if (command == '4')
-      send_yamaha_ir_signal(YAMAHA_MUTE);
-    else if (command == '5')
       send_yamaha_ir_signal(YAMAHA_CD);
-    else if (command == '6')
+    else if (command == '2')
       send_yamaha_ir_signal(YAMAHA_TUNER);
-    else if (command == '7')
-      send_yamaha_ir_signal(YAMAHA_DVD_SPDIF);
-    else if (command == '8')
-      send_yamaha_ir_signal(YAMAHA_MENU);
-    else if (command == '+')
-      send_yamaha_ir_signal(YAMAHA_PLUS);
-    else if (command == '-')
-      send_yamaha_ir_signal(YAMAHA_MINUS);
-    else if (command == 0xa7) // §
-      send_yamaha_ir_signal(YAMAHA_TEST);
-    else if (command == '$')
-      send_yamaha_ir_signal(YAMAHA_TIME_LEVEL);
-    else if (command == '%')
-      send_yamaha_ir_signal(YAMAHA_EFFECT_TOGGLE);
-    else if (command == '&')
-      send_yamaha_ir_signal(YAMAHA_PRG_DOWN);
-    else if (command == '/')
-      send_yamaha_ir_signal(YAMAHA_PRG_UP);
-    else if (command == '(')
-      send_yamaha_ir_signal(YAMAHA_TUNER_PLUS);
-    else if (command == '[')
-      send_yamaha_ir_signal(YAMAHA_TUNER_MINUS);
-    else if (command == ')')
-      send_yamaha_ir_signal(YAMAHA_TUNER_ABCDE);
-    else if (command == '9')
+    else if (command == '3')
       send_yamaha_ir_signal(YAMAHA_TAPE);
-    else if (command == '?')
+    else if (command == '4')
+      send_yamaha_ir_signal(YAMAHA_DVD_SPDIF);
+    else if (command == '5')
+      send_yamaha_ir_signal(YAMAHA_SAT_SPDIFF);
+    else if (command == '6')
       send_yamaha_ir_signal(YAMAHA_VCR);
-    else if (command == '=')
+//    else if (command == '7')
+//      send_yamaha_ir_signal();
+    else if (command == '8')
+      send_yamaha_ir_signal(YAMAHA_AUX);
+    else if (command == '9')
       send_yamaha_ir_signal(YAMAHA_EXT51DEC);
+    else if (command == '0')
+      send_yamaha_ir_signal(YAMAHA_TEST);
+    else if (command == '/')
+      send_yamaha_ir_signal(YAMAHA_TUNER_ABCDE);
+    else if (command == '\\')
+      send_yamaha_ir_signal(YAMAHA_EFFECT_TOGGLE);
+    else if (command == '-')
+      send_yamaha_ir_signal(YAMAHA_TUNER_MINUS);
+    else if (command == '+')
+      send_yamaha_ir_signal(YAMAHA_TUNER_PLUS);
+    else if (command == ':')
+      send_yamaha_ir_signal(YAMAHA_POWER_OFF);
+    else if (command == '.')
+      send_yamaha_ir_signal(YAMAHA_POWER_TOGGLE);
+    else if (command == ';')
+      send_yamaha_ir_signal(YAMAHA_VOLUME_UP);
+    else if (command == ',')
+      send_yamaha_ir_signal(YAMAHA_VOLUME_DOWN);
+    else if (command == '_')
+      send_yamaha_ir_signal(YAMAHA_MUTE);
+    else if (command == '#')
+      send_yamaha_ir_signal(YAMAHA_MENU);
+    else if (command == '"')
+      send_yamaha_ir_signal(YAMAHA_PLUS);
+    else if (command == '!')
+      send_yamaha_ir_signal(YAMAHA_MINUS);
+    else if (command == '=')
+      send_yamaha_ir_signal(YAMAHA_TIME_LEVEL);
+    else if (command == '$')
+      send_yamaha_ir_signal(YAMAHA_PRG_DOWN);
+    else if (command == '%')
+      send_yamaha_ir_signal(YAMAHA_PRG_UP);
+    else if (command == '&')
+      send_yamaha_ir_signal(YAMAHA_P5);
     else
       Serial.println("Error: unknown command");
   }
