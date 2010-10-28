@@ -32,6 +32,8 @@ class UWSConfig:
     self.config_parser=ConfigParser.ConfigParser()
     self.config_parser.add_section('powerswitching')
     self.config_parser.set('powerswitching','min_secs_periodical_event','59')
+    self.config_parser.set('powerswitching','secs_movement_before_presence_to_launch_event','1')
+    self.config_parser.set('powerswitching','secs_presence_before_movement_to_launch_event','120')
     self.config_parser.set('powerswitching','max_secs_since_movement','600')
     self.config_parser.add_section('slug')
     self.config_parser.set('slug','cgiuri','http://slug.realraum.at/cgi-bin/switch.cgi?id=%ID%&power=%ONOFF%')
@@ -150,8 +152,10 @@ def switchLogo(status_presence):
 
 ######### EVENTS ###############
 unixts_last_movement=0
+unixts_last_presence=0
 status_presence=None
 room_is_bright=None
+
 
 def eventRoomGotBright():
   global room_is_bright
@@ -182,13 +186,17 @@ def eventWolfHourStop():
   global status_presence
   logging.debug("eventWolfHourStop()")
   switchLogo(status_presence)
-
+  
 def eventMovement():
-  global unixts_last_movement
+  global unixts_last_movement, unixts_last_presence
   unixts_last_movement=time.time()
+  if (time.time() - unixts_last_presence) <= uwscfg.powerswitching_secs_presence_before_movement_to_launch_event:
+    eventPresentAndMoved()
+    unixts_last_presence=0  # so that eventPresentAndMoved will only launch once per presence event (i.e. supress multiple movement events)
+  
 
 def eventPeriodical():
-  pass
+  pass 
 
 #  global unixts_last_movement
 #  if status_presence is True and unixts_last_movement + int(uwscfg.powerswitching_max_secs_since_movement) >= time.time():
@@ -200,6 +208,13 @@ def eventPeriodical():
 #      switchPower(id,presumed_state)
 
 def eventPresent():
+  global status_presence,room_is_bright,unixts_last_movement,uwscfg,unixts_last_presence
+  unixts_last_presence=time.time()
+  if ( time.time() - unixts_last_movement ) <= uwscfg.powerswitching_secs_movement_before_presence_to_launch_event:
+    eventPresentAndMoved()
+  
+
+def eventPresentAndMoved():
   global status_presence,room_is_bright
   logging.debug("eventPresent()");
   status_presence=True
