@@ -190,7 +190,7 @@ def eventWolfHourStop():
 def eventMovement():
   global unixts_last_movement, unixts_last_presence
   unixts_last_movement=time.time()
-  if (time.time() - unixts_last_presence) <= uwscfg.powerswitching_secs_presence_before_movement_to_launch_event:
+  if (time.time() - unixts_last_presence) <= float(uwscfg.powerswitching_secs_presence_before_movement_to_launch_event):
     eventPresentAndMoved()
     unixts_last_presence=0  # so that eventPresentAndMoved will only launch once per presence event (i.e. supress multiple movement events)
   
@@ -210,7 +210,7 @@ def eventPeriodical():
 def eventPresent():
   global status_presence,room_is_bright,unixts_last_movement,uwscfg,unixts_last_presence
   unixts_last_presence=time.time()
-  if ( time.time() - unixts_last_movement ) <= uwscfg.powerswitching_secs_movement_before_presence_to_launch_event:
+  if ( time.time() - unixts_last_movement ) <= float(uwscfg.powerswitching_secs_movement_before_presence_to_launch_event):
     eventPresentAndMoved()
   
 
