@@ -6,7 +6,6 @@ import sys
 #import threading
 import logging
 import logging.handlers
-import urllib
 import time
 import signal
 import re
@@ -48,7 +47,7 @@ class UWSConfig:
     self.config_parser.add_section('halflife2')
     self.config_parser.set('halflife2','arg',"/home/half-life-door.mp3")
     self.config_parser.set('halflife2','type',"slugplaymp3")
-    self.config_parser.set('halflife2','delay',"0.2")    
+    self.config_parser.set('halflife2','delay',"0.2")
     self.config_parser.add_section('tardis')
     self.config_parser.set('tardis','arg',"/home/tardis.mp3")
     self.config_parser.set('tardis','type',"slugplaymp3")
@@ -87,7 +86,9 @@ class UWSConfig:
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")    
+    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")
+    self.config_parser.set('tracker','secs_movement_before_presence_to_launch_event','1')
+    self.config_parser.set('tracker','secs_presence_before_movement_to_launch_event','120')
     self.config_mtime=0
     if not self.configfile is None:
       try:
@@ -97,7 +98,7 @@ class UWSConfig:
         self.writeConfigFile()
       else:
         self.checkConfigUpdates()
-    
+
   def checkConfigUpdates(self):
     global logger
     if self.configfile is None:
@@ -122,7 +123,7 @@ class UWSConfig:
   def writeConfigFile(self):
     if self.configfile is None:
       return
-    logging.debug("Writing Configfile "+self.configfile)      
+    logging.debug("Writing Configfile "+self.configfile)
     try:
       cf_handle = open(self.configfile,"w")
       self.config_parser.write(cf_handle)
@@ -173,7 +174,7 @@ def runRemoteCommand(remote_host,remote_shell,user,args=[]):
       return False
     return True
   except Exception, ex:
-    logging.error("runRemoteCommand: "+str(ex)) 
+    logging.error("runRemoteCommand: "+str(ex))
     traceback.print_exc(file=sys.stdout)
     if not sshp is None and sshp.poll() is None:
       if sys.hexversion >= 0x020600F0:
@@ -188,6 +189,7 @@ def runRemoteCommand(remote_host,remote_shell,user,args=[]):
         else:
           subprocess.call(["kill","-9",str(sshp.pid)])
     time.sleep(5)
+    return False
 
 def runShellCommand(cmd,ptimeout,stdinput,user,args=[]):
   global uwscfg
@@ -202,19 +204,19 @@ def executeAction(action_name, user, args=[]):
   if action_name is None:
     logging.error("executeAction: action_name is None")
     return False
-  action_type = uwscfg.getValue(action_name+"_type") 
+  action_type = uwscfg.getValue(action_name+"_type")
   if action_type is None:
     logging.error("executeAction: action %s not found or has no type" % action_name)
     return False
   action_delay=uwscfg.getValue(action_name+"_delay")
-  logging.info("executeAction %s of type %s for user %s with delay %s" % (action_name,action_type,user,action_delay))  
+  logging.info("executeAction %s of type %s for user %s with delay %s" % (action_name,action_type,user,action_delay))
   if not action_delay is None:
     time.sleep(float(action_delay))
-  
+
   action_arg = uwscfg.getValue(action_name+"_arg")
   if not action_arg is None:
     args += [action_arg]
-  
+
   #"registered" actions
   if action_type == "remotecmd":
     return runRemoteCommand(uwscfg.getSectionValue(action_name,"remote_host"), uwscfg.getSectionValue(action_name,"remote_shell"), user=user, args=args)
@@ -226,7 +228,7 @@ def executeAction(action_name, user, args=[]):
     return runRandomAction(action_list=uwscfg.getSectionValue(action_name,"one_of").split(" "),user=user,args=args)
   else:
     return executeAction(action_type,user=user,args=args)
-  
+
 def playThemeOf(user,fallback_default):
   global uwscfg
   uwscfg.checkConfigUpdates()
@@ -267,7 +269,7 @@ def popenTimeout1(cmd, pinput, returncode_ok=[0], ptimeout = 20.0, pcheckint = 0
   except Exception, e:
     logging.error("popenTimeout1: "+str(e))
     return False
-  
+
 def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
   logging.debug("popenTimeout2: starting: " + cmd)
   try:
@@ -281,7 +283,7 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
       sppoo.communicate(input=pinput)
     sppoo.wait()
     signal.alarm(0) #disable pending alarms
-    signal.signal(signal.SIGALRM, old_shandler) 
+    signal.signal(signal.SIGALRM, old_shandler)
     logging.debug("popenTimeout2: subprocess %d finished, returncode: %d" % (sppoo.pid,sppoo.returncode))
     if sppoo.returncode < 0:
       logging.error("popenTimeout2: subprocess took too long (>%ds) and pid %d was killed" % (ptimeout,sppoo.pid))
@@ -289,7 +291,7 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
   except Exception, e:
     logging.error("popenTimeout2: "+str(e))
     try:
-      signal.signal(signal.SIGALRM, old_shandler) 
+      signal.signal(signal.SIGALRM, old_shandler)
     except:
       pass
     return False
@@ -305,7 +307,7 @@ def exitHandler(signum, frame):
   except:
     pass
   sys.exit(0)
-  
+
 #signals proapbly don't work because of readline
 #signal.signal(signal.SIGTERM, exitHandler)
 signal.signal(signal.SIGINT, exitHandler)
@@ -323,6 +325,7 @@ RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
 #RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
 RE_ERROR = re.compile(r'Error: (.+)')
+RE_MOVEMENT = re.compile(r'movement')
 
 while True:
   try:
@@ -336,25 +339,41 @@ while True:
     #sockhandle.send("listen\n")
     #sockhandle.send("status\n")
     last_status=None
+    last_user=None
     unixts_panic_button=None
+    unixts_last_movement=0
+    unixts_last_presence=0
     while True:
       line = conn.readline()
       logging.debug("Got Line: " + line)
-      
+
       #uwscfg.checkConfigUpdates()
-      
+
       if line == "":
         raise Exception("EOF on Socket, daemon seems to have quit")
-      
+
+      m = RE_MOVEMENT.match(line)
+      if not m is None:
+        unixts_last_movement=time.time()
+        if (time.time() - unixts_last_presence) <= float(uwscfg.tracker_secs_presence_before_movement_to_launch_event):
+          unixts_last_presence=0
+          if last_status:
+            playThemeOf(user=last_user, fallback_default="DEFAULT")
+        continue
+
       m = RE_PRESENCE.match(line)
       if not m is None:
         status = m.group(1)
+        unixts_last_presence=time.time()
         last_status=(status == "yes")
         unixts_panic_button=None
-        if last_status:
-          playThemeOf(user=m.group(3), fallback_default="DEFAULT")
+        last_user=m.group(3)
+        if ( time.time() - unixts_last_movement ) <= float(uwscfg.tracker_secs_movement_before_presence_to_launch_event):
+          unixts_last_movement=0
+          if last_status:
+            playThemeOf(user=last_user, fallback_default="DEFAULT")
         continue
-        
+
       m = RE_BUTTON.match(line)
       if not m is None:
         playThemeOf(user="PANIC", fallback_default="nothing")
@@ -364,13 +383,13 @@ while True:
       if not m is None:
         playThemeOf(user="ERROR", fallback_default="nothing")
         continue
-                
+
   except Exception, ex:
-    logging.error("main: "+str(ex)) 
+    logging.error("main: "+str(ex))
     try:
       sockhandle.close()
     except:
       pass
     conn=None
-    sockhandle=None      
+    sockhandle=None
     time.sleep(5)

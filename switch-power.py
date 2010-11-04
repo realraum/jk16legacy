@@ -48,7 +48,7 @@ class UWSConfig:
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")    
+    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")
     self.config_mtime=0
     if not self.configfile is None:
       try:
@@ -58,7 +58,7 @@ class UWSConfig:
         self.writeConfigFile()
       else:
         self.checkConfigUpdates()
-    
+
   def checkConfigUpdates(self):
     global logger
     if self.configfile is None:
@@ -83,7 +83,7 @@ class UWSConfig:
   def writeConfigFile(self):
     if self.configfile is None:
       return
-    logging.debug("Writing Configfile "+self.configfile)      
+    logging.debug("Writing Configfile "+self.configfile)
     try:
       cf_handle = open(self.configfile,"w")
       self.config_parser.write(cf_handle)
@@ -186,17 +186,17 @@ def eventWolfHourStop():
   global status_presence
   logging.debug("eventWolfHourStop()")
   switchLogo(status_presence)
-  
+
 def eventMovement():
   global unixts_last_movement, unixts_last_presence
   unixts_last_movement=time.time()
   if (time.time() - unixts_last_presence) <= float(uwscfg.powerswitching_secs_presence_before_movement_to_launch_event):
     eventPresentAndMoved()
     unixts_last_presence=0  # so that eventPresentAndMoved will only launch once per presence event (i.e. supress multiple movement events)
-  
+
 
 def eventPeriodical():
-  pass 
+  pass
 
 #  global unixts_last_movement
 #  if status_presence is True and unixts_last_movement + int(uwscfg.powerswitching_max_secs_since_movement) >= time.time():
@@ -224,8 +224,9 @@ def eventPresent():
     switchPower(id,True)
   switchLogo(status_presence)
   if ( time.time() - unixts_last_movement ) <= float(uwscfg.powerswitching_secs_movement_before_presence_to_launch_event):
+    unixts_last_movement=0
     eventPresentAndMoved()
-  
+
 def eventPresentAndMoved():
   global status_presence,room_is_bright
   pass
@@ -257,14 +258,14 @@ def eventNobodyHere():
 ##  for delay in map(lambda e: (40-e)/33.0,range(10,33)):
 ##    e = random.choice(lst2)
 ##    e[1]=not e[1]
-##    switchPower(e[0],e[1]) 
+##    switchPower(e[0],e[1])
 ##    time.sleep(delay)
 ##  random.shuffle(lst1)
 ##  for id in lst1:
 ##    switchPower(id,False)
 ##  time.sleep(1.2)
 ##  eventPresent()
-    
+
 def eventPanic():
   logging.info("eventPanic(): switching around: "+uwscfg.slug_ids_panic)
   lst1 = uwscfg.slug_ids_panic.split(" ")
@@ -276,12 +277,12 @@ def eventPanic():
     time.sleep(delay)
     for e in lst2:
       e[1]=not e[1]
-      switchPower(e[0],e[1]) 
+      switchPower(e[0],e[1])
   for id in lst1:
     switchPower(id,False)
   time.sleep(1.2)
   eventPresent()
-    
+
 
 ########################
 
@@ -296,7 +297,7 @@ def exitHandler(signum, frame):
   except:
     pass
   sys.exit(0)
-  
+
 #signals proapbly don't work because of readline
 #signal.signal(signal.SIGTERM, exitHandler)
 signal.signal(signal.SIGINT, exitHandler)
@@ -342,19 +343,19 @@ while True:
           eventWolfHourStart()
         else:
           eventWolfHourStop()
-     
+
       if unixts_last_periodical + int(uwscfg.powerswitching_min_secs_periodical_event) <= time.time():
         unixts_last_periodical = time.time()
         eventPeriodical()
 
       line = conn.readline()
       logging.debug("Got Line: " + line)
-      
+
       uwscfg.checkConfigUpdates()
-      
+
       if line == "":
         raise Exception("EOF on Socket, daemon seems to have quit")
-      
+
       m = RE_PRESENCE.match(line)
       if not m is None:
         status = m.group(1)
@@ -381,7 +382,7 @@ while True:
         else:
           eventRoomGotDark()
         continue
-          
+
   except Exception, ex:
     logging.error("main: "+str(ex))
     traceback.print_exc(file=sys.stdout)
@@ -390,5 +391,5 @@ while True:
     except:
       pass
     conn=None
-    sockhandle=None      
+    sockhandle=None
     time.sleep(5)
