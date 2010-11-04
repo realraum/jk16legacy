@@ -210,12 +210,6 @@ def eventPeriodical():
 def eventPresent():
   global status_presence,room_is_bright,unixts_last_movement,uwscfg,unixts_last_presence
   unixts_last_presence=time.time()
-  if ( time.time() - unixts_last_movement ) <= float(uwscfg.powerswitching_secs_movement_before_presence_to_launch_event):
-    eventPresentAndMoved()
-  
-
-def eventPresentAndMoved():
-  global status_presence,room_is_bright
   logging.debug("eventPresent()");
   status_presence=True
   if haveDaylight():
@@ -229,6 +223,12 @@ def eventPresentAndMoved():
   for id in present_ids.split(" "):
     switchPower(id,True)
   switchLogo(status_presence)
+  if ( time.time() - unixts_last_movement ) <= float(uwscfg.powerswitching_secs_movement_before_presence_to_launch_event):
+    eventPresentAndMoved()
+  
+def eventPresentAndMoved():
+  global status_presence,room_is_bright
+  pass
 
 def eventNobodyHere():
   global status_presence
