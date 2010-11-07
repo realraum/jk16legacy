@@ -9,6 +9,7 @@
 
 #define RF_DATA_OUT_PIN 13
 #define IR_MOVEMENT_PIN 9
+#define IR_MOVEMENT_PIN2 12
 #define ONE_WIRE_PIN 8
 #define PANIC_BUTTON_PIN 7
 #define PANICLED_PWM_PIN 6
@@ -426,9 +427,10 @@ void setup()
   pinMode(RF_DATA_OUT_PIN, OUTPUT);
   digitalWrite(RF_DATA_OUT_PIN, HIGH);
   pinMode(IR_MOVEMENT_PIN, INPUT);      // set pin to input
-  digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pulldown resistors  
+  digitalWrite(IR_MOVEMENT_PIN, LOW);  // turn off pullup resistors  
+  digitalWrite(IR_MOVEMENT_PIN2, LOW);  // turn off pullup resistors  
   pinMode(PANIC_BUTTON_PIN, INPUT);      // set pin to input
-  digitalWrite(PANIC_BUTTON_PIN, LOW);  // turn on pulldown resistors 
+  digitalWrite(PANIC_BUTTON_PIN, LOW);  // turn of pullup resistors 
   analogWrite(PANICLED_PWM_PIN,255);
   analogWrite(BLUELED_PWM_PIN,255); //pwm sink(-) instead of pwm + (better for mosfets)
   pinMode(IRREMOTE_SEND_PIN, OUTPUT);
@@ -452,6 +454,7 @@ void setup()
 
 unsigned int ir_time=IR_SAMPLE_DURATION;
 unsigned int ir_count=0;
+unsigned int ir_count2=0;
 boolean pb_last_state=0;
 boolean pb_state=0;
 boolean pb_postth_state=0;
@@ -468,6 +471,7 @@ void loop()
 {
   ir_time--;
   ir_count += (digitalRead(IR_MOVEMENT_PIN) == HIGH);
+  ir_count2 += (digitalRead(IR_MOVEMENT_PIN2) == HIGH);
 
   if (pb_time < PB_TRESHOLD)
     pb_time++;
@@ -475,13 +479,14 @@ void loop()
   
   if (ir_time == 0)
   {
-    if (ir_count >= IR_TRESHOLD)
+    if (ir_count >= IR_TRESHOLD || ir_count2 >= IR_TRESHOLD)
     {
       flash_led(0, 1, 8, 1, 0 );
       Serial.println("movement");
     }
     ir_time=IR_SAMPLE_DURATION;
     ir_count=0;
+    ir_count2=0;
   }
   
   if (pb_state == pb_last_state && pb_time >= PB_TRESHOLD)
