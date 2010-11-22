@@ -58,7 +58,7 @@ class UWSConfig:
     self.config_parser.set('msg','bored',"The Button has been pressed ! Maybe somebody want's company. Go Visit !")
     self.config_parser.set('msg','present',"Somebodys presence has been detected${door_action_msg}")
     self.config_parser.set('msg','notpresent',"Nobody seems to be here, guess everybody left${door_action_msg}")
-    self.config_parser.set('msg','door_action_msg',", door ${door_status} ${by_whom}")
+    self.config_parser.set('msg','door_action_msg',", door last ${door_status} ${by_whom}")
     self.config_parser.set('msg','status_error_msg',"ERROR Last Operation took too long !!!")
     self.config_parser.add_section('cam')
 #    self.config_parser.set('cam','freeze_url',"http://www.realraum.at/cgi/freeze_realraum_picture.pl?freeze=98VB9s")        

@@ -301,6 +301,7 @@ class StatusTracker: #(threading.Thread):
     self.last_somebody_present_result=False
     self.last_warning=None
     self.count_same_warning=0
+    self.who_might_be_here=None
     self.presence_notify_lock=threading.Lock()
     #timer
     self.timer=None
@@ -321,7 +322,8 @@ class StatusTracker: #(threading.Thread):
       self.lock.acquire()
       self.door_open_previously = self.door_open
     self.lock.release()
-    logging.debug("doorOpen: open: %s, who: %s, how: %s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present));
+    self.updateWhoMightBeHere(who)
+    logging.debug("doorOpen: open: %s, who: %s, how: %s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
     
   def doorClosed(self,who,how):
     self.uwscfg.checkConfigUpdates()
@@ -338,8 +340,8 @@ class StatusTracker: #(threading.Thread):
       self.lock.acquire()
       self.door_open_previously = self.door_open
     self.lock.release()
-    logging.debug("doorClosed: open: %s, who: %s, how:%s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present));
-    
+    self.updateWhoMightBeHere(who)
+    logging.debug("doorClosed: open: %s, who: %s, how:%s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
 
   def movementDetected(self):
     self.uwscfg.checkConfigUpdates()
@@ -351,7 +353,7 @@ class StatusTracker: #(threading.Thread):
   def currentLightLevel(self, value):
     self.uwscfg.checkConfigUpdates()
     self.last_light_unixts=time.time()
-    self.last_light_value=value;
+    self.last_light_value=value
     self.checkPresenceStateChangeAndNotify()
   
   def checkLight(self, somebody_present=None):
@@ -367,7 +369,6 @@ class StatusTracker: #(threading.Thread):
         return "Light: on"      
     else:
       return "Light: off"
-
 
   def checkAgainIn(self, sec):
     if sec <= 0.0:
@@ -415,14 +416,24 @@ class StatusTracker: #(threading.Thread):
       else:
         return None
  
+  def updateWhoMightBeHere(self, who):
+    with self.presence_notify_lock:
+      self.who_might_be_here = who
+
+  def forgetWhoMightBeHere(self, somebody_present):
+    with self.presence_notify_lock:
+      if not somebody_present:
+        self.who_might_be_here = None
+
   def checkPresenceStateChangeAndNotify(self):
+    #no acquiring of self.lock, "just" reading. chance wrong reads in favour of avoiding race conditions (is python var _read_ threadsafe ?)
     with self.presence_notify_lock:
       somebody_present = self.somebodyPresent()
-      logging.debug("checkPresenceStateChangeAndNotify: somebody_present=%s, door_open=%s, who=%s, light=%s" % (somebody_present,self.door_open,self.door_who, str(self.last_light_value)))
+      logging.debug("checkPresenceStateChangeAndNotify: somebody_present=%s, door_open=%s, door_who=%s, who=%s, light=%s" % (somebody_present,self.door_open,self.door_who,self.who_might_be_here, str(self.last_light_value)))
       if somebody_present != self.last_somebody_present_result:
         self.last_somebody_present_result = somebody_present
         if not self.status_change_handler is None:
-          self.status_change_handler(somebody_present, door_open=self.door_open, who=self.door_who)
+          self.status_change_handler(somebody_present, door_open=self.door_open, who=self.who_might_be_here)
       warning = self.getPossibleWarning()
       if warning == self.last_warning:
         self.count_same_warning+=1
@@ -432,8 +443,8 @@ class StatusTracker: #(threading.Thread):
       if not warning is None and self.count_same_warning < 3:
         logging.debug("checkPresenceStateChangeAndNotify: warning: " + str(warning))
         if not self.status_change_handler is None:
-          self.status_change_handler(somebody_present=None, door_open=self.door_open, who=self.door_who, warning=warning)
-        
+          self.status_change_handler(somebody_present=None, door_open=self.door_open, who=self.who_might_be_here, warning=warning)
+    self.forgetWhoMightBeHere(somebody_present)
  
 ############ Connection Listener ############
 class ConnectionListener:
