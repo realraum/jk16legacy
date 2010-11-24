@@ -313,6 +313,9 @@ class StatusTracker: #(threading.Thread):
     self.door_open=True
     if self.door_open != self.door_open_previously:
       self.door_who=who
+      self.lock.release()
+      self.updateWhoMightBeHere(who)
+      self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
       self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
       if not self.door_open_previously is None:
@@ -322,7 +325,6 @@ class StatusTracker: #(threading.Thread):
       self.lock.acquire()
       self.door_open_previously = self.door_open
     self.lock.release()
-    self.updateWhoMightBeHere(who)
     logging.debug("doorOpen: open: %s, who: %s, how: %s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
     
   def doorClosed(self,who,how):
@@ -331,6 +333,9 @@ class StatusTracker: #(threading.Thread):
     self.door_open=False
     if self.door_open != self.door_open_previously:
       self.door_who=who
+      self.lock.release()
+      self.updateWhoMightBeHere(who)
+      self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
       self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
       if not self.door_open_previously is None:
@@ -340,7 +345,6 @@ class StatusTracker: #(threading.Thread):
       self.lock.acquire()
       self.door_open_previously = self.door_open
     self.lock.release()
-    self.updateWhoMightBeHere(who)
     logging.debug("doorClosed: open: %s, who: %s, how:%s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
 
   def movementDetected(self):
