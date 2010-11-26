@@ -296,13 +296,13 @@ class StatusTracker: #(threading.Thread):
     self.last_movement_unixts=0
     self.last_light_value=0
     self.last_light_unixts=0
-    self.lock=threading.Lock()
+    self.lock=threading.RLock()
     #Notify State locked by self.presence_notify_lock
     self.last_somebody_present_result=False
     self.last_warning=None
     self.count_same_warning=0
     self.who_might_be_here=None
-    self.presence_notify_lock=threading.Lock()
+    self.presence_notify_lock=threading.RLock()
     #timer
     self.timer=None
     self.timer_timeout=0
@@ -317,7 +317,11 @@ class StatusTracker: #(threading.Thread):
       self.updateWhoMightBeHere(who)
       self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
-      self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
+      if how is None:
+        #propably used tuerctl remote interface
+        self.door_physically_present = False
+      else:
+        self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
       if not self.door_open_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
@@ -337,7 +341,11 @@ class StatusTracker: #(threading.Thread):
       self.updateWhoMightBeHere(who)
       self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
-      self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
+      if how is None:
+        #propably used tuerctl remote interface
+        self.door_physically_present = False
+      else:
+        self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
       if not self.door_open_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
@@ -438,6 +446,7 @@ class StatusTracker: #(threading.Thread):
         self.last_somebody_present_result = somebody_present
         if not self.status_change_handler is None:
           self.status_change_handler(somebody_present, door_open=self.door_open, who=self.who_might_be_here)
+        self.forgetWhoMightBeHere(somebody_present)
       warning = self.getPossibleWarning()
       if warning == self.last_warning:
         self.count_same_warning+=1
@@ -448,7 +457,6 @@ class StatusTracker: #(threading.Thread):
         logging.debug("checkPresenceStateChangeAndNotify: warning: " + str(warning))
         if not self.status_change_handler is None:
           self.status_change_handler(somebody_present=None, door_open=self.door_open, who=self.who_might_be_here, warning=warning)
-    self.forgetWhoMightBeHere(somebody_present)
  
 ############ Connection Listener ############
 class ConnectionListener:
