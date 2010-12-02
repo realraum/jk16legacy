@@ -317,11 +317,7 @@ class StatusTracker: #(threading.Thread):
       self.updateWhoMightBeHere(who)
       self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
-      if how is None:
-        #propably used tuerctl remote interface
-        self.door_physically_present = False
-      else:
-        self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
+      self.door_physically_present=(self.door_manual_switch_used or (not how is None and how.startswith("Card")))
       if not self.door_open_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
@@ -341,11 +337,7 @@ class StatusTracker: #(threading.Thread):
       self.updateWhoMightBeHere(who)
       self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
-      if how is None:
-        #propably used tuerctl remote interface
-        self.door_physically_present = False
-      else:
-        self.door_physically_present=(self.door_manual_switch_used or how.startswith("Card"))
+      self.door_physically_present=(self.door_manual_switch_used or (not how is None and how.startswith("Card")))
       if not self.door_open_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
