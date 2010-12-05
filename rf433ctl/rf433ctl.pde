@@ -17,7 +17,7 @@
 #define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
 #define IR_SAMPLE_DURATION 8000
-#define IR_TRESHOLD 6000
+#define IR_TRESHOLD 7500
 //duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Reports, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
 #define PB_TRESHOLD 1000
 #define PHOTO_SAMPLE_INTERVAL 4000
