@@ -37,11 +37,13 @@ class UWSConfig:
     self.config_parser.set('powerswitching','max_secs_since_movement','600')
     self.config_parser.add_section('slug')
     self.config_parser.set('slug','cgiuri','http://slug.realraum.at/cgi-bin/switch.cgi?id=%ID%&power=%ONOFF%')
+    self.config_parser.set('slug','lightleveluri','http://slug.realraum.at/cgi-bin/lightlevel.cgi')
     self.config_parser.set('slug','ids_logo','logo')
     self.config_parser.set('slug','ids_present_day_bright_room','ymhpoweron werkzeug ymhcd')
     self.config_parser.set('slug','ids_present_day_dark_room','ymhpoweron decke werkzeug ymhcd')
     self.config_parser.set('slug','ids_present_night','ymhpoweron werkzeug schreibtisch idee labor ymhcd')
     self.config_parser.set('slug','ids_panic','idee ymhmute labor werkzeug deckevorne deckehinten')
+    self.config_parser.set('slug','ids_decke','deckevorne deckehinten')
     self.config_parser.set('slug','ids_nonpresent_off','ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown lichter ymhpoweroff lichter')
     self.config_parser.set('slug','light_threshold_brightness','400')
     #self.config_parser.set('slug','time_day','6:00-17:00')
@@ -119,6 +121,13 @@ def switchPower(powerid,turn_on=False):
   else:
     onoff="off"
   touchURL(uwscfg.slug_cgiuri.replace("%ID%",powerid).replace("%ONOFF%",onoff))
+
+def getLightValueNow():
+  lvalue = touchURL(uwscfg.slug_lightleveluri)
+  try:
+    return int(lvalue)
+  except:
+    return None
 
 def haveDaylight():
   dawn_per_month = {1:8, 2:7, 3:6, 4:6, 5:5, 6:5, 7:5, 8:6, 9:7, 10:8, 11:8, 12:8}
@@ -267,9 +276,20 @@ def eventNobodyHere():
 ##  eventPresent()
 
 def eventPanic():
+  global light_value
   logging.info("eventPanic(): switching around: "+uwscfg.slug_ids_panic)
   lst1 = uwscfg.slug_ids_panic.split(" ")
   lst2 = map(lambda e:[e,False], lst1)
+  deckenlicht_ids = uwscfg.slug_ids_decke.split(" ")
+  old_deckenlicht_state = None
+  #guess main light state:
+  if len(list(set(deckenlicht_ids) & set(lst1))) > 0:
+    light_value_before = light_value
+    for id in deckenlicht_ids:
+      switchPower(id,False)
+    light_value_after = getLightValueNow()
+    if not (light_value_before is None or light_value_after is None):
+      old_deckenlicht_state = (abs(light_value_before - light_value_after) > 200)
   for id in lst1:
     switchPower(id,False)
   for times in range(1,6):
@@ -282,6 +302,9 @@ def eventPanic():
     switchPower(id,False)
   time.sleep(1.2)
   eventPresent()
+  if not old_deckenlicht_state is None:
+    for id in deckenlicht_ids:
+      switchPower(id,old_deckenlicht_state)
 
 
 ########################
@@ -318,6 +341,7 @@ RE_PHOTO = re.compile(r'photo\d: [^0-9]*?(\d+)')
 daylight=None
 wolfhour=None
 unixts_last_periodical=0
+light_value=0
 while True:
   try:
     if not os.path.exists(uwscfg.tracker_socket):
