@@ -46,7 +46,7 @@ class UWSConfig:
     self.config_parser.set('slug','ids_decke','deckevorne deckehinten')
     self.config_parser.set('slug','ids_nonpresent_off','ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown lichter ymhpoweroff lichter')
     self.config_parser.set('slug','light_threshold_brightness','400')
-    self.config_parser.set('slug','light_difference_decke','110')
+    self.config_parser.set('slug','light_difference_decke','100')
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
@@ -282,15 +282,17 @@ def eventPanic():
   lst1 = uwscfg.slug_ids_panic.split(" ")
   lst2 = map(lambda e:[e,False], lst1)
   deckenlicht_ids = uwscfg.slug_ids_decke.split(" ")
-  old_deckenlicht_state = None
+  ceiling_light_was_on = False
   #guess main light state:
   if len(list(set(deckenlicht_ids) & set(lst1))) > 0:
     light_value_before = light_value
     for id in deckenlicht_ids:
       switchPower(id,False)
+    time.sleep(2.8)
     light_value_after = getLightValueNow()
     if not (light_value_before is None or light_value_after is None):
-      old_deckenlicht_state = (abs(light_value_before - light_value_after) > int(uwscfg.slug_light_difference_decke))
+      ceiling_light_was_on = ((light_value_before - light_value_after) > int(uwscfg.slug_light_difference_decke))
+    logging.debug("eventPanic: light_value_before: %d, light_value_after: %d, ceiling_light_was_on: %s" % (light_value_before,light_value_after,str(ceiling_light_was_on)))
   for id in lst1:
     switchPower(id,False)
   for times in range(1,6):
@@ -303,9 +305,10 @@ def eventPanic():
     switchPower(id,False)
   time.sleep(1.2)
   eventPresent()
-  if not old_deckenlicht_state is None:
+  #we can only test if it was on, we don't any other informatino
+  if ceiling_light_was_on:
     for id in deckenlicht_ids:
-      switchPower(id,old_deckenlicht_state)
+      switchPower(id,True)
 
 
 ########################
