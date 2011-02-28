@@ -46,6 +46,7 @@ class UWSConfig:
     self.config_parser.set('slug','ids_decke','deckevorne deckehinten')
     self.config_parser.set('slug','ids_nonpresent_off','ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown ymhvoldown lichter ymhpoweroff lichter')
     self.config_parser.set('slug','light_threshold_brightness','400')
+    self.config_parser.set('slug','light_difference_decke','110')
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
@@ -289,7 +290,7 @@ def eventPanic():
       switchPower(id,False)
     light_value_after = getLightValueNow()
     if not (light_value_before is None or light_value_after is None):
-      old_deckenlicht_state = (abs(light_value_before - light_value_after) > 200)
+      old_deckenlicht_state = (abs(light_value_before - light_value_after) > int(uwscfg.slug_light_difference_decke))
   for id in lst1:
     switchPower(id,False)
   for times in range(1,6):
