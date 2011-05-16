@@ -1,5 +1,5 @@
 werkzeug      a
-boiler	      b
+boiler        b
 stereo        .
 labor         c
 dart          d
