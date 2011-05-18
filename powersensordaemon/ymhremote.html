@@ -64,14 +64,6 @@ document.onkeydown = remoteKeyboard;
 
 
 </script>
-</head>
-<body>
-
-<table border="0" cellspacing="0" cellpadding="0">
-<tr><td id="indicator" style="background-color:white; height:2px;"></td></tr>
-<tr><td><img src="rx-v396-remote.png" width="180" height="714" usemap="#ymhremote" id="remoteimg" border="0" /></td></tr>
-</table>
-
 <map name="ymhremote">
 <area shape ="rect" coords ="57,36,121,59" onClick="sendButton('ymhpower');"  />
 
@@ -109,5 +101,14 @@ document.onkeydown = remoteKeyboard;
 <area shape ="circle" coords ="142,634,17" onClick="sendButton('ymhmenu');" alt="ymhmenu" />
 <!-- href ="./cgi-bin/switch.cgi" target ="_blank" -->
 </map>
-<p id="commandlabel" style="display:hidden;">&nbsp;</p>
+</head>
+<body>
+<center>
+<table border="0" cellspacing="0" cellpadding="0" width="180">
+<tr><td id="indicator" style="background-color:white; height:2px;"></td></tr>
+<tr><td><img src="rx-v396-remote.png" width="180" height="714" usemap="#ymhremote" id="remoteimg" border="0" /></td></tr>
+</table>
+<p id="commandlabel" style="display:hidden; width:180px;">&nbsp;</p>
+</center>
+</body>
 </html>
