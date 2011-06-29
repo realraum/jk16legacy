@@ -22,13 +22,27 @@ done
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
 VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler"
 VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
-
+VALID_BANSHEE_IDS="playPause next prev"
 
 [ "$POWER" == "send" ] && POWER=on
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
   for CHECKID in $VALID_ONOFF_IDS $VALID_SEND_IDS; do 
     if [ "$CHECKID" == "$ID" ]; then
       echo "power $POWER $ID" | usocket $UNIXSOCK
+      echo "Content-type: text/html"
+      echo ""
+      echo "<html>"
+      echo "<head>"
+      echo "<title>Realraum rf433ctl</title>"
+      echo '<script type="text/javascript">window.location="http://slug.realraum.at/cgi-bin/switch.cgi";</script>'
+      echo "</head></html>"
+      exit 0
+    fi
+  done
+
+  for CHECKID in $VALID_BANSHEE_IDS; do 
+    if [ "$CHECKID" == "$ID" ]; then
+      echo "$ID/" | nc wuerfel.realraum.at 8484
       echo "Content-type: text/html"
       echo ""
       echo "<html>"
@@ -137,6 +151,29 @@ for DISPID in $VALID_SEND_IDS; do
   echo "</span></div>"
   echo "</form>"
 
+  else
+  
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>Send</button>"
+  echo "</span></div>"
+  
+  fi
+done
+echo "</div>"
+echo "<div style=\"float:left; border:1px solid black;\">"
+for DISPID in $VALID_BANSHEE_IDS; do
+  NAME="$(eval echo \$DESC_$DISPID)"
+  [ -z "$NAME" ] && NAME=$DISPID
+  if [ -z "$AJAX" ]; then
+
+  echo "<form action=\"/cgi-bin/switch.cgi\">"
+  echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo " <input type='submit' name='power' value='on' />"
+  echo " <input type='submit' name='power' value='off' />"
+  echo "</span></div>"
+  echo "</form>"
+  
   else
   
   echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
