@@ -111,16 +111,37 @@ const rf_bit_t float_bit[] = { {  4, 1 },
 const rf_bit_t sync_bit[] = { {   4, 1 },
                               { 128, 0 },
                               {   0, 0 } };
-                              
-const rf_bit_t pwm_0_bit[] = {  {6, 1}, {17, 0}, {  0, 0 } };     // 1.86ms gesamt: { 0.46ms HIGH , 1.4ms LOW }
-const rf_bit_t pwm_1_bit[] = {  {17, 1}, {6, 0}, {  0, 0 } };  //// 1.86ms gesamt: { 1.4ms HIGH , 0.46ms LOW }
-const rf_bit_t pwm_pause_bit[] = {  {161, 0}, {  0, 0 } };  //// 12.9ms pause 
+                      
+// whole word duration: ~46.80 ms
+// pause duration: ~14.9ms - 1.86ms = ~13ms
+// bit duration: 1.860 ms
+
+// in theory better but non-working timings @ alpha=0.0775ms
+//const rf_bit_t pwm_0_bit[] = {  {6, 1}, {18, 0}, {  0, 0 } };     // 1.86ms gesamt: { 0.46ms HIGH , 1.4ms LOW }
+//const rf_bit_t pwm_1_bit[] = {  {18, 1}, {6, 0}, {  0, 0 } };  //// 1.86ms gesamt: { 1.4ms HIGH , 0.46ms LOW }
+//const rf_bit_t pwm_pause_bit[] = {  {167, 0}, {  0, 0 } };  //// 13ms pause 
+
+// somewhat working timings @ alpha=0.0775ms
+const rf_bit_t pwm_0_bit[] = {  {7, 1}, {17, 0}, {  0, 0 } };     // 1.86ms gesamt: { 0.46ms HIGH , 1.4ms LOW }
+const rf_bit_t pwm_1_bit[] = {  {18, 1}, {6, 0}, {  0, 0 } };  //// 1.86ms gesamt: { 1.4ms HIGH , 0.46ms LOW }
+const rf_bit_t pwm_pause_bit[] = {  {168, 0}, {  0, 0 } };  //// 13ms pause 
+
+// // exact but non-working timings @ alpha=0.02ms
+// const rf_bit_t pwm_0_bit[] = {  {23, 1}, {70, 0}, {  0, 0 } };     // 1.86ms gesamt: { 0.46ms HIGH , 1.4ms LOW }
+// const rf_bit_t pwm_1_bit[] = {  {70, 1}, {23, 0}, {  0, 0 } };  //// 1.86ms gesamt: { 1.4ms HIGH , 0.46ms LOW }
+// const rf_bit_t pwm_pause_bit[] = {  {215, 0}, {  0, 0 } };  //// 1/3* 12.9ms pause 
+
+//default:
+// almost as good somwhat working approximate timings @ alpha=0.08ms
+//const rf_bit_t pwm_0_bit[] = {  {6, 1}, {17, 0}, {  0, 0 } };     // 1.86ms gesamt: { 0.46ms HIGH , 1.4ms LOW }
+//const rf_bit_t pwm_1_bit[] = {  {18, 1}, {6, 0}, {  0, 0 } };  //// 1.86ms gesamt: { 1.4ms HIGH , 0.46ms LOW }
+//const rf_bit_t pwm_pause_bit[] = {  {162, 0}, {  0, 0 } };  //// 13ms pause 
 
 typedef enum { ZERO = 0, ONE , FLOAT , SYNC , PWM0, PWM1, PWM_PAUSE, WORD_END } adbit_t;
 typedef byte ad_bit_t;
 #define WORD_LEN 13
-#define MAX_WORD_LEN 26
-typedef ad_bit_t word_t[MAX_WORD_LEN+1];
+#define MAX_WORD_LEN 27
+typedef ad_bit_t word_t[MAX_WORD_LEN];
 
 const rf_bit_t* bit_defs[] = { zero_bit, one_bit, float_bit, sync_bit, pwm_0_bit, pwm_1_bit, pwm_pause_bit };
 
@@ -132,7 +153,7 @@ byte word_cnt = 0;
 const ad_bit_t* current_word;
 byte volatile frame_finished = 1;
 
-#define FRAME_LEN 8
+#define FRAME_LEN 10
 
 #define A1_ON  0
 #define A1_OFF 1
@@ -196,7 +217,7 @@ const word_t words[]  = {
 {PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM1,PWM1,PWM0,PWM1,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM1,PWM1,PWM0, PWM_PAUSE, WORD_END}, // BLACK_A2_OFF
 {PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM1,PWM1,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM1,PWM1,PWM0,PWM0,PWM0, PWM_PAUSE, WORD_END}, // BLACK_A3_ON
 {PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM1,PWM1,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM1,PWM1,PWM0, PWM_PAUSE, WORD_END}, // BLACK_A3_OFF
-  
+
 {PWM0,PWM1,PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM1,PWM1,PWM0,PWM0,PWM0, PWM_PAUSE, WORD_END}, // BLACK_B1_ON  
 {PWM0,PWM1,PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM1,PWM1,PWM0, PWM_PAUSE, WORD_END}, // BLACK_B1_OFF  
 {PWM0,PWM1,PWM1,PWM1,PWM0,PWM1,PWM0,PWM1,PWM0,PWM1,PWM1,PWM1,PWM0,PWM1,PWM0,PWM0,PWM0,PWM0,PWM0,PWM0,PWM1,PWM1,PWM0,PWM0,PWM0, PWM_PAUSE, WORD_END}, // BLACK_B2_ON  
@@ -214,7 +235,10 @@ void start_timer()
   // timer 1: 2 ms
   TCCR1A = 0;                    // prescaler 1:8, WGM = 4 (CTC)
   TCCR1B = 1<<WGM12 | 1<<CS11;   // 
-  OCR1A = 159;        // (1+159)*8 = 1280 -> 0.08ms @ 16 MHz -> 1*alpha
+//  OCR1A = 39;        // (1+39)*8 = 320 -> 0.02ms @ 16 MHz -> 1*alpha
+//default: alpha=0.08  
+//  OCR1A = 159;        // (1+159)*8 = 1280 -> 0.08ms @ 16 MHz -> 1*alpha
+OCR1A = 154;        // (1+154)*8 = 1240 -> 0.0775ms @ 16 MHz -> 1*alpha
 //  OCR1A = 207;        // (1+207)*8 = 1664 -> 0.104ms @ 16 MHz -> 1*alpha
   TCNT1 = 0;          // reseting timer
   TIMSK1 = 1<<OCIE1A; // enable Interrupt
