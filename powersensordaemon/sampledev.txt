@@ -1,2 +1,2 @@
-temp0     T
-photo0    P
+temp0     *
+photo0    ?
