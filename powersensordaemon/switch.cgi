@@ -20,7 +20,7 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
 done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler"
+VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler lichterkette"
 VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
 VALID_BANSHEE_IDS="playPause next prev"
 
@@ -65,6 +65,7 @@ DESC_logo="Logo"
 DESC_spots1="Spots"
 DESC_deckehinten="Decke Hinten"
 DESC_deckevorne="Decke Vorne"
+DESC_lichterkette="Blaue Lichterkette"
 DESC_decke="Deckenlichter"
 DESC_lichter="Alle Lichter"
 DESC_all="Alles"
