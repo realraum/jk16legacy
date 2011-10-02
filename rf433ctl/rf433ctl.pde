@@ -16,8 +16,8 @@
 #define BLUELED_PWM_PIN 11
 #define PHOTO_ANALOGPIN 0
 //movement is reported if during IR_SAMPLE_DURATION at least IR_TRESHOLD ir signals are detectd
-#define IR_SAMPLE_DURATION 8000
-#define IR_TRESHOLD 7500
+#define IR_SAMPLE_DURATION 6000
+#define IR_TRESHOLD 5900
 //duration PanicButton needs to be pressed before status change occurs (i.e. for two PanicButton Reports, the buttons needs to be pressed 1000 cycles, releases 1000 cycles and again pressed 1000 cycles)
 #define PB_TRESHOLD 1000
 #define PHOTO_SAMPLE_INTERVAL 4000
@@ -141,7 +141,7 @@ byte word_cnt = 0;
 const ad_bit_t* current_word;
 byte volatile frame_finished = 1;
 
-#define FRAME_LEN 9
+#define FRAME_LEN 8
 
 #define A1_ON  0
 #define A1_OFF 1
