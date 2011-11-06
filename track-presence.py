@@ -51,6 +51,7 @@ class UWSConfig:
     self.config_parser.set('tracker','sec_wait_after_close_using_manualswitch',"22.0")
     self.config_parser.set('tracker','sec_movement_before_manual_switch',"-3.0")  #neg duration means: movement has to occur _after_ door was closed manually
     self.config_parser.set('tracker','sec_general_movement_timeout',"3600")
+    self.config_parser.set('tracker','num_movements_req_on_nonpresence_until_present',"3")
     self.config_parser.set('tracker','server_socket',"/var/run/tuer/presence.socket")
     self.config_parser.set('tracker','photo_flashlight',"1020")
     self.config_parser.set('tracker','photo_artif_light',"970")
@@ -306,6 +307,7 @@ class StatusTracker: #(threading.Thread):
     #timer
     self.timer=None
     self.timer_timeout=0
+    self.num_movements_during_nonpresences = 0
     
   def doorOpen(self,who,how):
     self.uwscfg.checkConfigUpdates()
@@ -387,24 +389,38 @@ class StatusTracker: #(threading.Thread):
   
   def somebodyPresent(self):
     with self.lock:
+      #door open:
       if self.door_open:
+        self.num_movements_during_nonpresences = 0
         if self.door_physically_present:
           return True
         elif self.last_movement_unixts > self.last_door_operation_unixts:
           return True
         else:
           return False
+      # door closed:
+      # door closed from inside, stay on last status ....
       elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch):
+        self.num_movements_during_nonpresences = 0
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch))
         return self.last_somebody_present_result
       elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone):
+        self.num_movements_during_nonpresences = 0
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone))
         return self.last_somebody_present_result
+      # door closed from inside and movement detected around that time
       elif self.door_manual_switch_used and self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch):
+        self.num_movements_during_nonpresences = 0
         return True
+      # door closed, nobody here but movement dedected:
       elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
-        return True
+        self.num_movements_during_nonpresences += 1
+        if self.num_movements_during_nonpresences >= int(self.uwscfg.tracker_num_movements_req_on_nonpresence_until_present):
+          return True
+        else:
+          return False
       else:
+        self.num_movements_during_nonpresences = 0
         return False
  
   def getPossibleWarning(self):
