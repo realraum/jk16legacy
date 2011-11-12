@@ -399,20 +399,21 @@ class StatusTracker: #(threading.Thread):
         else:
           return False
       # door closed:
+      # door not closed from inside, but with card/phone .. check again in ...
+      elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone):
+        self.num_movements_during_nonpresences = 0
+        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone))
+        return self.last_somebody_present_result      
       # door closed from inside, stay on last status ....
       elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch):
         self.num_movements_during_nonpresences = 0
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch))
         return self.last_somebody_present_result
-      elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone):
-        self.num_movements_during_nonpresences = 0
-        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone))
-        return self.last_somebody_present_result
       # door closed from inside and movement detected around that time
       elif self.door_manual_switch_used and self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch):
         self.num_movements_during_nonpresences = 0
         return True
-      # door closed, nobody here but movement dedected:
+      # door was closed and nobody here But movement is dedected:
       elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
         self.num_movements_during_nonpresences += 1
         if self.num_movements_during_nonpresences >= int(self.uwscfg.tracker_num_movements_req_on_nonpresence_until_present):
