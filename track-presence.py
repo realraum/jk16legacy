@@ -413,13 +413,13 @@ class StatusTracker: #(threading.Thread):
       elif self.door_manual_switch_used and self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch):
         self.num_movements_during_nonpresences = 0
         return True
-      # door was closed and nobody here But movement is dedected:
-      elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
-        self.num_movements_during_nonpresences += 1
-        if self.num_movements_during_nonpresences >= int(self.uwscfg.tracker_num_movements_req_on_nonpresence_until_present):
-          return True
-        else:
-          return False
+      ##door was closed and nobody here But movement is dedected:
+      #elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
+      #  self.num_movements_during_nonpresences += 1
+      #  if self.num_movements_during_nonpresences >= int(self.uwscfg.tracker_num_movements_req_on_nonpresence_until_present):
+      #    return True
+      #  else:
+      #    return False
       else:
         self.num_movements_during_nonpresences = 0
         return False
