@@ -214,7 +214,7 @@ door_socklock=threading.Lock()
 def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
   global door_sockhandle, door_socklock, threads_running
   #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-  RE_STATUS = re.compile(r'Status: (\w+), idle',re.I)
+  RE_STATUS = re.compile(r'Status: (\w+), idle.*',re.I)
   RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)',re.I)
   RE_ERROR = re.compile(r'Error: (.+)',re.I)
   while threads_running:
