@@ -447,10 +447,10 @@ class StatusTracker: #(threading.Thread):
   def getPossibleWarning(self):
     with self.lock:
       somebody_present=self.last_somebody_present_result
-      if not self.door_unlocked and not somebody_present and not self.door_closed:
-        return "Nobody here and door locked but still ajar !"
+      if not somebody_present and not self.door_closed:
+        return "Nobody here but door ajar !"
       elif self.door_unlocked and not somebody_present and time.time() - self.last_door_operation_unixts >= float(self.uwscfg.tracker_sec_wait_for_movement_before_warning):
-        return "Door opened recently but nobody present"
+        return "Door unlocked recently but nobody present"
       elif self.door_unlocked and not somebody_present:
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_for_movement_before_warning))
         return None
