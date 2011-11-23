@@ -296,6 +296,7 @@ class StatusTracker: #(threading.Thread):
     #State locked by self.lock
     self.door_unlocked_previously=None
     self.door_unlocked=False
+    self.door_closed=True
     self.door_manual_switch_used=False
     self.door_physically_present=True
     self.door_who=None
@@ -446,7 +447,7 @@ class StatusTracker: #(threading.Thread):
   def getPossibleWarning(self):
     with self.lock:
       somebody_present=self.last_somebody_present_result
-      if not self.door_unlocked and not somebody_present and self.door_open:
+      if not self.door_unlocked and not somebody_present and not self.door_closed:
         return "Nobody here and door locked but still ajar !"
       elif self.door_unlocked and not somebody_present and time.time() - self.last_door_operation_unixts >= float(self.uwscfg.tracker_sec_wait_for_movement_before_warning):
         return "Door opened recently but nobody present"
@@ -471,7 +472,7 @@ class StatusTracker: #(threading.Thread):
     #no acquiring of self.lock, "just" reading. chance wrong reads in favour of avoiding race conditions (is python var _read_ threadsafe ?)
     with self.presence_notify_lock:
       somebody_present = self.somebodyPresent()
-      logging.debug("checkPresenceStateChangeAndNotify: somebody_present=%s, door_locked=%s, door_ajar=%s, door_who=%s, who=%s, light=%s" % (somebody_present,not self.door_unlocked, self.door_open, self.door_who,self.who_might_be_here, str(self.last_light_value)))
+      logging.debug("checkPresenceStateChangeAndNotify: somebody_present=%s, door_locked=%s, door_ajar=%s, door_who=%s, who=%s, light=%s" % (somebody_present,not self.door_unlocked, not self.door_closed, self.door_who,self.who_might_be_here, str(self.last_light_value)))
       if somebody_present != self.last_somebody_present_result:
         self.last_somebody_present_result = somebody_present
         if not self.status_change_handler is None:
