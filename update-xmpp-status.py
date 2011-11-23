@@ -311,13 +311,13 @@ def formatAndDistributePresence(presence, door_tuple=(None,None)):
 def formatAndDistributeWarning(msg, door_tuple=(None,None)):
   distributeXmppMsg("Warning: "+msg , high_priority=True)
 
-current_status = (None, None, None, None) 
+current_status = (None, None, None, None, None) 
 def filterAndFormatMessage(new_status):
   global current_status
   if new_status[0] == "error":
     distributeXmppMsg(uwscfg.msg_status_error_msg, high_priority=True)
   elif current_status[0] != new_status[0]:
-    distributeXmppMsg("Status: (%s,%s,%s,%s)" % new_status ,debug=True)
+    distributeXmppMsg("Status: (%s,%s,%s,%s,%s)" % new_status ,debug=True)
   current_status=new_status
 
 def exitHandler(signum, frame):
@@ -350,7 +350,7 @@ else:
   uwscfg = UWSConfig()
 
 distributeXmppMsg("update-xmpp-status.py started", debug=True)
-RE_STATUS = re.compile(r'Status: (\w+), idle')
+RE_STATUS = re.compile(r'Status: (closed|opened), (opening|waiting|closing|idle), (ajar|shut).*',re.I)
 RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
 RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
@@ -402,7 +402,8 @@ while True:
       m = RE_STATUS.match(line)
       if not m is None:
         status = m.group(1)
-        filterAndFormatMessage((status,) + last_request)
+        ajar_status = m.group(3)
+        filterAndFormatMessage((status,ajar_status) + last_request)
         last_request = (None, None, None)
         continue
       
@@ -418,7 +419,7 @@ while True:
       if not m is None:
         errorstr = m.group(1)
         if "too long!" in errorstr:
-          filterAndFormatMessage(("error",) + last_request)
+          filterAndFormatMessage(("error","") + last_request)
           last_request = (None, None, None)
         else:
           logging.error("Recieved Error: "+errorstr)

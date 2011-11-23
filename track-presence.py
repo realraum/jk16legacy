@@ -214,7 +214,7 @@ door_socklock=threading.Lock()
 def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
   global door_sockhandle, door_socklock, threads_running
   #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-  RE_STATUS = re.compile(r'Status: (\w+), idle.*',re.I)
+  RE_STATUS = re.compile(r'Status: (closed|opened), (opening|waiting|closing|idle), (ajar|shut).*',re.I)
   RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)',re.I)
   RE_ERROR = re.compile(r'Error: (.+)',re.I)
   while threads_running:
@@ -248,13 +248,19 @@ def trackDoorStatusThread(uwscfg, status_tracker,connection_listener):
         
         m = RE_STATUS.match(line)
         if not m is None:
-          status = m.group(1)
-          if status == "opened":
-            status_tracker.doorOpen(last_who, last_how)
-          if status == "closed":
-            status_tracker.doorClosed(last_who, last_how)
-          last_who = None
-          last_how = None
+          (status, current_operation, ajar_status) = m.group(1,2,3)
+          #REALLY: doorOpen/Closed should be called before doorLocked/Unlocked
+          if ajar_status == "ajar":
+            status_tracker.doorOpen()
+          else:
+            status_tracker.doorClosed()
+          if current_operation == "idle":
+            if status == "opened":
+              status_tracker.doorUnlocked(last_who, last_how)
+            if status == "closed":
+              status_tracker.doorLocked(last_who, last_how)
+            last_who = None
+            last_how = None
           continue
         m = RE_REQUEST.match(line)
         if not m is None:  
@@ -288,8 +294,8 @@ class StatusTracker: #(threading.Thread):
     self.uwscfg=uwscfg
     self.status_change_handler = None
     #State locked by self.lock
-    self.door_open_previously=None
-    self.door_open=False
+    self.door_unlocked_previously=None
+    self.door_unlocked=False
     self.door_manual_switch_used=False
     self.door_physically_present=True
     self.door_who=None
@@ -308,46 +314,57 @@ class StatusTracker: #(threading.Thread):
     self.timer=None
     self.timer_timeout=0
     self.num_movements_during_nonpresences = 0
-    
-  def doorOpen(self,who,how):
+
+  def doorOpen(self):
+    logging.debug("doorOpen()")
+    self.door_closed=False
+    #future other stuff
+
+  def doorClosed(self):
+    logging.debug("doorClosed()")
+    self.door_closed=True
+    #future other stuff
+
+  def doorUnlocked(self,who,how):
     self.uwscfg.checkConfigUpdates()
     self.lock.acquire()
-    self.door_open=True
-    if self.door_open != self.door_open_previously:
+    self.door_unlocked=True
+    self.door_closed=True
+    if self.door_unlocked != self.door_unlocked_previously:
       self.door_who=who
       self.lock.release()
       self.updateWhoMightBeHere(who)
       self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
       self.door_physically_present=(self.door_manual_switch_used or (not how is None and how.startswith("Card")))
-      if not self.door_open_previously is None:
+      if not self.door_unlocked_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
       self.checkPresenceStateChangeAndNotify()
       self.lock.acquire()
-      self.door_open_previously = self.door_open
+      self.door_unlocked_previously = self.door_unlocked
     self.lock.release()
-    logging.debug("doorOpen: open: %s, who: %s, how: %s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
+    logging.debug("doorUnlocked: open: %s, who: %s, how: %s, manual_switch: %s; physically_present: %s" % (self.door_unlocked,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
     
-  def doorClosed(self,who,how):
+  def doorLocked(self,who,how):
     self.uwscfg.checkConfigUpdates()
     self.lock.acquire()
-    self.door_open=False
-    if self.door_open != self.door_open_previously:
+    self.door_unlocked=False
+    if self.door_unlocked != self.door_unlocked_previously:
       self.door_who=who
       self.lock.release()
       self.updateWhoMightBeHere(who)
       self.lock.acquire()
       self.door_manual_switch_used=(who is None or len(who) == 0)
       self.door_physically_present=(self.door_manual_switch_used or (not how is None and how.startswith("Card")))
-      if not self.door_open_previously is None:
+      if not self.door_unlocked_previously is None:
         self.last_door_operation_unixts=time.time()
       self.lock.release()
       self.checkPresenceStateChangeAndNotify()
       self.lock.acquire()
-      self.door_open_previously = self.door_open
+      self.door_unlocked_previously = self.door_unlocked
     self.lock.release()
-    logging.debug("doorClosed: open: %s, who: %s, how:%s, manual_switch: %s; physically_present: %s" % (self.door_open,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
+    logging.debug("doorLocked: open: %s, who: %s, how:%s, manual_switch: %s; physically_present: %s" % (self.door_unlocked,self.door_who,how,self.door_manual_switch_used,self.door_physically_present))
 
   def movementDetected(self):
     self.uwscfg.checkConfigUpdates()
@@ -389,8 +406,8 @@ class StatusTracker: #(threading.Thread):
   
   def somebodyPresent(self):
     with self.lock:
-      #door open:
-      if self.door_open:
+      #door unlocked:
+      if self.door_unlocked:
         self.num_movements_during_nonpresences = 0
         if self.door_physically_present:
           return True
@@ -398,18 +415,20 @@ class StatusTracker: #(threading.Thread):
           return True
         else:
           return False
-      # door closed:
-      # door not closed from inside, but with card/phone .. check again in ...
+      # door locked but still ajar:
+      elif self.door_closed == False:   #and elf.door_unlocked == False
+        return True
+      # door not locked from inside, but with card/phone .. check again in ...
       elif not self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone):
         self.num_movements_during_nonpresences = 0
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone))
         return self.last_somebody_present_result      
-      # door closed from inside, stay on last status ....
+      # door locked from inside, stay on last status ....
       elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch):
         self.num_movements_during_nonpresences = 0
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch))
         return self.last_somebody_present_result
-      # door closed from inside and movement detected around that time
+      # door locked from inside and movement detected around that time
       elif self.door_manual_switch_used and self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch):
         self.num_movements_during_nonpresences = 0
         return True
@@ -427,9 +446,11 @@ class StatusTracker: #(threading.Thread):
   def getPossibleWarning(self):
     with self.lock:
       somebody_present=self.last_somebody_present_result
-      if self.door_open and not somebody_present and time.time() - self.last_door_operation_unixts >= float(self.uwscfg.tracker_sec_wait_for_movement_before_warning):
+      if not self.door_unlocked and not somebody_present and self.door_open:
+        return "Nobody here and door locked but still ajar !"
+      elif self.door_unlocked and not somebody_present and time.time() - self.last_door_operation_unixts >= float(self.uwscfg.tracker_sec_wait_for_movement_before_warning):
         return "Door opened recently but nobody present"
-      elif self.door_open and not somebody_present:
+      elif self.door_unlocked and not somebody_present:
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_for_movement_before_warning))
         return None
 #      elif not somebody_present and self.last_light_unixts > self.last_door_operation_unixts and self.last_light_value > int(self.uwscfg.tracker_photo_artif_light):
@@ -450,11 +471,11 @@ class StatusTracker: #(threading.Thread):
     #no acquiring of self.lock, "just" reading. chance wrong reads in favour of avoiding race conditions (is python var _read_ threadsafe ?)
     with self.presence_notify_lock:
       somebody_present = self.somebodyPresent()
-      logging.debug("checkPresenceStateChangeAndNotify: somebody_present=%s, door_open=%s, door_who=%s, who=%s, light=%s" % (somebody_present,self.door_open,self.door_who,self.who_might_be_here, str(self.last_light_value)))
+      logging.debug("checkPresenceStateChangeAndNotify: somebody_present=%s, door_locked=%s, door_ajar=%s, door_who=%s, who=%s, light=%s" % (somebody_present,not self.door_unlocked, self.door_open, self.door_who,self.who_might_be_here, str(self.last_light_value)))
       if somebody_present != self.last_somebody_present_result:
         self.last_somebody_present_result = somebody_present
         if not self.status_change_handler is None:
-          self.status_change_handler(somebody_present, door_open=self.door_open, who=self.who_might_be_here)
+          self.status_change_handler(somebody_present, door_open=self.door_unlocked, who=self.who_might_be_here)
         self.forgetWhoMightBeHere(somebody_present)
       warning = self.getPossibleWarning()
       if warning == self.last_warning:
@@ -465,7 +486,7 @@ class StatusTracker: #(threading.Thread):
       if not warning is None and self.count_same_warning < 3:
         logging.debug("checkPresenceStateChangeAndNotify: warning: " + str(warning))
         if not self.status_change_handler is None:
-          self.status_change_handler(somebody_present=None, door_open=self.door_open, who=self.who_might_be_here, warning=warning)
+          self.status_change_handler(somebody_present=None, door_open=self.door_unlocked, who=self.who_might_be_here, warning=warning)
  
 ############ Connection Listener ############
 class ConnectionListener:
