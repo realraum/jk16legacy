@@ -80,9 +80,9 @@ sample code bearing this copyright.
 
 #include "OneWire.h"
 #include "pins_arduino.h"
+#include "Arduino.h"
 
 extern "C" {
-#include "WConstants.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>

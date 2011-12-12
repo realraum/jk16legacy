@@ -7,6 +7,8 @@ PORT = /dev/ttyUSB0
 UPLOAD_RATE = 57600
 AVRDUDE_PROGRAMMER = stk500v1
 MCU = atmega328p
+# standard | micro |  mega | leonardo | eightanaloginputs
+VARIANT=standard
 F_CPU = 16000000
 
 ############################################################################
@@ -14,13 +16,15 @@ F_CPU = 16000000
 
 RESET_TTY_DIR=../reset_tty/
 RESET_TTY=$(RESET_TTY_DIR)reset_tty
-ARDUINO = $(INSTALL_DIR)/hardware/cores/arduino
+ARDUINO = $(INSTALL_DIR)/hardware/arduino
+ARDUINOCORE = $(ARDUINO)/cores/arduino
+ARDUINOVAR = $(ARDUINO)/variants/$(VARIANT)
 AVR_TOOLS_PATH = /usr/bin
-SRC =  $(ARDUINO)/pins_arduino.c $(ARDUINO)/wiring.c \
-$(ARDUINO)/wiring_analog.c $(ARDUINO)/wiring_digital.c \
-$(ARDUINO)/wiring_pulse.c $(ARDUINO)/wiring_serial.c \
-$(ARDUINO)/wiring_shift.c $(ARDUINO)/WInterrupts.c
-CXXSRC = OneWire/OneWire.cpp DallasTemperature/DallasTemperature.cpp  $(ARDUINO)/HardwareSerial.cpp $(ARDUINO)/Print.cpp $(ARDUINO)/WMath.cpp IRremote/IRremote.cpp
+SRC =  $(ARDUINOCORE)/wiring.c \
+$(ARDUINOCORE)/wiring_analog.c $(ARDUINOCORE)/wiring_digital.c \
+$(ARDUINOCORE)/wiring_pulse.c  \
+$(ARDUINOCORE)/wiring_shift.c $(ARDUINOCORE)/WInterrupts.c
+CXXSRC = $(ARDUINOCORE)/new.cpp $(ARDUINOCORE)/WString.cpp OneWire/OneWire.cpp DallasTemperature/DallasTemperature.cpp  $(ARDUINOCORE)/HardwareSerial.cpp $(ARDUINOCORE)/Print.cpp $(ARDUINOCORE)/WMath.cpp IRremote/IRremote.cpp
 FORMAT = ihex
 
 
@@ -39,17 +43,19 @@ CDEFS = -DF_CPU=$(F_CPU)
 CXXDEFS = -DF_CPU=$(F_CPU)
 
 # Place -I options here
-CINCS =  -I ./OneWire -I ./DallasTemperature -I ./IRremote -I$(ARDUINO)
-CXXINCS = -I ./OneWire -I ./DallasTemperature -I ./IRremote -I$(ARDUINO)
+CINCS =  -I ./OneWire -I ./DallasTemperature -I ./IRremote -I$(ARDUINOCORE) -I $(ARDUINOVAR)
+CXXINCS = -I ./OneWire -I ./DallasTemperature -I ./IRremote -I$(ARDUINOCORE) -I $(ARDUINOVAR)
 
 # Compiler flag to set the C Standard level.
 # c89   - "ANSI" C
 # gnu89 - c89 plus GCC extensions
 # c99   - ISO C99 standard (not yet fully implemented)
 # gnu99 - c99 plus GCC extensions
-CSTANDARD = -std=gnu99
+#CSTANDARD = -std=gnu99
+CSTANDARD = 
 CDEBUG = -g$(DEBUG)
-CWARN = -Wall -Wstrict-prototypes
+#CWARN = -Wall -Wstrict-prototypes
+CWARN = -Wall 
 CTUNING = -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 #CEXTRA = -Wa,-adhlns=$(<:.c=.lst)
 
@@ -99,15 +105,14 @@ build: elf hex
 applet_files: $(TARGET).pde
 	# Here is the "preprocessing".
 	# It creates a .cpp file based with the same name as the .pde file.
-	# On top of the new .cpp file comes the WProgram.h header.
 	# At the end there is a generic main() function attached.
 	# Then the .cpp file will be compiled. Errors during compile will
 	# refer to this new, automatically generated, file. 
 	# Not the original .pde file you actually edit...
 	test -d applet || mkdir applet
-	echo '#include "WProgram.h"' > applet/$(TARGET).cpp
+	echo '#include <Arduino.h>' > applet/$(TARGET).cpp
 	cat $(TARGET).pde >> applet/$(TARGET).cpp
-	cat $(ARDUINO)/main.cxx >> applet/$(TARGET).cpp
+	cat $(ARDUINOCORE)/main.cpp >> applet/$(TARGET).cpp
 
 elf: applet/$(TARGET).elf
 hex: applet/$(TARGET).hex
