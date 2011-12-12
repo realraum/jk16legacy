@@ -19,7 +19,6 @@ RESET_TTY=$(RESET_TTY_DIR)reset_tty
 ARDUINO = $(INSTALL_DIR)/hardware/arduino
 ARDUINOCORE = $(ARDUINO)/cores/arduino
 ARDUINOVAR = $(ARDUINO)/variants/$(VARIANT)
-#AVR_TOOLS_PATH = /usr/bin
 AVR_TOOLS_PATH = /usr/bin
 SRC =  $(ARDUINOCORE)/wiring.c \
 $(ARDUINOCORE)/wiring_analog.c $(ARDUINOCORE)/wiring_digital.c \
@@ -202,7 +201,7 @@ applet/core.a: $(OBJ)
 
 # Target: clean project.
 clean:
-	$(REMOVE) applet/$(TARGET).hex applet/$(TARGET).eep applet/$(TARGET).cof applet/$(TARGET).elf \
+	$(REMOVE) applet/$(TARGET).cpp applet/$(TARGET).hex applet/$(TARGET).eep applet/$(TARGET).cof applet/$(TARGET).elf \
 	applet/$(TARGET).map applet/$(TARGET).sym applet/$(TARGET).lss applet/core.a \
 	$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d) $(CXXSRC:.cpp=.s) $(CXXSRC:.cpp=.d)
 
