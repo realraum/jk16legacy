@@ -19,6 +19,7 @@ RESET_TTY=$(RESET_TTY_DIR)reset_tty
 ARDUINO = $(INSTALL_DIR)/hardware/arduino
 ARDUINOCORE = $(ARDUINO)/cores/arduino
 ARDUINOVAR = $(ARDUINO)/variants/$(VARIANT)
+#AVR_TOOLS_PATH = /usr/bin
 AVR_TOOLS_PATH = /usr/bin
 SRC =  $(ARDUINOCORE)/wiring.c \
 $(ARDUINOCORE)/wiring_analog.c $(ARDUINOCORE)/wiring_digital.c \
@@ -80,7 +81,8 @@ OBJDUMP = $(AVR_TOOLS_PATH)/avr-objdump
 AR  = $(AVR_TOOLS_PATH)/avr-ar
 SIZE = $(AVR_TOOLS_PATH)/avr-size
 NM = $(AVR_TOOLS_PATH)/avr-nm
-AVRDUDE = $(AVR_TOOLS_PATH)/avrdude
+#AVRDUDE = $(AVR_TOOLS_PATH)/avrdude
+AVRDUDE = $(INSTALL_DIR)/hardware/tools/avrdude
 REMOVE = rm -f
 MV = mv -f
 
