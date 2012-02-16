@@ -83,227 +83,7 @@ const char YAMAHA_P5 =0xFB; //P5 PRT (1 Main Bypass)? (1587674115)
 
 //********************************************************************//
 
-typedef struct {
-  byte offset;
-  byte state;
-} rf_bit_t;
-
-// offset is number of alphas (0.08ms)
-
-const rf_bit_t zero_bit[] = { {  4, 1 },
-                              { 16, 0 },
-                              { 20, 1 },
-                              { 32, 0 },
-                              {  0, 0 } };
-
-const rf_bit_t one_bit[] = { { 12, 1 },
-                             { 16, 0 },
-                             { 28, 1 },
-                             { 32, 0 },
-                             {  0, 0 } };
-
-const rf_bit_t float_bit[] = { {  4, 1 },
-                               { 16, 0 },
-                               { 28, 1 },
-                               { 32, 0 },
-                               {  0, 0 } };
-
-const rf_bit_t sync_bit[] = { {   4, 1 },
-                              { 128, 0 },
-                              {   0, 0 } };
-
-//WORKS @ alpha=0.0775ms
-//const rf_bit_t pwm_0_bit[] = {  {7, 1}, {24, 0}, {  0, 0 } };     // 1.86ms gesamt: { 0.46ms HIGH , 1.4ms LOW }
-//const rf_bit_t pwm_1_bit[] = {  {18, 1}, {24, 0}, {  0, 0 } };    // 1.86ms gesamt: { 1.4ms HIGH , 0.46ms LOW }
-//const rf_bit_t pwm_pause_bit[] = {  {168, 0}, {  0, 0 } };        // 13ms pause
-
-//WORKS @ alpha=0.08ms
-const rf_bit_t pwm_0_bit[] = {  {6, 1}, {23, 0}, {  0, 0 } };   // 1.86ms gesamt: { 0.46ms HIGH , 1.4ms LOW }
-const rf_bit_t pwm_1_bit[] = {  {18, 1}, {23, 0}, {  0, 0 } };  // 1.86ms gesamt: { 1.4ms HIGH , 0.46ms LOW }
-const rf_bit_t pwm_pause_bit[] = { {162, 0}, {  0, 0 } };      // 13ms pause
-const rf_bit_t pwm_00_bit[] = {  {6, 1},  {23, 0}, {29, 1}, {46, 0}, { 0, 0 } }; // pwm_0 pwm_0
-const rf_bit_t pwm_01_bit[] = {  {6, 1},  {23, 0}, {41, 1}, {46, 0}, { 0, 0 } }; // pwm_0 pwm_1
-const rf_bit_t pwm_10_bit[] = {  {18, 1}, {23, 0}, {29, 1}, {46, 0}, { 0, 0 } }; // pwm_1 pwm_0
-const rf_bit_t pwm_11_bit[] = {  {18, 1}, {23, 0}, {41, 1}, {46, 0}, { 0, 0 } }; // pwm_1 pwm_1
-const rf_bit_t pwm_end_bit[] = { {6, 1},  {23, 0}, {185, 0}, { 0, 0 } };      // pwm_0 pwm_pause
-
-typedef enum { ZERO = 0, ONE , FLOAT , SYNC , PWM0, PWM1, PWM_00, PWM_01, PWM_10, PWM_11, PWM_END, PWM_PAUSE, WORD_END } adbit_t;
-typedef byte ad_bit_t;
-#define MAX_WORD_LEN 13
-typedef ad_bit_t word_t[MAX_WORD_LEN];
-
-const rf_bit_t* bit_defs[] = { zero_bit, one_bit, float_bit, sync_bit, pwm_0_bit, pwm_1_bit, pwm_00_bit, pwm_01_bit, pwm_10_bit, pwm_11_bit, pwm_end_bit, pwm_pause_bit };
-
-byte alpha_cnt = 0;
-byte bit_cnt = 0;
-byte chunk_cnt = 0;
-byte word_cnt = 0;
-const ad_bit_t* current_word;
-byte volatile frame_finished = 1;
-
-#define FRAME_LEN 8
-
-#define A1_ON  0
-#define A1_OFF 1
-#define A2_ON  2
-#define A2_OFF 3
-
-#define B1_ON  4
-#define B1_OFF 5
-#define B2_ON  6
-#define B2_OFF 7
-
-#define C1_ON  8
-#define C1_OFF 9
-#define C2_ON  10
-#define C2_OFF 11
-
-#define D1_ON  12
-#define D1_OFF 13
-#define D2_ON  14
-#define D2_OFF 15
-
-#define BLACK_A1_ON 16
-#define BLACK_A1_OFF 17
-#define BLACK_A2_ON 18
-#define BLACK_A2_OFF 19
-#define BLACK_A3_ON 20
-#define BLACK_A3_OFF 21
-
-#define BLACK_B1_ON 22
-#define BLACK_B1_OFF 23
-#define BLACK_B2_ON 24
-#define BLACK_B2_OFF 25
-#define BLACK_B3_ON 26
-#define BLACK_B3_OFF 27
-
-#define BLACK_C1_ON 28
-#define BLACK_C1_OFF 29
-#define BLACK_C2_ON 30
-#define BLACK_C2_OFF 31
-#define BLACK_C3_ON 32
-#define BLACK_C3_OFF 33
-
-#define BLACK_D1_ON 34
-#define BLACK_D1_OFF 35
-#define BLACK_D2_ON 36
-#define BLACK_D2_OFF 37
-#define BLACK_D3_ON 38
-#define BLACK_D3_OFF 39
-
-//SW 0..3 / BT 0..3 / OFF? 1  ON? 0
-//#define RSL336T_INDEX(SW,BT,OFF)   40+(2*4*SW)+(2*BT)+OFF
-
-//WORD_END can be used to terminate word prematurely, otherwise word ends after 13 bits
-
-#define BLACK_SW_A  PWM_11,PWM_01,PWM_01,PWM_01
-#define BLACK_SW_B  PWM_01,PWM_11,PWM_01,PWM_01
-#define BLACK_SW_C  PWM_01,PWM_01,PWM_11,PWM_01
-#define BLACK_SW_D  PWM_01,PWM_01,PWM_01,PWM_11
-
-#define BLACK_BT_1  PWM_11,PWM_01,PWM_01
-#define BLACK_BT_2  PWM_01,PWM_11,PWM_01
-#define BLACK_BT_3  PWM_01,PWM_01,PWM_11
-
-const word_t words[]  = {
-{ ZERO,  ZERO,  FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // A1_ON
-{ ZERO,  ZERO,  FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // A1_OFF
-{ ZERO,  ZERO,  FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // A2_ON
-{ ZERO,  ZERO,  FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // A2_OFF
-
-{ FLOAT, ZERO,  FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // B1_ON
-{ FLOAT, ZERO,  FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // B1_OFF
-{ FLOAT, ZERO,  FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // B2_ON
-{ FLOAT, ZERO,  FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // B2_OFF
-
-{ ZERO,  FLOAT, FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // C1_ON
-{ ZERO,  FLOAT, FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // C1_OFF
-{ ZERO,  FLOAT, FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // C2_ON
-{ ZERO,  FLOAT, FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // C2_OFF
-
-{ FLOAT, FLOAT, FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // D1_ON
-{ FLOAT, FLOAT, FLOAT, FLOAT, ZERO,  ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // D1_OFF
-{ FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, FLOAT, SYNC}, // D2_ON
-{ FLOAT, FLOAT, FLOAT, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO, FLOAT, FLOAT, ZERO,  SYNC}, // D2_OFF
-
-{BLACK_SW_A,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_A1_ON
-{BLACK_SW_A,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_A1_OFF
-{BLACK_SW_A,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_A2_ON
-{BLACK_SW_A,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_A2_OFF
-{BLACK_SW_A,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_A3_ON
-{BLACK_SW_A,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_A3_OFF
-
-{BLACK_SW_B,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_B1_ON
-{BLACK_SW_B,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_B1_OFF
-{BLACK_SW_B,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_B2_ON
-{BLACK_SW_B,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_B2_OFF
-{BLACK_SW_B,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_B3_ON
-{BLACK_SW_B,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_B3_OFF
-
-{BLACK_SW_C,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_C1_ON
-{BLACK_SW_C,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_C1_OFF
-{BLACK_SW_C,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_C2_ON
-{BLACK_SW_C,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_C2_OFF
-{BLACK_SW_C,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_C3_ON
-{BLACK_SW_C,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_C3_OFF
-
-{BLACK_SW_D,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_D1_ON
-{BLACK_SW_D,BLACK_BT_1,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_D1_OFF
-{BLACK_SW_D,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_D2_ON
-{BLACK_SW_D,BLACK_BT_2,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}, // BLACK_D2_OFF
-{BLACK_SW_D,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_11,PWM_00,PWM_END}, // BLACK_D3_ON
-{BLACK_SW_D,BLACK_BT_3,PWM_00,PWM_00,PWM_00,PWM_00,PWM_11,PWM_END}  // BLACK_D3_OFF
-};
-
-//SW 0..3 / BT 0..3 / OFF? 1  ON? 0
-#define RSL336T_INDEX(SW,BT,OFF)   (8*SW)+(2*BT)+OFF
-
-#define RSL336T_SWBT_1  PWM_00,PWM_01,PWM_01,PWM_01
-#define RSL336T_SWBT_2  PWM_01,PWM_00,PWM_01,PWM_01
-#define RSL336T_SWBT_3  PWM_01,PWM_01,PWM_00,PWM_01
-#define RSL336T_SWBT_4  PWM_01,PWM_01,PWM_01,PWM_00
-
-// note: code on atmel breaks if array below becomes too big
-const word_t rsl336T_words[]  = {
-{RSL336T_SWBT_1,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_I_1_ON
-{RSL336T_SWBT_1,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_I_1_OFF
-{RSL336T_SWBT_1,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_I_2_ON
-{RSL336T_SWBT_1,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_I_2_OFF
-{RSL336T_SWBT_1,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_I_3_ON
-{RSL336T_SWBT_1,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_I_3_OFF
-{RSL336T_SWBT_1,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_I_4_ON
-{RSL336T_SWBT_1,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_I_4_OFF
-
-{RSL336T_SWBT_2,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_II_1_ON
-{RSL336T_SWBT_2,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_II_1_OFF
-{RSL336T_SWBT_2,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_II_2_ON
-{RSL336T_SWBT_2,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_II_2_OFF
-//{RSL336T_SWBT_2,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_II_3_ON
-//{RSL336T_SWBT_2,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_II_3_OFF
-//{RSL336T_SWBT_2,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_II_4_ON
-//{RSL336T_SWBT_2,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_II_4_OFF
-//
-//{RSL336T_SWBT_3,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_III_1_ON
-//{RSL336T_SWBT_3,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_III_1_OFF
-//{RSL336T_SWBT_3,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_III_2_ON
-//{RSL336T_SWBT_3,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_III_2_OFF
-//{RSL336T_SWBT_3,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_III_3_ON
-//{RSL336T_SWBT_3,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_III_3_OFF
-//{RSL336T_SWBT_3,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_III_4_ON
-//{RSL336T_SWBT_3,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_III_4_OFF
-//
-//{RSL336T_SWBT_4,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_IV_1_ON
-//{RSL336T_SWBT_4,RSL336T_SWBT_1,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_IV_1_OFF
-//{RSL336T_SWBT_4,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_IV_2_ON
-//{RSL336T_SWBT_4,RSL336T_SWBT_2,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_IV_2_OFF
-//{RSL336T_SWBT_4,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_IV_3_ON
-//{RSL336T_SWBT_4,RSL336T_SWBT_3,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}, // RSL366T_IV_3_OFF
-//{RSL336T_SWBT_4,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_01,PWM_END}, // RSL366T_IV_4_ON
-//{RSL336T_SWBT_4,RSL336T_SWBT_4,PWM_01,PWM_01,PWM_01,PWM_00,PWM_END}  // RSL366T_IV_4_OFF
-};
-
-
-//********************************************************************//
+#define TIMER_RUNNING (TIMSK1 & (1<<OCIE1A))
 
 void start_timer()
 {
@@ -326,80 +106,118 @@ void stop_timer() // stop the timer
   TIMSK1 = 0; // disable timer interrupt
 }
 
-void init_word(const word_t w)
+#define NUM_REPEAT_SIGNAL 8
+#define RF_SIGNAL_BYTES 3
+#define RF_SIGNAL_BITS RF_SIGNAL_BYTES * 8
+
+typedef struct {
+  byte duration_short_pulse;  //mulitple of 0.08ms, should be === 0 (mod 4)
+  byte short_mult;
+  byte long_mult;
+  byte sync_mult;
+  byte signal[RF_SIGNAL_BYTES];  //24bit signal info, excluding sync signal (short 1 followed by long pause (~128*0.08ms))
+                            //for each bit: 0 means 1/4 Tau high followed by 3/4 Tau low;    1 means 3/4 Tau high followed by 1/4 Tau low
+} rf_signal;
+
+rf_signal current_signal = {6, 1, 3, 31, {0,0,0}};
+
+typedef struct {
+  byte atime; // time counter
+  byte bit;  //index for current bit
+  byte repeatc; //downward couner of repetition
+  byte state; // current output to RF Pin (position within the bit)
+} rf_state;
+
+rf_state current_state = { 0, 0, 0, 0};
+int rf_num_transmissions_to_acknowledge = 0;
+
+#define CURRENT_BIT_CNT (RF_SIGNAL_BITS - current_state.bit - 1)
+#define CURRENT_BIT (( current_signal.signal[ CURRENT_BIT_CNT/8] >> (CURRENT_BIT_CNT % 8)  )& 1)
+#define RF_TIME_SHORT (current_signal.short_mult * current_signal.duration_short_pulse)
+#define RF_TIME_LONG (current_signal.long_mult * current_signal.duration_short_pulse)
+#define RF_TIME_SNYC (current_signal.sync_mult * current_signal.duration_short_pulse)
+#define RF_OFF digitalWrite(RF_DATA_OUT_PIN, HIGH)
+#define RF_ON digitalWrite(RF_DATA_OUT_PIN, LOW)
+ISR(TIMER1_COMPA_vect)
 {
-  current_word = w;
-  alpha_cnt = 0;
-  chunk_cnt = 0;
-  bit_cnt = 0;
-
-  if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-    digitalWrite(RF_DATA_OUT_PIN, LOW); //neue 12V MosFET Verstärkung invertiert Logik !
+  if ( current_state.state || current_state.bit || current_state.repeatc || current_state.atime)
+  {
+    if (current_state.atime)
+    {
+       current_state.atime--;
+    }
+    //atime ran out
+    else if (current_state.state) //was in state 1 or 2
+    {
+      RF_OFF;  //stop sending
+      if (current_state.state == 2) //aka sync
+        current_state.atime=RF_TIME_SNYC;
+      else
+        current_state.atime=CURRENT_BIT?
+           RF_TIME_SHORT
+          :RF_TIME_LONG;
+      current_state.state=0;
+    } 
+    else if  (current_state.bit)  //still more than 0 bits to do
+    {
+      current_state.bit--;
+      current_state.state=1;
+      current_state.atime=CURRENT_BIT?
+           RF_TIME_LONG
+          :RF_TIME_SHORT;
+      RF_ON;  //start sending
+    }
+    else if (current_state.repeatc) 
+    {
+      current_state.bit=RF_SIGNAL_BITS;
+      current_state.repeatc--;
+      current_state.state=2;
+      //start sync (short pulse followed by long pause)
+      RF_ON;
+      current_state.atime=RF_TIME_SHORT;
+    }
+  }
   else
-    digitalWrite(RF_DATA_OUT_PIN, HIGH);
+  {
+    stop_timer();
+    RF_OFF;
+    rf_num_transmissions_to_acknowledge++;
+  }
+}
+//********************************************************************//
 
+void serial_read_send_rf_cmd()
+{
+  while (TIMER_RUNNING)
+  {}
+  for (byte chr=0; chr < 3; chr++)
+  {
+    while (!Serial.available())
+    {}
+    current_signal.signal[chr]=Serial.read();
+  }
+  current_state.repeatc=NUM_REPEAT_SIGNAL;
   start_timer();
 }
 
-ISR(TIMER1_COMPA_vect)
+void send_rf_cmd(const char sr[])
 {
-  alpha_cnt++;
-  if(alpha_cnt < bit_defs[current_word[bit_cnt]][chunk_cnt].offset)
-    return;
-
-  chunk_cnt++;
-  if(bit_defs[current_word[bit_cnt]][chunk_cnt].offset != 0) {
-    if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-      digitalWrite(RF_DATA_OUT_PIN, LOW); //neue 12V MosFET Verstärkung invertiert Logik !
-    else
-      digitalWrite(RF_DATA_OUT_PIN, HIGH);
-    return;
+  while (TIMER_RUNNING)
+  {}
+  for (byte chr=0; chr < 3; chr++)
+  {
+    current_signal.signal[chr]=sr[chr];
   }
-
-  bit_cnt++;
-  if(current_word[bit_cnt] != WORD_END && bit_cnt < MAX_WORD_LEN) {
-    alpha_cnt = 0;
-    chunk_cnt = 0;
-    if(bit_defs[current_word[bit_cnt]][chunk_cnt].state)
-      digitalWrite(RF_DATA_OUT_PIN, LOW); //neue 12V MosFET Verstärkung invertiert Logik !
-    else
-      digitalWrite(RF_DATA_OUT_PIN, HIGH);
-    return;
-  }
-  stop_timer();
-  digitalWrite(RF_DATA_OUT_PIN, HIGH);
-
-  word_cnt++;
-  if(word_cnt < FRAME_LEN)
-    init_word(current_word);
-  else
-    frame_finished = 2;
-}
-
-//***********//
-
-
-void send_frame(const word_t w)
-{
-  if (frame_finished != 1)
-    for(;;) //wait until sending of previous frame finishes
-      if (frame_finished)
-      {
-        delay(150);
-        break;
-      }
-  word_cnt = 0;
-  frame_finished = 0;
-  init_word(w);
+  current_state.repeatc=NUM_REPEAT_SIGNAL;
+  start_timer();
 }
 
 void check_frame_done()
 {
-  if (frame_finished==2)
+  while (rf_num_transmissions_to_acknowledge > 0)
   {
+    rf_num_transmissions_to_acknowledge--;
     Serial.println("Ok");
-    frame_finished=1;
-    delay(120);
   }
 }
 
@@ -645,123 +463,53 @@ void loop()
   updateLightLevel(PHOTO_ANALOGPIN);
   calculate_led_level();
   check_frame_done();
-
   if(Serial.available()) {
     char command = Serial.read();
 
-    if(command == 'A')
-      send_frame(words[A1_ON]);
-    else if(command == 'a')
-      send_frame(words[A1_OFF]);
-    else if(command == 'B')
-      send_frame(words[A2_ON]);
-    else if(command == 'b')
-      send_frame(words[A2_OFF]);
-
+    if (command == '>')
+    {
+      serial_read_send_rf_cmd();
+    }
     else if(command == 'C')
-      send_frame(words[B1_ON]);
+      send_rf_cmd("\xa2\xa0\xa8");
     else if(command == 'c')
-      send_frame(words[B1_OFF]);
-    else if(command == 'D')
-      send_frame(words[B2_ON]);
-    else if(command == 'd')
-      send_frame(words[B2_OFF]);
-
-    else if(command == 'E')
-      send_frame(words[C1_ON]);
-    else if(command == 'e')
-      send_frame(words[C1_OFF]);
-    else if(command == 'F')
-      send_frame(words[C2_ON]);
-    else if(command == 'f')
-      send_frame(words[C2_OFF]);
-
-    else if(command == 'G')
-      send_frame(words[D1_ON]);
-    else if(command == 'g')
-      send_frame(words[D1_OFF]);
-    else if(command == 'H')
-      send_frame(words[D2_ON]);
-    else if(command == 'h')
-      send_frame(words[D2_OFF]);
-
-    else if(command == 'I')
-      send_frame(words[BLACK_A1_ON]);
-    else if(command == 'i')
-      send_frame(words[BLACK_A1_OFF]);
-    else if(command == 'J')
-      send_frame(words[BLACK_A2_ON]);
-    else if(command == 'j')
-      send_frame(words[BLACK_A2_OFF]);
-    else if(command == 'K')
-      send_frame(words[BLACK_A3_ON]);
-    else if(command == 'k')
-      send_frame(words[BLACK_A3_OFF]);
-
+      send_rf_cmd("\xa2\xa0\x28");
+    else if(command == 'B')
+      send_rf_cmd("\xa0\xa2\xa8");
+    else if(command == 'b')
+      send_rf_cmd("\xa0\xa2\x28");
     else if(command == 'L')
-      send_frame(words[BLACK_B1_ON]);
+      send_rf_cmd("\xae\x2b\x30");
     else if(command == 'l')
-      send_frame(words[BLACK_B1_OFF]);
-    else if(command == 'M')
-      send_frame(words[BLACK_B2_ON]);
-    else if(command == 'm')
-      send_frame(words[BLACK_B2_OFF]);
+      send_rf_cmd("\xae\x2b\xc0");
     else if(command == 'N')
-      send_frame(words[BLACK_B3_ON]);
+      send_rf_cmd("\xae\x3a\x30");
     else if(command == 'n')
-      send_frame(words[BLACK_B3_OFF]);
-
-    else if(command == 'O')
-      send_frame(words[BLACK_C1_ON]);
-    else if(command == 'o')
-      send_frame(words[BLACK_C1_OFF]);
-    else if(command == 'P')
-      send_frame(words[BLACK_C2_ON]);
-    else if(command == 'p')
-      send_frame(words[BLACK_C2_OFF]);
-    else if(command == 'Q')
-      send_frame(words[BLACK_C3_ON]);
-    else if(command == 'q')
-      send_frame(words[BLACK_C3_OFF]);
-
-    else if(command == 'R')
-      send_frame(words[BLACK_D1_ON]);
-    else if(command == 'r')
-      send_frame(words[BLACK_D1_OFF]);
-    else if(command == 'S')
-      send_frame(words[BLACK_D2_ON]);
-    else if(command == 's')
-      send_frame(words[BLACK_D2_OFF]);
-    else if(command == 'T')
-      send_frame(words[BLACK_D3_ON]);
-    else if(command == 't')
-      send_frame(words[BLACK_D3_OFF]);
-
-    else if (command == 'U')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,0,0)]);
-    else if (command == 'u')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,0,1)]);
-    else if (command == 'V')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,1,0)]);
-    else if (command == 'v')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,1,1)]);
-    else if (command == 'W')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,2,0)]);
-    else if (command == 'w')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,2,1)]);
-    else if (command == 'X')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,3,0)]);
-    else if (command == 'x')
-      send_frame(rsl336T_words[RSL336T_INDEX(0,3,1)]);
-    else if (command == 'Y')
-      send_frame(rsl336T_words[RSL336T_INDEX(1,0,0)]);
-    else if (command == 'y')
-      send_frame(rsl336T_words[RSL336T_INDEX(1,0,1)]);
-    else if (command == 'Z')
-      send_frame(rsl336T_words[RSL336T_INDEX(1,1,0)]);
-    else if (command == 'z')
-      send_frame(rsl336T_words[RSL336T_INDEX(1,1,1)]);
-
+      send_rf_cmd("\xae\x3a\xc0");
+    else if(command == 'E')
+      send_rf_cmd("\xa8\xa0\xa8 ");
+    else if(command == 'e')
+      send_rf_cmd("\xa8\xa0\x28");
+    else if(command == 'F')
+      send_rf_cmd("\xa8\xa2\xa8");
+    else if(command == 'f')
+      send_rf_cmd("\xa8\xa2\x28");
+    else if(command == 'M')
+      send_rf_cmd("\xae\x2e\x30");
+    else if(command == 'm')
+      send_rf_cmd("\xae\x2e\xc0");
+    else if(command == 'G')
+      send_rf_cmd("\xaa\xa0\xa8");
+    else if(command == 'g')
+      send_rf_cmd("\xaa\xa0\x28");
+    else if(command == 'H')
+      send_rf_cmd("\xaa\xa2\xa8");
+    else if(command == 'h')
+      send_rf_cmd("\xaa\xa2\x28");
+    else if(command == 'Z')
+      send_rf_cmd("\xa2\xa2\xaa");
+    else if(command == 'z')
+      send_rf_cmd("\xa2\xa2\x2a");
     else if(command == '*')
     {
       sensorEchoCommand(command);
