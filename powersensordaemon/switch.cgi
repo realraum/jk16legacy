@@ -10,6 +10,10 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
       POWER='?'
     elif [ "$POWER" == "?" ]; then
       POWER=$VALUE
+    elif [ "$VALUE" == "mobile" ]; then
+      MOBILE='1'
+    elif [ "$POWER" == "?" ]; then
+      POWER=$VALUE
     elif [ "$VALUE" == "ajax" ]; then
       AJAX='?'
     elif [ "$AJAX" == "?" ]; then
@@ -137,8 +141,12 @@ for DISPID in $VALID_ONOFF_IDS; do
   echo "</span></div>"
   
   fi
+  if [ "$MOBILE" == "1" ]; then
+    echo "<br/>"
+  fi 
 done
 echo "</div>"
+if [ "$MOBILE" != "1" ]; then                                                                                   
 echo "<div style=\"float:left; border:1px solid black;\">"
 for DISPID in $VALID_SEND_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
@@ -184,5 +192,6 @@ for DISPID in $VALID_BANSHEE_IDS; do
   fi
 done
 echo "</div>"
+fi
 echo "</body>"
 echo "</html>"
