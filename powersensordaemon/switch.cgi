@@ -127,18 +127,24 @@ for DISPID in $VALID_ONOFF_IDS; do
 
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
+  echo "<div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div>"
+  echo "<span style='float:right; text-align:right;'>"
   echo " <input type='submit' name='power' value='on' />"
   echo " <input type='submit' name='power' value='off' />"
-  echo "</span></div>"
+  echo "</span>"
+  echo "</div>"
   echo "</form>"
   
   else
   
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
+  echo "<span style='float:left; text-align:left;'>"
   echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>On</button>"
   echo " <button onClick='sendButton(\"off\",\"$DISPID\");'>Off</button>"
-  echo "</span></div>"
+  echo "</span>"
+  echo "<div style='width:10em; float:right; display:inline-block; margin-left:1ex; vertical-align:middle;'>$NAME</div>"
+  echo "</div>"
   
   fi
   if [ "$MOBILE" == "1" ]; then
@@ -162,10 +168,13 @@ for DISPID in $VALID_SEND_IDS; do
 
   else
   
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
+  echo "<span style='float:left; text-align:left;'>"
   echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>Send</button>"
-  echo "</span></div>"
-  
+  echo "</span>"
+  echo "<div style='width:10em; float:right; display:inline-block; margin-left:1ex; vertical-align:middle;'>$NAME</div>"
+  echo "</div>"
+    
   fi
 done
 echo "</div>"
