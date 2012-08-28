@@ -14,10 +14,10 @@ pollinb       d
 pollinc       i
 pcblueleds    i
 pollind       j
-all           lcefghmnz
+all           ilcefghmnz
 decke         gh
-lichter       lcdfghmnz
-ambientlights lcfmnz
+lichter       ilcdfghmnz
+ambientlights ilcfmnz
 blueled       &
 panicled      ^
 ymhpoweroff   :
