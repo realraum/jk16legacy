@@ -9,6 +9,11 @@ spots1        m
 deckehinten   g
 deckevorne    h
 lichterkette  z
+pollina       a
+pollinb       d
+pollinc       i
+pcblueleds    i
+pollind       j
 all           lcefghmnz
 decke         gh
 lichter       lcdfghmnz
