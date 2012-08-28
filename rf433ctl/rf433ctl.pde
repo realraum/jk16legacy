@@ -470,34 +470,30 @@ void loop()
     {
       serial_read_send_rf_cmd();
     }
+    else if(command == 'A')  
+      send_rf_cmd("\x8a\xa0\x8a"); // pollin 00101 a 1
+    else if(command == 'a')
+      send_rf_cmd("\x8a\xa0\x2a");  // pollin 00101 a 0
+    else if(command == 'B')
+      send_rf_cmd("\xa0\xa2\xa8");
+    else if(command == 'b')
+      send_rf_cmd("\xa0\xa2\x28");    
     else if(command == 'C')
       send_rf_cmd("\xa2\xa0\xa8");
     else if(command == 'c')
       send_rf_cmd("\xa2\xa0\x28");
-    else if(command == 'B')
-      send_rf_cmd("\xa0\xa2\xa8");
-    else if(command == 'b')
-      send_rf_cmd("\xa0\xa2\x28");
-    else if(command == 'L')
-      send_rf_cmd("\xae\x2b\x30");
-    else if(command == 'l')
-      send_rf_cmd("\xae\x2b\xc0");
-    else if(command == 'N')
-      send_rf_cmd("\xae\x3a\x30");
-    else if(command == 'n')
-      send_rf_cmd("\xae\x3a\xc0");
+    else if(command == 'D')
+      send_rf_cmd("\x8a\x88\x8a"); //pollin 00101 b 1
+    else if(command == 'd')
+      send_rf_cmd("\x8a\x88\x2a"); //pollin 00101 b 0
     else if(command == 'E')
-      send_rf_cmd("\xa8\xa0\xa8 ");
-    else if(command == 'e')
+      send_rf_cmd("\xa8\xa0\xa8");
+    else if(command == 'e')    
       send_rf_cmd("\xa8\xa0\x28");
     else if(command == 'F')
       send_rf_cmd("\xa8\xa2\xa8");
     else if(command == 'f')
       send_rf_cmd("\xa8\xa2\x28");
-    else if(command == 'M')
-      send_rf_cmd("\xae\x2e\x30");
-    else if(command == 'm')
-      send_rf_cmd("\xae\x2e\xc0");
     else if(command == 'G')
       send_rf_cmd("\xaa\xa0\xa8");
     else if(command == 'g')
@@ -506,6 +502,26 @@ void loop()
       send_rf_cmd("\xaa\xa2\xa8");
     else if(command == 'h')
       send_rf_cmd("\xaa\xa2\x28");
+    else if(command == 'I')
+      send_rf_cmd("\x8a\x28\x8a"); //pollin 00101 c 1
+    else if(command == 'i')
+      send_rf_cmd("\x8a\x28\x2a"); //pollin 00101 c 0
+    else if(command == 'J')
+      send_rf_cmd("\x8a\xa8\x88"); //pollin 00101 d 1
+    else if(command == 'j')
+      send_rf_cmd("\x8a\xa8\x28"); //pollin 00101 d 0
+    else if(command == 'L')
+      send_rf_cmd("\xae\x2b\x30");
+    else if(command == 'l')
+      send_rf_cmd("\xae\x2b\xc0");
+    else if(command == 'M')
+      send_rf_cmd("\xae\x2e\x30");
+    else if(command == 'm')
+      send_rf_cmd("\xae\x2e\xc0");      
+    else if(command == 'N')
+      send_rf_cmd("\xae\x3a\x30");
+    else if(command == 'n')
+      send_rf_cmd("\xae\x3a\xc0");
     else if(command == 'Z')
       send_rf_cmd("\xa2\xa2\xaa");
     else if(command == 'z')
