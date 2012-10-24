@@ -27,6 +27,7 @@ UNIXSOCK=/var/run/powersensordaemon/cmd.sock
 VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler lichterkette pcblueleds"
 VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
 VALID_BANSHEE_IDS="playPause next prev"
+VALID_CAM_MOTOR_IDS="c C w W"
 
 [ "$POWER" == "send" ] && POWER=on
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
@@ -44,9 +45,23 @@ if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
     fi
   done
 
-  for CHECKID in $VALID_BANSHEE_IDS; do 
+  for CHECKID in $VALID_BANSHEE_IDS; do
     if [ "$CHECKID" == "$ID" ]; then
       echo "$ID/" | nc wuerfel.realraum.at 8484
+      echo "Content-type: text/html"
+      echo ""
+      echo "<html>"
+      echo "<head>"
+      echo "<title>Realraum rf433ctl</title>"
+      echo '<script type="text/javascript">window.location="http://slug.realraum.at/cgi-bin/switch.cgi";</script>'
+      echo "</head></html>"
+      exit 0
+    fi
+  done
+
+  for CHECKID in $VALID_CAM_MOTOR_IDS; do
+    if [ "$CHECKID" == "$ID" ]; then
+      echo "$ID" > /dev/ttyACM0
       echo "Content-type: text/html"
       echo ""
       echo "<html>"
@@ -103,6 +118,11 @@ DESC_seep="Sleep Modus"
 DESC_panicled="HAL9000 says hi"
 DESC_blueled="Blue Led"
 DESC_moviemode="Movie Mode"
+DESC_w="Cam >"
+DESC_W="Cam >>"
+DESC_c="Cam <"
+DESC_C="Cam <<"
+
 echo "Content-type: text/html"
 echo ""
 echo "<html>"
@@ -182,7 +202,7 @@ for DISPID in $VALID_SEND_IDS; do
 done
 echo "</div>"
 echo "<div style=\"float:left; border:1px solid black;\">"
-for DISPID in $VALID_BANSHEE_IDS; do
+for DISPID in $VALID_BANSHEE_IDS $VALID_CAM_MOTOR_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
   if [ -z "$AJAX" ]; then
@@ -190,8 +210,7 @@ for DISPID in $VALID_BANSHEE_IDS; do
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
   echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
-  echo " <input type='submit' name='power' value='on' />"
-  echo " <input type='submit' name='power' value='off' />"
+  echo " <input type='submit' name='power' value='send' />"
   echo "</span></div>"
   echo "</form>"
   
