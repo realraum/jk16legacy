@@ -176,7 +176,7 @@ for DISPID in $VALID_ONOFF_IDS; do
 done
 echo "</div>"
 if [ "$MOBILE" != "1" ]; then                                                                                   
-echo "<div style=\"float:left; border:1px solid black;\">"
+echo "<div style=\"float:left; border:1px solid black; margin-top:5px;\">"
 for DISPID in $VALID_SEND_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
@@ -201,7 +201,7 @@ for DISPID in $VALID_SEND_IDS; do
   fi
 done
 echo "</div>"
-echo "<div style=\"float:left; border:1px solid black;\">"
+echo "<div style=\"float:left; border:1px solid black; margin-top:5px;\">"
 for DISPID in $VALID_BANSHEE_IDS $VALID_CAM_MOTOR_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
@@ -213,13 +213,16 @@ for DISPID in $VALID_BANSHEE_IDS $VALID_CAM_MOTOR_IDS; do
   echo " <input type='submit' name='power' value='send' />"
   echo "</span></div>"
   echo "</form>"
-  
+
   else
   
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
+  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
+  echo "<span style='float:left; text-align:left;'>"
   echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>Send</button>"
-  echo "</span></div>"
-  
+  echo "</span>"
+  echo "<div style='width:10em; float:right; display:inline-block; margin-left:1ex; vertical-align:middle;'>$NAME</div>"
+  echo "</div>"
+    
   fi
 done
 echo "</div>"
