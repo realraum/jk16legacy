@@ -1,7 +1,7 @@
 werkzeug      l
 boiler        b
 stereo        .
-labor         c
+weissB        c
 dart          n
 logo          e
 idee          f
@@ -10,7 +10,7 @@ deckehinten   g
 deckevorne    h
 lichterkette  z
 pollina       a
-pollinb       d
+labor         d
 pollinc       i
 pcblueleds    i
 pollind       j
