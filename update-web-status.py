@@ -194,6 +194,16 @@ if len(sys.argv) > 1:
 else:
   uwscfg = UWSConfig()
 
+if len(sys.argv) > 2:
+  if sys.argv[2] == "open":
+    displayOpen()
+  elif sys.argv[2] == "closed":
+    displayClosed()
+  elif sys.argv[2] == "panic":
+    displayPanic()
+  print "Satus submitted to Web, now exiting..."
+  sys.exit(0)
+
 #socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
 RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
 RE_BUTTON = re.compile(r'PanicButton|button\d?')
