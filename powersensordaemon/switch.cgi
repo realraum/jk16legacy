@@ -24,7 +24,7 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
 done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler lichterkette pcblueleds pollina weissB"
+VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler whiteboard pcblueleds bikewcblue"
 VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
 VALID_BANSHEE_IDS="playPause next prev"
 VALID_CAM_MOTOR_IDS="c C w W"
@@ -75,7 +75,7 @@ if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
 fi
 
 DESC_pcblueleds="Blaue Leds PC"
-DESC_pollina="Blaue Lichterkette"
+DESC_bikewcblue="Blaue Lichterkette WC"
 DESC_weissB="WeissB"
 DESC_werkzeug="Werkzeug LEDs"
 DESC_stereo="Receiver On/Off"
@@ -87,7 +87,7 @@ DESC_logo="Logo"
 DESC_spots1="Spots"
 DESC_deckehinten="Decke Hinten"
 DESC_deckevorne="Decke Vorne"
-DESC_lichterkette="Whiteboard Vorne"
+DESC_whiteboard="Whiteboard Vorne"
 DESC_decke="Deckenlichter"
 DESC_lichter="Alle Lichter"
 DESC_all="Alles"
