@@ -26,8 +26,8 @@ done
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
 VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler whiteboard pcblueleds bikewcblue"
 VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
-VALID_BANSHEE_IDS="playPause next prev"
-VALID_CAM_MOTOR_IDS="c C w W"
+#VALID_BANSHEE_IDS="playPause next prev"
+#VALID_CAM_MOTOR_IDS="c C w W"
 
 [ "$POWER" == "send" ] && POWER=on
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
@@ -97,7 +97,7 @@ DESC_ymhpower="Receiver On/Off"
 DESC_ymhvolup="VolumeUp"
 DESC_ymhvoldown="VolumeDown"
 DESC_ymhcd="Input CD"
-DESC_ymhwdtv="Input WDlxTV"
+DESC_ymhwdtv="Input S/PDIF Wuerfel"
 DESC_ymhtuner="Input Tuner"
 DESC_ymhvolmute="Mute"
 DESC_ymhmenu="Menu"
@@ -139,6 +139,57 @@ echo ' req.setRequestHeader("googlechromefix","");'
 echo ' req.send(null);'
 echo '}'
 echo '</script>'
+echo '<style>'
+echo 'div.switchbox {'
+echo '    float:left;'
+echo '    margin:2px;'
+echo '    max-width:236px;'
+echo '    font-size:10pt;'
+echo '    border:1px solid black;'
+#echo '    height: 32px;'
+echo '    padding:0;'
+echo '}'
+  
+echo 'div.switchnameleft {'
+echo '    width:10em; display:inline-block; vertical-align:middle; margin-left:3px;'
+echo '}'
+
+echo 'span.alignbuttonsright {'
+echo '    top:0px; float:right; display:inline-block; text-align:right; padding:0;'
+echo '}'
+
+echo 'div.switchnameright {'
+echo '    width:10em; display:inline-block; vertical-align:middle; float:right; display:inline-block; margin-left:1ex; margin-right:3px; margin-top:3px; margin-bottom:3px;'
+echo '}'
+
+echo 'span.alignbuttonsleft {'
+echo '    float:left; text-align:left; padding:0;'
+echo '}'
+
+echo '.onbutton {'
+echo '    font-size:11pt;'
+echo '    width: 40px;'
+echo '    height: 32px;'
+echo '    background-color: lime;'
+echo '    margin: 0px;'
+echo '}'
+
+echo '.offbutton {'
+echo '    font-size:11pt;'
+echo '    width: 40px;'
+echo '    height: 32px;'
+echo '    background-color: red;'
+echo '    margin: 0px;'
+echo '}'
+
+echo '.sendbutton {'
+echo '    font-size:11pt;'
+echo '    width: 40px;'
+echo '    height: 32px;'
+#echo '    background-color: grey;'
+echo '    margin: 0px;'
+echo '}'
+echo '</style>'
 echo "</head>"
 echo "<body>"
 #echo "<h1>Realraum rf433ctl</h1>"
@@ -150,23 +201,21 @@ for DISPID in $VALID_ONOFF_IDS; do
 
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
-  echo "<div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div>"
-  echo "<span style='float:right; text-align:right;'>"
-  echo " <input type='submit' name='power' value='on' />"
-  echo " <input type='submit' name='power' value='off' />"
+  echo "<div class=\"switchbox\"><div class=\"switchnameleft\">$NAME</div><span class=\"alignbuttonsright\">"
+  echo " <input class=\"onbutton\" type='submit' name='power' value='on' />"
+  echo " <input class=\"offbutton\" type='submit' name='power' value='off' />"
   echo "</span>"
   echo "</div>"
   echo "</form>"
   
   else
   
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
-  echo "<span style='float:left; text-align:left;'>"
-  echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>On</button>"
-  echo " <button onClick='sendButton(\"off\",\"$DISPID\");'>Off</button>"
+  echo "<div class=\"switchbox\">"
+  echo "<span class=\"alignbuttonsleft\">"
+  echo " <button class=\"onbutton\" onClick='sendButton(\"on\",\"$DISPID\");'>On</button>"
+  echo " <button class=\"offbutton\" onClick='sendButton(\"off\",\"$DISPID\");'>Off</button>"
   echo "</span>"
-  echo "<div style='width:10em; float:right; display:inline-block; margin-left:1ex; vertical-align:middle;'>$NAME</div>"
+  echo "<div class=\"switchnameright\">$NAME</div>"
   echo "</div>"
   
   fi
@@ -185,17 +234,17 @@ for DISPID in $VALID_SEND_IDS; do
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
   echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
-  echo " <input type='submit' name='power' value='send' />"
+  echo " <input class=\"sendbutton\" type='submit' name='power' value='  ' />"
   echo "</span></div>"
   echo "</form>"
 
   else
   
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
-  echo "<span style='float:left; text-align:left;'>"
-  echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>Send</button>"
+  echo "<div class=\"switchbox\">"
+  echo "<span class=\"alignbuttonsleft\">"
+  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"$DISPID\");'> </button>"
   echo "</span>"
-  echo "<div style='width:10em; float:right; display:inline-block; margin-left:1ex; vertical-align:middle;'>$NAME</div>"
+  echo "<div class=\"switchnameright\">$NAME</div>"
   echo "</div>"
     
   fi
@@ -210,17 +259,17 @@ for DISPID in $VALID_BANSHEE_IDS $VALID_CAM_MOTOR_IDS; do
   echo "<form action=\"/cgi-bin/switch.cgi\">"
   echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
   echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
-  echo " <input type='submit' name='power' value='send' />"
+  echo " <input class=\"sendbutton\" type='submit' name='power' value='  ' />"
   echo "</span></div>"
   echo "</form>"
 
   else
   
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\">"
-  echo "<span style='float:left; text-align:left;'>"
-  echo " <button onClick='sendButton(\"on\",\"$DISPID\");'>Send</button>"
+  echo "<div class=\"switchbox\">"
+  echo "<span class=\"alignbuttonsleft\">"
+  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"$DISPID\");'> </button>"
   echo "</span>"
-  echo "<div style='width:10em; float:right; display:inline-block; margin-left:1ex; vertical-align:middle;'>$NAME</div>"
+  echo "<div class=\"switchnameright\">$NAME</div>"
   echo "</div>"
     
   fi
