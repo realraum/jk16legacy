@@ -12,16 +12,14 @@ for QUERY in `echo $QUERY_STRING | tr '&' ' '`; do
       POWER=$VALUE
     elif [ "$VALUE" == "mobile" ]; then
       MOBILE='1'
-    elif [ "$POWER" == "?" ]; then
-      POWER=$VALUE
-    elif [ "$VALUE" == "ajax" ]; then
-      AJAX='?'
-    elif [ "$AJAX" == "?" ]; then
-      AJAX=$VALUE
+      NOFLOAT='1'
+    elif [ "$VALUE" == "nofloat" ]; then
+      NOFLOAT='1'
     fi
     i=$i+1
   done
 done
+
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
 VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler whiteboard pcblueleds bikewcblue"
@@ -30,8 +28,7 @@ VALID_SEND_IDS="ymhpoweron ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymh
 #VALID_BANSHEE_IDS="playPause next prev"
 #VALID_CAM_MOTOR_IDS="c C w W"
 
-[ "$POWER" == "Off" ] && POWER=off
-[ "$POWER" != "off" ] && POWER=on
+[ "$POWER" == "send" ] && POWER=on
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
   for CHECKID in $VALID_ONOFF_IDS $VALID_SEND_IDS; do 
     if [ "$CHECKID" == "$ID" ]; then
@@ -196,24 +193,14 @@ echo '</style>'
 echo "</head>"
 echo "<body>"
 #echo "<h1>Realraum rf433ctl</h1>"
-echo "<div style=\"float:left; border:1px solid black;\">"
+#echo "<div style=\"float:left; border:1px solid black;\">"
+echo "<div style=\"float:left;\">"
+echo "<div style=\"float:left; border:1px solid black; margin-right:2ex; margin-bottom:2ex;\">"
 for DISPID in $VALID_ONOFF_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
-  if [ -z "$AJAX" ]; then
 
-  echo "<form action=\"/cgi-bin/switch.cgi\">"
-  echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
-  echo "<div class=\"switchbox\"><div class=\"switchnameleft\">$NAME</div><span class=\"alignbuttonsright\">"
-  echo " <input class=\"onbutton\" type='submit' name='power' value='on' />"
-  echo " <input class=\"offbutton\" type='submit' name='power' value='off' />"
-  echo "</span>"
-  echo "</div>"
-  echo "</form>"
-  
-  else
-  
-  echo "<div class=\"switchbox\">"
+echo "<div class=\"switchbox\">"
   echo "<span class=\"alignbuttonsleft\">"
   echo " <button class=\"onbutton\" onClick='sendButton(\"on\",\"$DISPID\");'>On</button>"
   echo " <button class=\"offbutton\" onClick='sendButton(\"off\",\"$DISPID\");'>Off</button>"
@@ -221,60 +208,46 @@ for DISPID in $VALID_ONOFF_IDS; do
   echo "<div class=\"switchnameright\">$NAME</div>"
   echo "</div>"
   
-  fi
-  if [ "$MOBILE" == "1" ]; then
+  if [ "$NOFLOAT" == "1" ]; then
     echo "<br/>"
   fi 
 done
+
+#Custom Buttons Start
+echo "<div class=\"switchbox\">"
+echo "<span class=\"alignbuttonsleft\">"
+echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhpower\");'>Tgl</button>"
+echo " <button class=\"offbutton\" onClick='sendButton(\"on\",\"ymhpoweroff\");'>Off</button>"
+echo "</span>"
+echo "<div class=\"switchnameright\">Receiver Power</div>"
 echo "</div>"
+  if [ "$NOFLOAT" == "1" ]; then
+    echo "<br/>"
+  fi 
+echo "<div class=\"switchbox\">"
+echo "<span class=\"alignbuttonsleft\">"
+echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhvolup\");'>&uarr;</button>"
+echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhvoldown\");'>&darr;</button>"
+echo "</span>"
+echo "<div class=\"switchnameright\">Receiver Volume</div>"
+echo "</div>"
+  if [ "$NOFLOAT" == "1" ]; then
+    echo "<br/>"
+  fi 
+#Custom Buttons End
+
+echo "</div>"
+
 if [ "$MOBILE" != "1" ]; then                                                             
-echo "<div style=\"float:left; border:1px solid black; margin-top:5px;\">"
 
-  if [ -z "$AJAX" ]; then
+echo "<div style=\"float:left; border:1px solid black;\">"
 
-  echo "<div class=\"switchbox\"><div class=\"switchnameleft\">Receiver Power</div><span class=\"alignbuttonsright\">"
-  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhpower\" /><input class=\"sendbutton\" type='submit' name='power' value='tgl' /></form>"
-  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhpower\" /><input class=\"offbutton\" type='submit' name='power' value='off' /></form>"
-  echo "</span></div>"
-
-  echo "<div class=\"switchbox\"><div class=\"switchnameleft\">Receiver Volume</div><span class=\"alignbuttonsright\">"
-  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhvolup\" /><input class=\"sendbutton\" type='submit' name='power' value='&uarr;' /></form>"
-  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhvoldown\" /><input class=\"sendbutton\" type='submit' name='power' value='&darr;' /></form>"
-  echo "</span></div>"
-
-  else
-  
-  echo "<div class=\"switchbox\">"
-  echo "<span class=\"alignbuttonsleft\">"
-  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhpower\");'>Tgl</button>"
-  echo " <button class=\"offbutton\" onClick='sendButton(\"on\",\"ymhpoweroff\");'>Off</button>"
-  echo "</span>"
-  echo "<div class=\"switchnameright\">Receiver Power</div>"
-  echo "</div>"
-    
-  echo "<div class=\"switchbox\">"
-  echo "<span class=\"alignbuttonsleft\">"
-  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhvolup\");'>&uarr;</button>"
-  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhvoldown\");'>&darr;</button>"
-  echo "</span>"
-  echo "<div class=\"switchnameright\">Receiver Volume</div>"
-  echo "</div>"    
-    
-  fi
+ITEMCOUNT=0
 
 for DISPID in $VALID_SEND_IDS; do
+  ITEMCOUNT=$((ITEMCOUNT+1))
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
-  if [ -z "$AJAX" ]; then
-
-  echo "<form action=\"/cgi-bin/switch.cgi\">"
-  echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
-  echo " <input class=\"sendbutton\" type='submit' name='power' value='  ' />"
-  echo "</span></div>"
-  echo "</form>"
-
-  else
   
   echo "<div class=\"switchbox\">"
   echo "<span class=\"alignbuttonsleft\">"
@@ -282,24 +255,17 @@ for DISPID in $VALID_SEND_IDS; do
   echo "</span>"
   echo "<div class=\"switchnameright\">$NAME</div>"
   echo "</div>"
-    
-  fi
+  if [ "$NOFLOAT" == "1" -a $((ITEMCOUNT % 2 )) -ne 1 ]; then
+    echo "<br/>"
+  fi 
+  
 done
+echo '<div class="switchbox">Goto <a href="/ymhremote.html">Yamaha Receiver Remote</a></div>'
 echo "</div>"
 echo "<div style=\"float:left; border:1px solid black; margin-top:5px;\">"
 for DISPID in $VALID_BANSHEE_IDS $VALID_CAM_MOTOR_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
-  if [ -z "$AJAX" ]; then
-
-  echo "<form action=\"/cgi-bin/switch.cgi\">"
-  echo "<input type=\"hidden\" name=\"id\" value=\"$DISPID\" />"
-  echo "<div style=\"float:left; margin:2px; padding:1px; max-width:236px; font-size:10pt; border:1px solid black;\"><div style='width:10em; display:inline-block; vertical-align:middle;'>$NAME</div><span style='float:right; text-align:right;'>"
-  echo " <input class=\"sendbutton\" type='submit' name='power' value='  ' />"
-  echo "</span></div>"
-  echo "</form>"
-
-  else
   
   echo "<div class=\"switchbox\">"
   echo "<span class=\"alignbuttonsleft\">"
@@ -307,10 +273,13 @@ for DISPID in $VALID_BANSHEE_IDS $VALID_CAM_MOTOR_IDS; do
   echo "</span>"
   echo "<div class=\"switchnameright\">$NAME</div>"
   echo "</div>"
-    
-  fi
+  if [ "$NOFLOAT" == "1" ]; then
+    echo "<br/>"
+  fi 
+
 done
 echo "</div>"
 fi
+echo "</div>"
 echo "</body>"
 echo "</html>"
