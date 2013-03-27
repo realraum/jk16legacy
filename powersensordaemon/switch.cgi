@@ -25,11 +25,13 @@ done
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
 VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler whiteboard pcblueleds bikewcblue"
-VALID_SEND_IDS="ymhpoweron ymhpoweroff ymhpower ymhvolup ymhvoldown ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
+VALID_SEND_IDS_CUSTOM_DISPLAY="ymhpoweroff ymhpower ymhvolup ymhvoldown"
+VALID_SEND_IDS="ymhpoweron ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
 #VALID_BANSHEE_IDS="playPause next prev"
 #VALID_CAM_MOTOR_IDS="c C w W"
 
-[ "$POWER" == "send" ] && POWER=on
+[ "$POWER" == "Off" ] && POWER=off
+[ "$POWER" != "off" ] && POWER=on
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
   for CHECKID in $VALID_ONOFF_IDS $VALID_SEND_IDS; do 
     if [ "$CHECKID" == "$ID" ]; then
@@ -91,7 +93,7 @@ DESC_whiteboard="Whiteboard Vorne"
 DESC_decke="Deckenlichter"
 DESC_lichter="Alle Lichter"
 DESC_all="Alles"
-DESC_ymhpoweron="Receiver On"
+DESC_ymhpoweron="Receiver On (off+tgl)"
 DESC_ymhpoweroff="Receiver Off"
 DESC_ymhpower="Receiver On/Off"
 DESC_ymhvolup="VolumeUp"
@@ -143,7 +145,8 @@ echo '<style>'
 echo 'div.switchbox {'
 echo '    float:left;'
 echo '    margin:2px;'
-echo '    max-width:236px;'
+#echo '    max-width:236px;'
+echo '    max-width:300px;'
 echo '    font-size:10pt;'
 echo '    border:1px solid black;'
 #echo '    height: 32px;'
@@ -151,7 +154,7 @@ echo '    padding:0;'
 echo '}'
   
 echo 'div.switchnameleft {'
-echo '    width:10em; display:inline-block; vertical-align:middle; margin-left:3px;'
+echo '    width:12em; display:inline-block; vertical-align:middle; margin-left:3px;'
 echo '}'
 
 echo 'span.alignbuttonsright {'
@@ -159,7 +162,7 @@ echo '    top:0px; float:right; display:inline-block; text-align:right; padding:
 echo '}'
 
 echo 'div.switchnameright {'
-echo '    width:10em; display:inline-block; vertical-align:middle; float:right; display:inline-block; margin-left:1ex; margin-right:3px; margin-top:3px; margin-bottom:3px;'
+echo '    width:12em; display:inline-block; vertical-align:middle; float:right; display:inline-block; margin-left:1ex; margin-right:3px; margin-top:3px; margin-bottom:3px;'
 echo '}'
 
 echo 'span.alignbuttonsleft {'
@@ -224,8 +227,41 @@ for DISPID in $VALID_ONOFF_IDS; do
   fi 
 done
 echo "</div>"
-if [ "$MOBILE" != "1" ]; then                                                                                   
+if [ "$MOBILE" != "1" ]; then                                                             
 echo "<div style=\"float:left; border:1px solid black; margin-top:5px;\">"
+
+  if [ -z "$AJAX" ]; then
+
+  echo "<div class=\"switchbox\"><div class=\"switchnameleft\">Receiver Power</div><span class=\"alignbuttonsright\">"
+  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhpower\" /><input class=\"sendbutton\" type='submit' name='power' value='tgl' /></form>"
+  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhpower\" /><input class=\"offbutton\" type='submit' name='power' value='off' /></form>"
+  echo "</span></div>"
+
+  echo "<div class=\"switchbox\"><div class=\"switchnameleft\">Receiver Volume</div><span class=\"alignbuttonsright\">"
+  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhvolup\" /><input class=\"sendbutton\" type='submit' name='power' value='&uarr;' /></form>"
+  echo "<form action=\"/cgi-bin/switch.cgi\"><input type=\"hidden\" name=\"id\" value=\"ymhvoldown\" /><input class=\"sendbutton\" type='submit' name='power' value='&darr;' /></form>"
+  echo "</span></div>"
+
+  else
+  
+  echo "<div class=\"switchbox\">"
+  echo "<span class=\"alignbuttonsleft\">"
+  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhpower\");'>Tgl</button>"
+  echo " <button class=\"offbutton\" onClick='sendButton(\"on\",\"ymhpoweroff\");'>Off</button>"
+  echo "</span>"
+  echo "<div class=\"switchnameright\">Receiver Power</div>"
+  echo "</div>"
+    
+  echo "<div class=\"switchbox\">"
+  echo "<span class=\"alignbuttonsleft\">"
+  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhvolup\");'>&uarr;</button>"
+  echo " <button class=\"sendbutton\" onClick='sendButton(\"on\",\"ymhvoldown\");'>&darr;</button>"
+  echo "</span>"
+  echo "<div class=\"switchnameright\">Receiver Volume</div>"
+  echo "</div>"    
+    
+  fi
+
 for DISPID in $VALID_SEND_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
   [ -z "$NAME" ] && NAME=$DISPID
