@@ -30,7 +30,7 @@ VALID_SEND_IDS="ymhpoweron ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymh
 
 [ "$POWER" == "send" ] && POWER=on
 if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
-  for CHECKID in $VALID_ONOFF_IDS $VALID_SEND_IDS; do 
+  for CHECKID in $VALID_ONOFF_IDS $VALID_SEND_IDS $VALID_SEND_IDS_CUSTOM_DISPLAY; do 
     if [ "$CHECKID" == "$ID" ]; then
       echo "power $POWER $ID" | usocket $UNIXSOCK
       echo "Content-type: text/html"
