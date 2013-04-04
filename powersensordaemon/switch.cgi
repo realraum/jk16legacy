@@ -137,7 +137,9 @@ echo ' //google chrome workaround'
 echo ' req.setRequestHeader("googlechromefix","");'
 echo ' req.send(null);'
 echo '}'
+[ "$NOFLOAT" == "1" ] && tail -n+6 /www/ymhremote.html | head -n 58
 echo '</script>'
+[ "$NOFLOAT" == "1" ] && tail -n+67 /www/ymhremote.html | head -n 37
 echo '<style>'
 echo 'div.switchbox {'
 echo '    float:left;'
@@ -240,7 +242,7 @@ echo "</div>"
 
 if [ "$MOBILE" != "1" ]; then                                                             
 
-echo "<div style=\"float:left; border:1px solid black;\">"
+echo "<div style=\"float:left; border:1px solid black; margin-right:2ex; margin-bottom:2ex;\">"
 
 ITEMCOUNT=0
 
@@ -262,6 +264,13 @@ for DISPID in $VALID_SEND_IDS; do
 done
 echo '<div class="switchbox">Goto <a href="/ymhremote.html">Yamaha Receiver Remote</a></div>'
 echo "</div>"
+
+ if [ "$NOFLOAT" == "1" ]; then
+    echo "<div style=\"float:left; border:1px solid black;\">"
+    tail -n+107 /www/ymhremote.html | head -n 5
+    echo "</div>"
+ fi 
+
 echo "<div style=\"float:left; border:1px solid black; margin-top:5px;\">"
 for DISPID in $VALID_BANSHEE_IDS $VALID_CAM_MOTOR_IDS; do
   NAME="$(eval echo \$DESC_$DISPID)"
