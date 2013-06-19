@@ -372,6 +372,8 @@ class StatusTracker: #(threading.Thread):
     self.lock.acquire()
     self.last_movement_unixts=time.time()
     self.lock.release()
+    #FIXME: QUICKFIX ignore movement
+    return
     self.checkPresenceStateChangeAndNotify()
 
   def currentLightLevel(self, value):
@@ -412,6 +414,9 @@ class StatusTracker: #(threading.Thread):
         self.num_movements_during_nonpresences = 0
         if self.door_physically_present:
           return True
+        #door is ajar and unlocked then we are here for sure:
+        elif self.door_closed == False: 
+          return True
         elif self.last_movement_unixts > self.last_door_operation_unixts:
           return True
         else:
@@ -424,15 +429,18 @@ class StatusTracker: #(threading.Thread):
         self.num_movements_during_nonpresences = 0
         self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_cardphone))
         return self.last_somebody_present_result      
-      # door locked from inside, stay on last status ....
-      elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch):
-        self.num_movements_during_nonpresences = 0
-        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch))
-        return self.last_somebody_present_result
-      # door locked from inside and movement detected around that time
-      elif self.door_manual_switch_used and self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch):
-        self.num_movements_during_nonpresences = 0
+      # door locked from inside, and door not ajar
+      elif self.door_manual_switch_used and self.door_closed:
         return True
+#      # door locked from inside, stay on last status ....
+#      elif self.door_manual_switch_used and time.time() - self.last_door_operation_unixts <= float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch):
+#        self.num_movements_during_nonpresences = 0
+#        self.checkAgainIn(float(self.uwscfg.tracker_sec_wait_after_close_using_manualswitch))
+#        return self.last_somebody_present_result
+#      # door locked from inside and movement detected around that time
+#      elif self.door_manual_switch_used and self.last_movement_unixts > self.last_door_operation_unixts - float(self.uwscfg.tracker_sec_movement_before_manual_switch):
+#        self.num_movements_during_nonpresences = 0
+#        return True
       ##door was closed and nobody here But movement is dedected:
       #elif self.last_movement_unixts > self.last_door_operation_unixts and time.time() - self.last_movement_unixts < float(self.uwscfg.tracker_sec_general_movement_timeout):
       #  self.num_movements_during_nonpresences += 1
