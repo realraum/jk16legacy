@@ -8,13 +8,13 @@ import logging
 import logging.handlers
 import time
 import signal
-import re
-import socket
 import subprocess
 import types
 import ConfigParser
 import traceback
 import random
+import json
+import zmq
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -86,8 +86,9 @@ class UWSConfig:
     self.config_parser.set('mapping','Rachel',"nothing")
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
+    self.config_parser.add_section('broker')
+    self.config_parser.set('broker','uri',"tcp://wuzzler.realraum.at:4244")    
     self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")
     self.config_parser.set('tracker','secs_movement_before_presence_to_launch_event','1')
     self.config_parser.set('tracker','secs_presence_before_movement_to_launch_event','120')
     self.config_mtime=0
@@ -297,14 +298,18 @@ def popenTimeout2(cmd, pinput, returncode_ok=[0], ptimeout=21):
       pass
     return False
 
+def decodeR3Message(multipart_msg):
+    try:
+        return (multipart_msg[0], json.loads(multipart_msg[1]))
+    except Exception, e:
+        logging.debug("decodeR3Message:"+str(e))
+        return ("",{})
+
 def exitHandler(signum, frame):
   logging.info("stopping")
   try:
-    conn.close()
-  except:
-    pass
-  try:
-    sockhandle.close()
+    zmqsub.close()
+    zmqctx.destroy()
   except:
     pass
   sys.exit(0)
@@ -321,52 +326,30 @@ if len(sys.argv) > 1:
 else:
   uwscfg = UWSConfig()
 
-#socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
-RE_BUTTON = re.compile(r'PanicButton|button\d?')
-#RE_REQUEST = re.compile(r'Request: (\w+) (?:(Card|Phone) )?(.+)')
-RE_ERROR = re.compile(r'Error: (.+)')
-RE_MOVEMENT = re.compile(r'movement')
-
 while True:
   try:
-    if not os.path.exists(uwscfg.tracker_socket):
-      logging.debug("Socketfile '%s' not found, waiting 5 secs" % uwscfg.tracker_socket)
-      time.sleep(5)
-      continue
-    sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sockhandle.connect(uwscfg.tracker_socket)
-    conn = os.fdopen(sockhandle.fileno())
-    #sockhandle.send("listen\n")
-    #sockhandle.send("status\n")
+    #Start zmq connection to publish / forward sensor data
+    zmqctx = zmq.Context()
+    zmqctx.linger = 0
+    zmqsub = zmqctx.socket(zmq.SUB)
+    zmqsub.setsockopt(zmq.SUBSCRIBE, "")
+    zmqsub.connect(uwscfg.broker_uri)
+
     last_status=None
     last_user=None
     unixts_panic_button=None
     unixts_last_movement=0
     unixts_last_presence=0
     while True:
-      line = conn.readline()
-      logging.debug("Got Line: " + line)
+      data = zmqsub.recv_multipart()
+      (structname, dictdata) = decodeR3Message(data)
+      logging.debug("Got data: " + structname + ":"+ str(dictdata))
 
       #uwscfg.checkConfigUpdates()
 
-      if line == "":
-        raise Exception("EOF on Socket, daemon seems to have quit")
-
-      m = RE_MOVEMENT.match(line)
-      if not m is None:
-        unixts_last_movement=time.time()
-        if (time.time() - unixts_last_presence) <= float(uwscfg.tracker_secs_presence_before_movement_to_launch_event):
-          unixts_last_presence=0
-          if last_status:
-            playThemeOf(user=last_user, fallback_default="DEFAULT")
-        continue
-
-      m = RE_PRESENCE.match(line)
-      if not m is None:
-        status = m.group(1)
+      if structname == "PresenceUpdate" and "Present" in dictdata:
         unixts_last_presence=time.time()
-        last_status=(status == "yes")
+        last_status=dictdata["Present"]
         unixts_panic_button=None
         last_user=m.group(3)
         if ( time.time() - unixts_last_movement ) <= float(uwscfg.tracker_secs_movement_before_presence_to_launch_event):
@@ -374,23 +357,26 @@ while True:
           if last_status:
             playThemeOf(user=last_user, fallback_default="DEFAULT")
         continue
-
-      m = RE_BUTTON.match(line)
-      if not m is None:
+      elif structname == "BoreDoomButtonPressEvent":
         playThemeOf(user="PANIC", fallback_default="nothing")
         continue
-
-      m = RE_ERROR.match(line)
-      if not m is None:
+      elif structname == "MovementSensorUpdate" or structname == "DoorAjarUpdate":
+        unixts_last_movement=time.time()
+        if (time.time() - unixts_last_presence) <= float(uwscfg.tracker_secs_presence_before_movement_to_launch_event):
+          unixts_last_presence=0
+          if last_status:
+            playThemeOf(user=last_user, fallback_default="DEFAULT")
+        continue
+      elif structname == "DoorProblemEvent" and "Severity" in dictdata:
         playThemeOf(user="ERROR", fallback_default="nothing")
         continue
 
   except Exception, ex:
     logging.error("main: "+str(ex))
+    traceback.print_exc(file=sys.stdout)
     try:
-      sockhandle.close()
+      zmqsub.close()
+      zmqctx.destroy()
     except:
       pass
-    conn=None
-    sockhandle=None
     time.sleep(5)

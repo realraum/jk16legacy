@@ -343,7 +343,7 @@ while True:
       elif structname == "BoreDoomButtonPressEvent":
         eventPanic()
         continue
-      elif structname == "MovementSensorUpdate":
+      elif structname == "MovementSensorUpdate" or structname == "DoorAjarUpdate":
         eventMovement()
         continue
       elif structname == "IlluminationSensorUpdate" and "Value" in dictdata:
