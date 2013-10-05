@@ -3,16 +3,13 @@
 import os
 import os.path
 import sys
-#import threading
 import logging
 import logging.handlers
 import urllib
 import time
 import signal
-import re
-import socket
-import subprocess
-import types
+import json
+import zmq
 import ConfigParser
 import datetime
 import random
@@ -31,7 +28,6 @@ class UWSConfig:
     self.configfile=configfile
     self.config_parser=ConfigParser.ConfigParser()
     self.config_parser.add_section('powerswitching')
-    self.config_parser.set('powerswitching','min_secs_periodical_event','59')
     self.config_parser.set('powerswitching','secs_movement_before_presence_to_launch_event','1')
     self.config_parser.set('powerswitching','secs_presence_before_movement_to_launch_event','120')
     self.config_parser.set('powerswitching','max_secs_since_movement','600')
@@ -50,8 +46,8 @@ class UWSConfig:
     #self.config_parser.set('slug','time_day','6:00-17:00')
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
-    self.config_parser.add_section('tracker')
-    self.config_parser.set('tracker','socket',"/var/run/tuer/presence.socket")
+    self.config_parser.add_section('broker')
+    self.config_parser.set('broker','uri',"tcp://wuzzler.realraum.at:4244")
     self.config_mtime=0
     if not self.configfile is None:
       try:
@@ -177,26 +173,6 @@ def eventRoomGotDark():
   logging.debug("eventRoomGotDark()")
   room_is_bright=False
 
-def eventDaylightStart():
-  global status_presence
-  logging.debug("eventDaylightStart()")
-  switchLogo(status_presence)
-
-def eventDaylightStop():
-  global status_presence
-  logging.debug("eventDaylightStop()")
-  switchLogo(status_presence)
-
-def eventWolfHourStart():
-  global status_presence
-  logging.debug("eventWolfHourStart()")
-  switchLogo(status_presence)
-
-def eventWolfHourStop():
-  global status_presence
-  logging.debug("eventWolfHourStop()")
-  switchLogo(status_presence)
-
 def eventMovement():
   global unixts_last_movement, unixts_last_presence
   unixts_last_movement=time.time()
@@ -205,13 +181,9 @@ def eventMovement():
     unixts_last_presence=0  # so that eventPresentAndMoved will only launch once per presence event (i.e. supress multiple movement events)
 
 
-def eventPeriodical():
-  pass
-
 #  global unixts_last_movement
 #  if status_presence is True and unixts_last_movement + int(uwscfg.powerswitching_max_secs_since_movement) >= time.time():
 #    presumed_state=not (haveDaylight() or isWolfHour())
-#    logging.debug("event: periodical event")
 #    for id in uwscfg.slug_ids_logo.split(" "):
 #      switchPower(id,not presumed_state)
 #      time.sleep(1);
@@ -313,14 +285,18 @@ def eventPanic():
 
 ########################
 
+def decodeR3Message(multipart_msg):
+    try:
+        return (multipart_msg[0], json.loads(multipart_msg[1]))
+    except Exception, e:
+        logging.debug("decodeR3Message:"+str(e))
+        return ("",{})
+
 def exitHandler(signum, frame):
   logging.info("Power Switch Daemon stopping")
   try:
-    conn.close()
-  except:
-    pass
-  try:
-    sockhandle.close()
+    zmqsub.close()
+    zmqctx.destroy()
   except:
     pass
   sys.exit(0)
@@ -337,72 +313,41 @@ if len(sys.argv) > 1:
 else:
   uwscfg = UWSConfig()
 
-#socket.setdefaulttimeout(10.0) #affects all new Socket Connections (urllib as well)
-RE_PRESENCE = re.compile(r'Presence: (yes|no)(?:, (opened|closed), (.+))?')
-RE_BUTTON = re.compile(r'PanicButton|button\d?')
-RE_MOVEMENT = re.compile(r'movement')
-RE_PHOTO = re.compile(r'photo\d: [^0-9]*?(\d+)')
+
 daylight=None
 wolfhour=None
-unixts_last_periodical=0
 light_value=0
 while True:
   try:
-    if not os.path.exists(uwscfg.tracker_socket):
-      logging.debug("Socketfile '%s' not found, waiting 5 secs" % uwscfg.tracker_socket)
-      time.sleep(5)
-      continue
-    sockhandle = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    sockhandle.connect(uwscfg.tracker_socket)
-    conn = os.fdopen(sockhandle.fileno())
-    #sockhandle.send("listen\n")
+    #Start zmq connection to publish / forward sensor data
+    zmqctx = zmq.Context()
+    zmqctx.linger = 0
+    zmqsub = zmqctx.socket(zmq.SUB)
+    zmqsub.setsockopt(zmq.SUBSCRIBE, "")
+    zmqsub.connect(uwscfg.broker_uri)
+
     while True:
 
-      if haveDaylight() != daylight:
-        daylight = haveDaylight()
-        if daylight:
-          eventDaylightStart()
-        else:
-          eventDaylightStop()
-
-      if isWolfHour() != wolfhour:
-        wolfhour = isWolfHour()
-        if wolfhour:
-          eventWolfHourStart()
-        else:
-          eventWolfHourStop()
-
-      if unixts_last_periodical + int(uwscfg.powerswitching_min_secs_periodical_event) <= time.time():
-        unixts_last_periodical = time.time()
-        eventPeriodical()
-
-      line = conn.readline()
-      logging.debug("Got Line: " + line)
+      data = zmqsub.recv_multipart()
+      (structname, dictdata) = decodeR3Message(data)
+      logging.debug("Got data: " + structname + ":"+ str(dictdata))
 
       uwscfg.checkConfigUpdates()
 
-      if line == "":
-        raise Exception("EOF on Socket, daemon seems to have quit")
-
-      m = RE_PRESENCE.match(line)
-      if not m is None:
-        status = m.group(1)
-        if status == "yes":
+      if structname == "PresenceUpdate" and "Present" in dictdata:
+        if dictdata["Present"]:
           eventPresent()
         else:
           eventNobodyHere()
         continue
-      m = RE_BUTTON.match(line)
-      if not m is None:
+      elif structname == "BoreDoomButtonPressEvent":
         eventPanic()
         continue
-      m = RE_MOVEMENT.match(line)
-      if not m is None:
+      elif structname == "MovementSensorUpdate":
         eventMovement()
         continue
-      m = RE_PHOTO.match(line)
-      if not m is None:
-        light_value = int(m.group(1))
+      elif structname == "IlluminationSensorUpdate" and "Value" in dictdata:
+        light_value = dictdata["Value"]
         light_threshold = int(uwscfg.slug_light_threshold_brightness)
         #logging.debug("photo value: %d  threshold: %s" % (light_value,light_threshold))
         if light_value >= light_threshold:
@@ -415,9 +360,8 @@ while True:
     logging.error("main: "+str(ex))
     traceback.print_exc(file=sys.stdout)
     try:
-      sockhandle.close()
+      zmqsub.close()
+      zmqctx.destroy()
     except:
       pass
-    conn=None
-    sockhandle=None
     time.sleep(5)
