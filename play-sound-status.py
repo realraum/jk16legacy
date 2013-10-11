@@ -13,8 +13,8 @@ import types
 import ConfigParser
 import traceback
 import random
-import json
 import zmq
+import zmq.utils.jsonapi as json
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -332,7 +332,12 @@ while True:
     zmqctx = zmq.Context()
     zmqctx.linger = 0
     zmqsub = zmqctx.socket(zmq.SUB)
-    zmqsub.setsockopt(zmq.SUBSCRIBE, "")
+    zmqsub.setsockopt(zmq.SUBSCRIBE, "DoorCommandEvent")
+    zmqsub.setsockopt(zmq.SUBSCRIBE, "PresenceUpdate")
+    zmqsub.setsockopt(zmq.SUBSCRIBE, "BoreDoomButtonPressEvent")
+#    zmqsub.setsockopt(zmq.SUBSCRIBE, "MovementSensorUpdate")
+    zmqsub.setsockopt(zmq.SUBSCRIBE, "DoorAjarUpdate")
+    zmqsub.setsockopt(zmq.SUBSCRIBE, "DoorProblemEvent")
     zmqsub.connect(uwscfg.broker_uri)
 
     last_status=None
@@ -351,11 +356,13 @@ while True:
         unixts_last_presence=time.time()
         last_status=dictdata["Present"]
         unixts_panic_button=None
-        last_user=m.group(3)
         if ( time.time() - unixts_last_movement ) <= float(uwscfg.tracker_secs_movement_before_presence_to_launch_event):
           unixts_last_movement=0
           if last_status:
             playThemeOf(user=last_user, fallback_default="DEFAULT")
+        continue
+      elif structname == "DoorCommandEvent":
+        last_user = dictdata["Who"]
         continue
       elif structname == "BoreDoomButtonPressEvent":
         playThemeOf(user="PANIC", fallback_default="nothing")
