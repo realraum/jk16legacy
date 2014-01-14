@@ -475,21 +475,21 @@ void loop()
     else if(command == 'a')
       send_rf_cmd("\x8a\xa0\x2a");  // pollin 00101 a 0
     else if(command == 'B')
-      send_rf_cmd("\xa0\xa2\xa8");
+      send_rf_cmd("\xa0\xa2\xa8"); //white remote A 2 on
     else if(command == 'b')
-      send_rf_cmd("\xa0\xa2\x28");    
+      send_rf_cmd("\xa0\xa2\x28"); //white remote A 2 off    
     else if(command == 'C')
-      send_rf_cmd("\xa2\xa0\xa8");
+      send_rf_cmd("\xa2\xa0\xa8"); //white remote B 1 on
     else if(command == 'c')
-      send_rf_cmd("\xa2\xa0\x28");
+      send_rf_cmd("\xa2\xa0\x28"); //white remote B 1 off
     else if(command == 'D')
       send_rf_cmd("\x8a\x88\x8a"); //pollin 00101 b 1
     else if(command == 'd')
       send_rf_cmd("\x8a\x88\x2a"); //pollin 00101 b 0
     else if(command == 'E')
-      send_rf_cmd("\xa8\xa0\xa8");
+      send_rf_cmd("\xa8\xa0\xa8"); //white remote C 1 on
     else if(command == 'e')    
-      send_rf_cmd("\xa8\xa0\x28");
+      send_rf_cmd("\xa8\xa0\x28"); //white remote C 1 off
     else if(command == 'F')
       send_rf_cmd("\xa8\xa2\xa8");
     else if(command == 'f')

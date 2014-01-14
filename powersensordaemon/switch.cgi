@@ -22,7 +22,7 @@ done
 
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALID_ONOFF_IDS="decke ambientlights lichter all werkzeug labor dart logo spots1 deckehinten deckevorne boiler whiteboard pcblueleds bikewcblue"
+VALID_ONOFF_IDS="regalleinwand labortisch bluebar couchred couchwhite all lichter ambientlights boiler"
 VALID_SEND_IDS_CUSTOM_DISPLAY="ymhpoweroff ymhpower ymhvolup ymhvoldown"
 VALID_SEND_IDS="ymhpoweron ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
 #VALID_BANSHEE_IDS="playPause next prev"
@@ -73,21 +73,13 @@ if [ "$POWER" == "on" -o "$POWER" == "off" ]; then
   done
 fi
 
-DESC_pcblueleds="Blaue Leds PC"
-DESC_bikewcblue="Blaue Lichterkette WC"
-DESC_weissB="WeissB"
-DESC_werkzeug="Werkzeug LEDs"
-DESC_stereo="Receiver On/Off"
+DESC_regalleinwand="LEDs Regal Leinwand"
+DESC_bluebar="Blaue LEDs Bar"
+DESC_labortisch="Labortisch"
+DESC_couchred="LEDs Couch Red"
+DESC_couchwhite="LEDS Couch White"
 DESC_ambientlights="Ambient Lichter"
-DESC_labor="Labor Licht"
-DESC_boiler="Warmwasser WC"
-DESC_dart="Dart Scheibe"
-DESC_logo="Logo"
-DESC_spots1="Spots"
-DESC_deckehinten="Decke Hinten"
-DESC_deckevorne="Decke Vorne"
-DESC_whiteboard="Whiteboard Vorne"
-DESC_decke="Deckenlichter"
+DESC_boiler="Warmwasser Küche"
 DESC_lichter="Alle Lichter"
 DESC_all="Alles"
 DESC_ymhpoweron="Receiver On (off+tgl)"
