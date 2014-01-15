@@ -22,7 +22,7 @@ done
 
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALID_ONOFF_IDS="regalleinwand labortisch bluebar couchred couchwhite all lichter ambientlights boiler"
+VALID_ONOFF_IDS="regalleinwand labortisch bluebar couchred couchwhite all lichter ambientlights mashatable boiler"
 VALID_SEND_IDS_CUSTOM_DISPLAY="ymhpoweroff ymhpower ymhvolup ymhvoldown"
 VALID_SEND_IDS="ymhpoweron ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
 #VALID_BANSHEE_IDS="playPause next prev"
@@ -78,6 +78,7 @@ DESC_bluebar="Blaue LEDs Bar"
 DESC_labortisch="Labortisch"
 DESC_couchred="LEDs Couch Red"
 DESC_couchwhite="LEDS Couch White"
+DESC_mashatable="MaSha Tablelamp"
 DESC_ambientlights="Ambient Lichter"
 DESC_boiler="Warmwasser K&uuml;che"
 DESC_lichter="Alle Lichter"
