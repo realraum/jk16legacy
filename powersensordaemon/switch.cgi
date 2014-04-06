@@ -22,7 +22,7 @@ done
 
 
 UNIXSOCK=/var/run/powersensordaemon/cmd.sock
-VALID_ONOFF_IDS="regalleinwand labortisch bluebar couchred couchwhite all lichter ambientlights mashatable boiler"
+VALID_ONOFF_IDS="regalleinwand labortisch bluebar couchred couchwhite all lichter ambientlights mashatable mashadecke boiler"
 VALID_SEND_IDS_CUSTOM_DISPLAY="ymhpoweroff ymhpower ymhvolup ymhvoldown"
 VALID_SEND_IDS="ymhpoweron ymhcd ymhwdtv ymhtuner ymhaux ymhsattv ymhvolmute ymhmenu ymhplus ymhminus ymhtest ymhtimelevel ymheffect ymhprgup ymhprgdown ymhtunplus ymhtunminus ymhtunabcde ymhtape ymhvcr ymhextdec ymhsleep ymhp5 panicled blueled moviemode"
 #VALID_BANSHEE_IDS="playPause next prev"
