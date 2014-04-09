@@ -47,7 +47,7 @@ class UWSConfig:
     self.config_parser.add_section('debug')
     self.config_parser.set('debug','enabled',"False")
     self.config_parser.add_section('broker')
-    self.config_parser.set('broker','uri',"tcp://wuzzler.realraum.at:4244")
+    self.config_parser.set('broker','uri',"tcp://torwaechter.realraum.at:4244")
     self.config_mtime=0
     if not self.configfile is None:
       try:
